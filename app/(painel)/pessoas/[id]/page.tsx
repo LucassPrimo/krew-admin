@@ -1,12 +1,23 @@
 import Link from 'next/link'
-import { notFound } from 'next/navigation'
-import { exigirAdmin } from '@/lib/auth'
+import { notFound, redirect } from 'next/navigation'
+import { exigirAdmin, stepUpValido } from '@/lib/auth'
+import { dataRelevante, estadoAssinatura, ROTULO_ESTADO, type EstadoAssinatura } from '@/lib/assinatura'
 import { sqlRo } from '@/lib/db'
-import { brl, data, dataHora, desde, num } from '@/lib/format'
+import { env } from '@/lib/env'
+import { brl, data, dataHora, desde, relativo, num } from '@/lib/format'
+import { MutacaoRecusada, presentearAssinatura } from '@/lib/mutate'
 import { mascararBancario, mascararDocumento, mascararEmail, mascararTelefone } from '@/lib/pii'
 import { Badge, Card, Celula, Linha, Mascarado, Stat, Tabela, Vazio } from '@/components/ui'
 
 export const dynamic = 'force-dynamic'
+
+const TOM_ESTADO: Record<EstadoAssinatura, 'ok' | 'info' | 'alerta' | 'neutro'> = {
+  ativa: 'ok',
+  trial: 'info',
+  cancelada_com_prazo: 'alerta',
+  inadimplente: 'alerta',
+  expirada: 'neutro',
+}
 
 /**
  * Visão 360 — a tela onde 80% do atendimento acontece.
@@ -46,9 +57,48 @@ function Campo({
   )
 }
 
-export default async function Pessoa({ params }: { params: Promise<{ id: string }> }) {
-  await exigirAdmin()
+async function presentear(id: string, formData: FormData) {
+  'use server'
+  const admin = await exigirAdmin()
+
+  const dias = Number(formData.get('dias'))
+  if (!Number.isFinite(dias) || dias <= 0) {
+    redirect(`/pessoas/${id}?erro=${encodeURIComponent('Dias precisa ser um número positivo.')}`)
+  }
+
+  const trialAtualBruto = String(formData.get('trialAtual') ?? '')
+  const trialAtual = trialAtualBruto ? new Date(trialAtualBruto) : null
+  const agora = Date.now()
+  const base = trialAtual && trialAtual.getTime() > agora ? trialAtual : new Date(agora)
+  const novaData = new Date(base.getTime() + dias * 86_400_000)
+
+  try {
+    await presentearAssinatura(admin, {
+      userId: id,
+      novaData,
+      motivo: String(formData.get('motivo') ?? ''),
+    })
+  } catch (e) {
+    if (e instanceof MutacaoRecusada) {
+      redirect(`/pessoas/${id}?erro=${encodeURIComponent(e.message)}`)
+    }
+    throw e
+  }
+
+  redirect(`/pessoas/${id}?ok=1`)
+}
+
+export default async function Pessoa({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ erro?: string; ok?: string }>
+}) {
+  const admin = await exigirAdmin()
   const { id } = await params
+  const { erro, ok } = await searchParams
+  const podeEscrever = env.ADMIN_WRITES_ENABLED && stepUpValido(admin)
 
   const [pessoa] = await sqlRo<
     {
@@ -197,10 +247,36 @@ export default async function Pessoa({ params }: { params: Promise<{ id: string 
     limit 10
   `
 
+  const [assinatura] = await sqlRo<
+    {
+      status: string | null
+      cancel_at_period_end: boolean | null
+      current_period_end: Date | null
+      trial_ends_at: Date | null
+      stripe_customer_id: string | null
+    }[]
+  >`
+    select status, cancel_at_period_end, current_period_end, trial_ends_at, stripe_customer_id
+    from public.subscriptions where user_id = ${id}
+  `
+  const estado = estadoAssinatura(assinatura ?? null)
+  const vence = dataRelevante(assinatura ?? null)
+
   const nome = [pessoa.full_name, pessoa.sobrenome].filter(Boolean).join(' ') || 'sem nome'
 
   return (
     <div className="space-y-6">
+      {ok && (
+        <div className="rounded-[24px] border-[0.5px] border-transparent bg-[var(--color-ok-dim)] px-4 py-3 text-sm text-[var(--color-ok)]">
+          Presente concedido.
+        </div>
+      )}
+      {erro && (
+        <div className="rounded-[24px] border-[0.5px] border-transparent bg-[var(--color-danger-dim)] px-4 py-3 text-sm text-[var(--color-danger-deep)]">
+          {erro}
+        </div>
+      )}
+
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <Link href="/pessoas" className="text-xs text-[var(--color-muted)] hover:underline">
@@ -324,6 +400,112 @@ export default async function Pessoa({ params }: { params: Promise<{ id: string 
           </div>
         </Card>
       </div>
+
+      {pessoa.account_type === 'creator' && (
+        <Card titulo="Assinatura">
+          <div className="grid gap-5 lg:grid-cols-2">
+            <div>
+              <Campo rotulo="Status">
+                <Badge tom={TOM_ESTADO[estado]}>{ROTULO_ESTADO[estado]}</Badge>
+              </Campo>
+              <Campo rotulo="Vence/renova">
+                {vence ? (
+                  <>
+                    {data(vence)}{' '}
+                    <span className="text-[var(--color-faint)]">({relativo(vence)})</span>
+                  </>
+                ) : (
+                  '—'
+                )}
+              </Campo>
+              <Campo rotulo="Cancelamento agendado">
+                {assinatura?.cancel_at_period_end ? (
+                  <Badge tom="alerta">sim</Badge>
+                ) : (
+                  <span className="text-[var(--color-faint)]">não</span>
+                )}
+              </Campo>
+              <Campo rotulo="Cliente Stripe">
+                {assinatura?.stripe_customer_id ? (
+                  <span className="tabular text-xs">{assinatura.stripe_customer_id}</span>
+                ) : (
+                  <span className="text-[var(--color-faint)]">nunca assinou</span>
+                )}
+              </Campo>
+            </div>
+
+            <div>
+              {estado === 'ativa' ? (
+                <p className="text-sm text-[var(--color-muted)]">
+                  Já é assinante ativo — presentear dias de trial não muda nada, o gate nem
+                  chega a olhar essa coluna enquanto o Stripe disser <code>active</code>.
+                </p>
+              ) : !env.ADMIN_WRITES_ENABLED ? (
+                <p className="text-sm text-[var(--color-muted)]">
+                  A escrita está desligada por <code>ADMIN_WRITES_ENABLED=false</code>.
+                </p>
+              ) : !podeEscrever ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-[var(--color-muted)]">
+                    Seu segundo fator foi verificado há mais de 15 minutos.
+                  </p>
+                  <Link
+                    href="/mfa"
+                    className="btn-krew-cta inline-block rounded-full px-4 py-2 text-sm font-semibold"
+                  >
+                    Confirmar código
+                  </Link>
+                </div>
+              ) : (
+                <form action={presentear.bind(null, id)} className="space-y-2.5">
+                  <input
+                    type="hidden"
+                    name="trialAtual"
+                    value={assinatura?.trial_ends_at ? assinatura.trial_ends_at.toISOString() : ''}
+                  />
+                  <div className="flex items-end gap-2">
+                    <div>
+                      <label className="mb-1 block text-xs text-[var(--color-muted)]">
+                        Dias de presente
+                      </label>
+                      <input
+                        name="dias"
+                        type="number"
+                        min={1}
+                        required
+                        defaultValue={30}
+                        className="w-24 rounded-[16px] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-1.5 text-sm"
+                      />
+                    </div>
+                    <span className="pb-2 text-xs text-[var(--color-faint)]">
+                      soma em cima do trial atual, se ele ainda estiver no futuro
+                    </span>
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs text-[var(--color-muted)]">
+                      Motivo <span className="text-[var(--color-danger)]">*</span>
+                    </label>
+                    <textarea
+                      name="motivo"
+                      rows={2}
+                      required
+                      minLength={10}
+                      placeholder="Ex: creator pediu mais tempo pra decidir, ticket #48."
+                      className="w-full rounded-[16px] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-1.5 text-sm"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="btn-krew-cta rounded-full px-4 py-1.5 text-sm font-semibold transition-transform active:translate-y-px active:scale-[0.98]"
+                  >
+                    Presentear
+                  </button>
+                </form>
+              )}
+            </div>
+          </div>
+        </Card>
+      )}
 
       {operacao && financeiro && (
         <>

@@ -10,6 +10,8 @@ import { Badge, Card, Celula, Linha, Tabela, Vazio } from '@/components/ui'
 
 export const dynamic = 'force-dynamic'
 
+const ID_FORM_MASSA = 'form-presentear-massa'
+
 interface LinhaAssinatura {
   user_id: string
   nome: string | null
@@ -38,6 +40,11 @@ const ORDEM_TABS: (EstadoAssinatura | 'todos')[] = [
   'expirada',
 ]
 
+/** Ação em massa mexe em várias contas de uma vez — dinheiro de verdade se
+ *  usada sem pensar. Digitar isto é o freio de mão: ninguém erra por engano
+ *  a ponto de teclar uma frase inteira sem perceber o que está confirmando. */
+const FRASE_CONFIRMACAO_MASSA = 'PRESENTEAR'
+
 /** A partir de quando os dias de presente somam: se o trial já corre no
  *  futuro, soma em cima dele; senão, soma a partir de agora. Evita que
  *  presentear duas vezes a mesma pessoa "perca" os dias já concedidos. */
@@ -47,26 +54,54 @@ function novaDataPresente(trialAtual: Date | null, dias: number): Date {
   return new Date(base.getTime() + dias * 86_400_000)
 }
 
-function lerDias(formData: FormData): number {
+async function presentearEmMassa(formData: FormData) {
+  'use server'
+  const admin = await exigirAdmin()
+
+  // Antes de qualquer outra checagem: sem a frase digitada certinha, nada
+  // acontece. Motivo e step-up ainda são checados dentro de
+  // `presentearAssinatura()` — isto aqui é só a barreira extra que uma ação
+  // que toca várias contas de uma vez precisa ter, e que uma edição
+  // individual não precisa.
+  const confirmacao = String(formData.get('confirmacao') ?? '').trim()
+  if (confirmacao !== FRASE_CONFIRMACAO_MASSA) {
+    redirect(
+      `/assinaturas?erro=${encodeURIComponent(
+        `Digite exatamente "${FRASE_CONFIRMACAO_MASSA}" para confirmar a ação em massa.`
+      )}`
+    )
+  }
+
   const dias = Number(formData.get('dias'))
   if (!Number.isFinite(dias) || dias <= 0) {
     redirect(`/assinaturas?erro=${encodeURIComponent('Dias precisa ser um número positivo.')}`)
   }
-  return dias
-}
-
-async function presentear(formData: FormData) {
-  'use server'
-  const admin = await exigirAdmin()
-
-  const userId = String(formData.get('userId') ?? '')
-  const dias = lerDias(formData)
-  const trialAtualBruto = String(formData.get('trialAtual') ?? '')
   const motivo = String(formData.get('motivo') ?? '')
-  const novaData = novaDataPresente(trialAtualBruto ? new Date(trialAtualBruto) : null, dias)
 
+  const selecionados = formData.getAll('userIds').map(String)
+  if (selecionados.length === 0) {
+    redirect(`/assinaturas?erro=${encodeURIComponent('Selecione ao menos uma pessoa.')}`)
+  }
+
+  let mapaTrial: Record<string, string | null>
   try {
-    await presentearAssinatura(admin, { userId, novaData, motivo })
+    mapaTrial = JSON.parse(String(formData.get('mapaTrial') ?? '{}'))
+  } catch {
+    redirect(`/assinaturas?erro=${encodeURIComponent('Dados inválidos — recarregue a página.')}`)
+  }
+
+  // O primeiro alvo, fora do loop: motivo curto ou step-up expirado falha
+  // igual pra todo mundo, e checar isso uma vez só evita abrir N transações
+  // pra descobrir o mesmo erro N vezes.
+  try {
+    await presentearAssinatura(admin, {
+      userId: selecionados[0],
+      novaData: novaDataPresente(
+        mapaTrial[selecionados[0]] ? new Date(mapaTrial[selecionados[0]]!) : null,
+        dias
+      ),
+      motivo,
+    })
   } catch (e) {
     if (e instanceof MutacaoRecusada) {
       redirect(`/assinaturas?erro=${encodeURIComponent(e.message)}`)
@@ -74,48 +109,13 @@ async function presentear(formData: FormData) {
     throw e
   }
 
-  redirect('/assinaturas?ok=1')
-}
-
-async function presentearEmMassa(formData: FormData) {
-  'use server'
-  const admin = await exigirAdmin()
-
-  const dias = lerDias(formData)
-  const motivo = String(formData.get('motivo') ?? '')
-
-  let alvos: { userId: string; trialAtual: string | null }[]
-  try {
-    alvos = JSON.parse(String(formData.get('alvos') ?? '[]'))
-  } catch {
-    redirect(`/assinaturas?erro=${encodeURIComponent('Lista de alvos inválida.')}`)
-  }
-
-  // Motivo curto ou step-up expirado falha igual pra todo mundo — checar uma
-  // vez, com um alvo fictício, evita gastar N transações só para descobrir
-  // isso na primeira iteração.
-  if (alvos.length > 0) {
-    try {
-      await presentearAssinatura(admin, {
-        userId: alvos[0].userId,
-        novaData: novaDataPresente(alvos[0].trialAtual ? new Date(alvos[0].trialAtual) : null, dias),
-        motivo,
-      })
-    } catch (e) {
-      if (e instanceof MutacaoRecusada) {
-        redirect(`/assinaturas?erro=${encodeURIComponent(e.message)}`)
-      }
-      throw e
-    }
-  }
-
-  let sucesso = alvos.length > 0 ? 1 : 0
+  let sucesso = 1
   let falhas = 0
-  for (const alvo of alvos.slice(1)) {
+  for (const userId of selecionados.slice(1)) {
     try {
       await presentearAssinatura(admin, {
-        userId: alvo.userId,
-        novaData: novaDataPresente(alvo.trialAtual ? new Date(alvo.trialAtual) : null, dias),
+        userId,
+        novaData: novaDataPresente(mapaTrial[userId] ? new Date(mapaTrial[userId]!) : null, dias),
         motivo,
       })
       sucesso++
@@ -130,13 +130,14 @@ async function presentearEmMassa(formData: FormData) {
 export default async function Assinaturas({
   searchParams,
 }: {
-  searchParams: Promise<{ estado?: string; erro?: string; ok?: string; falhas?: string }>
+  searchParams: Promise<{ estado?: string; erro?: string; ok?: string; falhas?: string; marcar?: string }>
 }) {
   const admin = await exigirAdmin()
-  const { estado: filtroBruto, erro, ok, falhas } = await searchParams
+  const { estado: filtroBruto, erro, ok, falhas, marcar } = await searchParams
   const filtro = ORDEM_TABS.includes(filtroBruto as EstadoAssinatura | 'todos')
     ? (filtroBruto as EstadoAssinatura | 'todos')
     : 'todos'
+  const marcarTodos = marcar === '1'
 
   const podeEscrever = env.ADMIN_WRITES_ENABLED && stepUpValido(admin)
 
@@ -185,9 +186,9 @@ export default async function Assinaturas({
     })
 
   // Quem já paga não ganha nada com mais dias de trial — o gate nem chega a
-  // olhar essa coluna pra quem está `ativa`. Fora da lista de alvos do botão
-  // em massa para o log de auditoria não encher de presente que não fez nada.
-  const alvosDoBulk = filtradas.filter((l) => l.estado !== 'ativa')
+  // olhar essa coluna pra quem está `ativa`. Sem checkbox pra essas linhas:
+  // não dá pra selecionar por engano quem a ação não afeta.
+  const selecionaveis = filtradas.filter((l) => l.estado !== 'ativa')
 
   return (
     <div className="space-y-5">
@@ -196,7 +197,8 @@ export default async function Assinaturas({
         <p className="mt-1 text-sm text-[var(--color-muted)]">
           Espelho de <span className="tabular">public.subscriptions</span>. Só{' '}
           <span className="tabular">trial_ends_at</span> é editável por aqui — o resto vem do
-          Stripe e o próximo webhook sobrescreve.
+          Stripe e o próximo webhook sobrescreve. Presente individual fica na página de cada
+          pessoa.
         </p>
       </div>
 
@@ -248,65 +250,96 @@ export default async function Assinaturas({
         </div>
       )}
 
-      {podeEscrever && (
-        <Card titulo={`Presentear em massa — ${ROTULO_ESTADO[filtro as EstadoAssinatura] ?? 'todos os filtrados'}`}>
-          {alvosDoBulk.length === 0 ? (
-            <Vazio>Ninguém nesta aba ganha algo com mais dias de trial.</Vazio>
-          ) : (
-            <form action={presentearEmMassa} className="space-y-3">
-              <input
-                type="hidden"
-                name="alvos"
-                value={JSON.stringify(
-                  alvosDoBulk.map((l) => ({
-                    userId: l.user_id,
-                    trialAtual: l.trial_ends_at ? l.trial_ends_at.toISOString() : null,
-                  }))
-                )}
-              />
-              <div className="flex flex-wrap items-end gap-3">
-                <div>
-                  <label htmlFor="dias-massa" className="mb-1 block text-xs text-[var(--color-muted)]">
-                    Dias de presente
-                  </label>
-                  <input
-                    id="dias-massa"
-                    name="dias"
-                    type="number"
-                    min={1}
-                    required
-                    defaultValue={30}
-                    className="w-28 rounded-[24px] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2 text-sm"
-                  />
-                </div>
-                <p className="pb-2.5 text-xs text-[var(--color-faint)]">
-                  Afeta {alvosDoBulk.length} {alvosDoBulk.length === 1 ? 'pessoa' : 'pessoas'} —
-                  quem já paga (status ativo) não entra, extensão de trial não muda nada pra quem
-                  já é assinante.
-                </p>
-              </div>
+      {podeEscrever && selecionaveis.length > 0 && (
+        <Card titulo="Presentear em massa">
+          <form id={ID_FORM_MASSA} action={presentearEmMassa} className="space-y-3">
+            <input
+              type="hidden"
+              name="mapaTrial"
+              value={JSON.stringify(
+                Object.fromEntries(
+                  selecionaveis.map((l) => [
+                    l.user_id,
+                    l.trial_ends_at ? l.trial_ends_at.toISOString() : null,
+                  ])
+                )
+              )}
+            />
+
+            <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--color-muted)]">
+              <span>Marcar:</span>
+              <Link
+                href={`/assinaturas${filtro !== 'todos' ? `?estado=${filtro}&` : '?'}marcar=1`}
+                className="text-[var(--color-accent)] hover:underline"
+              >
+                todos visíveis
+              </Link>
+              <span>·</span>
+              <Link
+                href={filtro !== 'todos' ? `/assinaturas?estado=${filtro}` : '/assinaturas'}
+                className="text-[var(--color-accent)] hover:underline"
+              >
+                nenhum
+              </Link>
+            </div>
+
+            <div className="flex flex-wrap items-end gap-3">
               <div>
-                <label htmlFor="motivo-massa" className="mb-1 block text-xs text-[var(--color-muted)]">
-                  Motivo <span className="text-[var(--color-danger)]">*</span>
+                <label htmlFor="dias-massa" className="mb-1 block text-xs text-[var(--color-muted)]">
+                  Dias de presente
                 </label>
-                <textarea
-                  id="motivo-massa"
-                  name="motivo"
-                  rows={2}
+                <input
+                  id="dias-massa"
+                  name="dias"
+                  type="number"
+                  min={1}
                   required
-                  minLength={10}
-                  placeholder="Ex: campanha de reativação de trials vencidos em agosto/2026."
-                  className="w-full rounded-[24px] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2 text-sm"
+                  defaultValue={30}
+                  className="w-28 rounded-[24px] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2 text-sm"
                 />
               </div>
-              <button
-                type="submit"
-                className="btn-krew-cta rounded-full px-4 py-2 text-sm font-semibold transition-transform active:translate-y-px active:scale-[0.98]"
-              >
-                Presentear {alvosDoBulk.length} {alvosDoBulk.length === 1 ? 'pessoa' : 'pessoas'}
-              </button>
-            </form>
-          )}
+              <p className="pb-2.5 text-xs text-[var(--color-faint)]">
+                Aplica só a quem estiver marcado na tabela abaixo.
+              </p>
+            </div>
+
+            <div>
+              <label htmlFor="motivo-massa" className="mb-1 block text-xs text-[var(--color-muted)]">
+                Motivo <span className="text-[var(--color-danger)]">*</span>
+              </label>
+              <textarea
+                id="motivo-massa"
+                name="motivo"
+                rows={2}
+                required
+                minLength={10}
+                placeholder="Ex: campanha de reativação de trials vencidos em agosto/2026."
+                className="w-full rounded-[24px] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="confirmacao-massa" className="mb-1 block text-xs text-[var(--color-muted)]">
+                Digite{' '}
+                <code className="text-[var(--color-accent)]">{FRASE_CONFIRMACAO_MASSA}</code> para
+                confirmar
+              </label>
+              <input
+                id="confirmacao-massa"
+                name="confirmacao"
+                required
+                autoComplete="off"
+                className="w-full max-w-xs rounded-[24px] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-2 text-sm"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="btn-krew-cta rounded-full px-4 py-2 text-sm font-semibold transition-transform active:translate-y-px active:scale-[0.98]"
+            >
+              Presentear selecionados
+            </button>
+          </form>
         </Card>
       )}
 
@@ -315,10 +348,32 @@ export default async function Assinaturas({
           <Vazio>Ninguém nesse estado agora.</Vazio>
         ) : (
           <Tabela
-            cabecalho={['Pessoa', 'E-mail', 'Status', 'Vence/renova', 'Cancelamento', 'Stripe', '']}
+            cabecalho={[
+              podeEscrever && selecionaveis.length > 0 ? '' : undefined,
+              'Pessoa',
+              'E-mail',
+              'Status',
+              'Vence/renova',
+              'Cancelamento',
+              'Stripe',
+            ].filter((c): c is string => c !== undefined)}
           >
             {filtradas.map((l) => (
               <Linha key={l.user_id}>
+                {podeEscrever && selecionaveis.length > 0 && (
+                  <Celula>
+                    {l.estado !== 'ativa' && (
+                      <input
+                        type="checkbox"
+                        name="userIds"
+                        value={l.user_id}
+                        form={ID_FORM_MASSA}
+                        defaultChecked={marcarTodos}
+                        className="h-4 w-4 accent-[var(--color-accent)]"
+                      />
+                    )}
+                  </Celula>
+                )}
                 <Celula>
                   <Link
                     href={`/pessoas/${l.user_id}`}
@@ -353,58 +408,6 @@ export default async function Assinaturas({
                     <Badge tom="neutro">cliente</Badge>
                   ) : (
                     <span className="text-[var(--color-faint)]">nunca assinou</span>
-                  )}
-                </Celula>
-                <Celula>
-                  {podeEscrever && l.estado !== 'ativa' && (
-                    <details className="relative">
-                      <summary className="cursor-pointer list-none rounded-full border-[0.5px] border-[var(--color-border)] px-3 py-1 text-xs text-[var(--color-muted)] hover:border-[var(--color-border-strong)] hover:text-[var(--color-ink)]">
-                        Presentear
-                      </summary>
-                      <form
-                        action={presentear}
-                        className="absolute right-0 z-10 mt-2 w-72 space-y-2.5 rounded-[24px] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface)] p-4 shadow-[var(--shadow-float)]"
-                      >
-                        <input type="hidden" name="userId" value={l.user_id} />
-                        <input
-                          type="hidden"
-                          name="trialAtual"
-                          value={l.trial_ends_at ? l.trial_ends_at.toISOString() : ''}
-                        />
-                        <div>
-                          <label className="mb-1 block text-xs text-[var(--color-muted)]">
-                            Dias de presente
-                          </label>
-                          <input
-                            name="dias"
-                            type="number"
-                            min={1}
-                            required
-                            defaultValue={30}
-                            className="w-full rounded-[16px] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-1.5 text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="mb-1 block text-xs text-[var(--color-muted)]">
-                            Motivo <span className="text-[var(--color-danger)]">*</span>
-                          </label>
-                          <textarea
-                            name="motivo"
-                            rows={2}
-                            required
-                            minLength={10}
-                            placeholder="Ex: creator pediu mais tempo pra decidir, ticket #48."
-                            className="w-full rounded-[16px] border-[0.5px] border-[var(--color-border)] bg-[var(--color-surface-2)] px-3 py-1.5 text-sm"
-                          />
-                        </div>
-                        <button
-                          type="submit"
-                          className="btn-krew-cta w-full rounded-full px-3 py-1.5 text-xs font-semibold transition-transform active:translate-y-px active:scale-[0.98]"
-                        >
-                          Confirmar presente
-                        </button>
-                      </form>
-                    </details>
                   )}
                 </Celula>
               </Linha>
