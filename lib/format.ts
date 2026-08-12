@@ -68,6 +68,30 @@ export function desde(valor: unknown): string {
   return `há ${Math.floor(meses / 12)} ano${meses < 24 ? '' : 's'}`
 }
 
+/** "em 3 dias" / "há 3 dias" — como `desde`, mas para datas que também podem
+ *  estar no futuro (vencimento de assinatura, prazo). */
+export function relativo(valor: unknown): string {
+  if (!valor) return '—'
+  const d = valor instanceof Date ? valor : new Date(String(valor))
+  if (Number.isNaN(d.getTime())) return '—'
+
+  const diffMs = d.getTime() - Date.now()
+  const futuro = diffMs >= 0
+  const segundos = Math.floor(Math.abs(diffMs) / 1000)
+
+  if (segundos < 60) return futuro ? 'em instantes' : 'agora'
+  const minutos = Math.floor(segundos / 60)
+  if (minutos < 60) return futuro ? `em ${minutos} min` : `há ${minutos} min`
+  const horas = Math.floor(minutos / 60)
+  if (horas < 24) return futuro ? `em ${horas} h` : `há ${horas} h`
+  const dias = Math.floor(horas / 24)
+  if (dias < 30) return futuro ? `em ${dias} d` : `há ${dias} d`
+  const meses = Math.floor(dias / 30)
+  if (meses < 12) return futuro ? `em ${meses} mês${meses === 1 ? '' : 'es'}` : `há ${meses} mês${meses === 1 ? '' : 'es'}`
+  const anos = Math.floor(meses / 12)
+  return futuro ? `em ${anos} ano${anos === 1 ? '' : 's'}` : `há ${anos} ano${anos === 1 ? '' : 's'}`
+}
+
 /** Uuid encurtado para caber em tabela sem virar sopa de letra. */
 export function idCurto(valor: unknown): string {
   const s = String(valor ?? '')

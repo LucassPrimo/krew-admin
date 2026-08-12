@@ -15,6 +15,7 @@ import { criarClienteAuth } from '@/lib/supabase'
 const NAV = [
   { href: '/', rotulo: 'Visão geral' },
   { href: '/pessoas', rotulo: 'Pessoas' },
+  { href: '/assinaturas', rotulo: 'Assinaturas' },
   { href: '/dados', rotulo: 'Dados' },
   { href: '/sql', rotulo: 'SQL' },
   { href: '/auditoria', rotulo: 'Auditoria' },
