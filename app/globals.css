@@ -1,0 +1,98 @@
+@import 'tailwindcss';
+
+/* ============================================================
+   Krew Admin — tokens
+   ============================================================
+   Espelha o design system do produto principal (repo `krew`,
+   KREW_DESIGN_SYSTEM.md): mesma paleta, tipografia, raio e sombra. Os NOMES
+   das variáveis abaixo continuam os mesmos de antes — só os valores mudaram
+   — para que toda página que já usa `var(--color-ink)`, `var(--color-accent)`
+   etc. herde o novo visual sem precisar ser reescrita.
+   ============================================================ */
+
+@theme inline {
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-inter), var(--font-sans);
+  --font-mono: var(--font-dm-mono), ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-brand: var(--font-syne), var(--font-display);
+
+  --color-bg: #f5f4f3;
+  --color-surface: #ffffff;
+  --color-surface-2: #efedea;
+  --color-border: rgba(11, 13, 12, 0.1);
+  --color-border-strong: rgba(11, 13, 12, 0.18);
+
+  --color-ink: #0b0d0c;
+  --color-muted: #6b6870;
+  --color-faint: #9a97a0;
+
+  /* Mint — cor de marca da Krew. */
+  --color-accent: #0a9a7d;
+  --color-accent-dim: rgba(10, 154, 125, 0.14);
+
+  --color-danger: #ff6b6b;
+  --color-danger-deep: #c23f3f;
+  --color-danger-dim: rgba(255, 107, 107, 0.12);
+  --color-ok: #0a9a7d;
+  --color-ok-dim: rgba(10, 154, 125, 0.12);
+  --color-info: #818cf8;
+  --color-info-dim: rgba(129, 140, 248, 0.12);
+
+  --radius-card: 24px;
+  --radius-input: 24px;
+
+  --shadow-card: 0 1px 2px rgba(11, 13, 12, 0.03), 0 12px 28px rgba(11, 13, 12, 0.05);
+  --shadow-float: 0 20px 44px rgba(11, 13, 12, 0.07);
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+}
+
+/* Dado tabular sempre em mono: id, valor, data e documento são para conferir
+   caractere a caractere, não para ler. */
+.tabular {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem;
+}
+
+/* Botão de destaque assinatura da marca — gradiente mint, mesmo tratamento
+   usado no `.btn-krew-cta` do produto principal. */
+.btn-krew-cta {
+  background: linear-gradient(135deg, #7fe8cf, var(--color-accent));
+  color: #ffffff;
+  box-shadow: var(--shadow-card);
+  transition: opacity 150ms;
+}
+.btn-krew-cta:hover {
+  opacity: 0.92;
+}
+.btn-krew-cta:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+::selection {
+  background: var(--color-accent);
+  color: #ffffff;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
