@@ -91,13 +91,14 @@ function paraAuditoria(
   return JSON.parse(JSON.stringify(saida)) as postgres.JSONValue
 }
 
-export async function aplicarMutacao(
-  admin: Admin,
-  pedido: PedidoDeMutacao
-): Promise<ResultadoMutacao> {
-  // 1. Kill switch. Uma variável de ambiente derruba toda escrita do painel sem
-  //    precisar de deploy de código — é o primeiro botão a apertar quando algo
-  //    cheira errado.
+/**
+ * As três checagens que valem para TODA escrita, custosas na ordem certa: a
+ * mais barata e mais definitiva primeiro (kill switch), a que só olha a
+ * sessão em seguida, a que só olha o texto por último — nenhuma delas toca o
+ * banco. Extraído porque `presentearAssinatura()` precisa das mesmas três e
+ * não do resto de `aplicarMutacao()` (registry, diff de coluna).
+ */
+function checarPermissaoDeEscrita(admin: Admin, motivoBruto: string): string {
   if (!env.ADMIN_WRITES_ENABLED) {
     throw new MutacaoRecusada(
       'A escrita está desligada por ADMIN_WRITES_ENABLED=false.',
@@ -105,9 +106,6 @@ export async function aplicarMutacao(
     )
   }
 
-  // 2. Step-up: o segundo fator precisa ter sido digitado há menos de 15 min.
-  //    Ler nunca pede; escrever sempre pode pedir. É o que impede que uma
-  //    sessão esquecida aberta vire uma sessão de escrita.
   if (!stepUpValido(admin)) {
     throw new MutacaoRecusada(
       'Confirme o código do autenticador antes de gravar.',
@@ -115,15 +113,22 @@ export async function aplicarMutacao(
     )
   }
 
-  // 3. Motivo. A constraint no banco também exige — esta checagem existe para
-  //    dar erro legível antes de gastar uma transação.
-  const motivo = pedido.motivo.trim()
+  const motivo = motivoBruto.trim()
   if (motivo.length < 10) {
     throw new MutacaoRecusada(
       'Descreva o motivo da alteração (mínimo 10 caracteres).',
       'motivo_curto'
     )
   }
+
+  return motivo
+}
+
+export async function aplicarMutacao(
+  admin: Admin,
+  pedido: PedidoDeMutacao
+): Promise<ResultadoMutacao> {
+  const motivo = checarPermissaoDeEscrita(admin, pedido.motivo)
 
   // 4. Registry. Coluna não declarada, ou declarada como não editável, não
   //    passa daqui — mesmo que alguém forje o formulário.
@@ -214,6 +219,87 @@ export async function aplicarMutacao(
     `
 
     return { antes, depois, camposAlterados }
+  })
+}
+
+/**
+ * "Presentear" — estender `subscriptions.trial_ends_at`.
+ *
+ * Não passa por `aplicarMutacao()` porque essa coluna, sozinha, pode exigir
+ * `insert` em vez de `update`: quem nunca assinou não tem linha em
+ * `subscriptions` (o trigger de cadastro só insere para creator, e mesmo
+ * assim a linha pode faltar em conta antiga). `aplicarMutacao()` assume que o
+ * registro já existe — aqui não dá para assumir isso.
+ *
+ * Por que só esta coluna, e por que ela é segura: `trial_ends_at` nunca é
+ * escrito pelo webhook do Stripe (`krew/lib/stripe.ts`, função
+ * `linhaAssinatura()` não inclui essa chave) — é o único campo da tabela que
+ * o próximo evento do Stripe não sobrescreve. `estadoAssinatura()` (portado
+ * em `lib/assinatura.ts`) consulta esta coluna como fallback para qualquer
+ * status que não seja `active`/`trialing`/`past_due`/`unpaid` — inclusive
+ * `canceled` já vencido, ou nenhuma linha. Ou seja: estender isto dá acesso
+ * de verdade para quem não está pagando agora, sem falar com o Stripe. Para
+ * quem JÁ paga (`status = 'active'`), esta coluna não muda nada — o gate
+ * nem chega a checá-la.
+ *
+ * O GRANT de `krew_admin_rw` nesta tabela é por coluna (`insert (user_id,
+ * trial_ends_at), update (trial_ends_at)`) — mesmo que este código tivesse um
+ * bug, o Postgres recusaria qualquer tentativa de tocar `status`,
+ * `stripe_subscription_id` ou qualquer outra coluna espelhada do Stripe.
+ */
+export async function presentearAssinatura(
+  admin: Admin,
+  pedido: { userId: string; novaData: Date; motivo: string }
+): Promise<{ criada: boolean }> {
+  const motivo = checarPermissaoDeEscrita(admin, pedido.motivo)
+
+  const cabecalhos = await headers()
+  const ip =
+    cabecalhos.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    cabecalhos.get('x-real-ip') ||
+    null
+  const userAgent = cabecalhos.get('user-agent') ?? null
+
+  return sqlRw.begin(async (tx) => {
+    const [linhaExistente] = await tx<{ trial_ends_at: Date | null }[]>`
+      select trial_ends_at from public.subscriptions where user_id = ${pedido.userId} for update
+    `
+
+    if (linhaExistente) {
+      const [depois] = await tx<{ trial_ends_at: Date }[]>`
+        update public.subscriptions
+        set trial_ends_at = ${pedido.novaData}
+        where user_id = ${pedido.userId}
+        returning trial_ends_at
+      `
+      await tx`
+        insert into admin_audit.mutations
+          (ator_id, tabela, registro_id, acao, antes, depois, motivo, ip, user_agent)
+        values (
+          ${admin.id}, 'subscriptions', ${pedido.userId}, 'update',
+          ${tx.json({ trial_ends_at: linhaExistente.trial_ends_at })},
+          ${tx.json({ trial_ends_at: depois.trial_ends_at })},
+          ${motivo}, ${ip}, ${userAgent}
+        )
+      `
+      return { criada: false }
+    }
+
+    const [depois] = await tx<{ trial_ends_at: Date }[]>`
+      insert into public.subscriptions (user_id, trial_ends_at)
+      values (${pedido.userId}, ${pedido.novaData})
+      returning trial_ends_at
+    `
+    await tx`
+      insert into admin_audit.mutations
+        (ator_id, tabela, registro_id, acao, antes, depois, motivo, ip, user_agent)
+      values (
+        ${admin.id}, 'subscriptions', ${pedido.userId}, 'insert',
+        null, ${tx.json({ trial_ends_at: depois.trial_ends_at })},
+        ${motivo}, ${ip}, ${userAgent}
+      )
+    `
+    return { criada: true }
   })
 }
 

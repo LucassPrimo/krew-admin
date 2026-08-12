@@ -508,6 +508,33 @@ export const REGISTRY: Record<string, TabelaAdmin> = {
     },
   },
 
+  subscriptions: {
+    tabela: 'subscriptions',
+    rotulo: 'Assinaturas',
+    chave: 'user_id',
+    descricao:
+      'Espelho de Stripe. Só `trial_ends_at` é editável — o resto é sobrescrito pelo próximo webhook.',
+    ordemPadrao: 'updated_at desc',
+    colunaUsuario: 'user_id',
+    colunas: {
+      user_id: { tipo: 'uuid', rotulo: 'Pessoa' },
+      stripe_customer_id: { tipo: 'text', rotulo: 'Cliente Stripe' },
+      stripe_subscription_id: { tipo: 'text', rotulo: 'Assinatura Stripe' },
+      status: { tipo: 'text', rotulo: 'Status (Stripe)' },
+      price_id: { tipo: 'text', rotulo: 'Price' },
+      current_period_end: { tipo: 'timestamp', rotulo: 'Período paga até' },
+      cancel_at_period_end: { tipo: 'bool', rotulo: 'Cancela ao fim do período' },
+      trial_ends_at: {
+        tipo: 'timestamp',
+        rotulo: 'Trial até',
+        editavel: true,
+        nota:
+          'Único campo que o webhook do Stripe nunca sobrescreve — é o que dá acesso sem passar pela cobrança.',
+      },
+      updated_at: { tipo: 'timestamp', rotulo: 'Atualizado em' },
+    },
+  },
+
   invoices: {
     tabela: 'invoices',
     rotulo: 'Notas fiscais',
