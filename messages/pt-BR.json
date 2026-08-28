@@ -1652,7 +1652,8 @@
     "categoriaEntretenimento": "Entretenimento",
     "categoriaEstilo": "Estilo de vida",
     "categoriaOutros": "Outros",
-    "redesTodas": "Todas as redes"
+    "redesAnterior": "Categoria anterior",
+    "redesProxima": "Próxima categoria"
   },
   "aparencia": {
     "title": "Aparência",

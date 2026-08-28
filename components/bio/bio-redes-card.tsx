@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
 import { Check, ChevronLeft, ChevronRight, Loader2, Trash2 } from 'lucide-react'
 
@@ -121,8 +121,10 @@ export function BioRedesCard({ redesIniciais }: { redesIniciais: RedeEditavel[] 
   )
 
   const [aberta, setAberta] = useState<PlatformId | null>(null)
-  /** A gaveta aberta. `null` mostra a lista de gavetas. */
-  const [gaveta, setGaveta] = useState<Categoria | null>(null)
+  /** A categoria em tela. Índice em `grupos`, não a chave: o carrossel anda de
+   *  um em um, e é a posição que ele precisa saber para ir ao lado. */
+  const [indice, setIndice] = useState(0)
+  const trilho = useRef<HTMLDivElement>(null)
   const [valor, setValor] = useState('')
 
   const def = aberta ? (PLATFORMS.find((p) => p.id === aberta) ?? null) : null
@@ -204,6 +206,36 @@ export function BioRedesCard({ redesIniciais }: { redesIniciais: RedeEditavel[] 
     .map((r) => PLATFORMS.find((p) => p.id === r.platform))
     .filter((p): p is (typeof PLATFORMS)[number] => !!p)
 
+  /**
+   * Leva o trilho até a categoria `i`, dando a volta nas pontas.
+   *
+   * Circular e não travado: uma seta desabilitada na primeira e na última
+   * categoria transforma sete passos em "ir até o fim e voltar catando", e
+   * aqui não há começo nem fim de verdade — é uma lista de gavetas, não uma
+   * sequência com ordem própria.
+   *
+   * Quem manda no estado é a ROLAGEM (`aoRolar`), não este clique: se o
+   * `setIndice` viesse daqui, arrastar com o dedo deixaria o título falando
+   * de uma categoria e o trilho mostrando outra.
+   */
+  function irPara(i: number) {
+    const el = trilho.current
+    if (!el) return
+    const total = grupos.length
+    const alvo = ((i % total) + total) % total
+    el.scrollTo({ left: alvo * el.clientWidth, behavior: 'smooth' })
+  }
+
+  function aoRolar() {
+    const el = trilho.current
+    if (!el || el.clientWidth === 0) return
+    // Preso ao intervalo: no iOS a rolagem elástica passa do fim e devolveria
+    // um índice fora da lista, que quebraria o título.
+    const bruto = Math.round(el.scrollLeft / el.clientWidth)
+    const i = Math.min(Math.max(bruto, 0), grupos.length - 1)
+    setIndice((atual) => (atual === i ? atual : i))
+  }
+
   const grupos = CATEGORIAS.map((cat) => {
     const itens = PLATFORMS.filter((p) => p.categoria === cat)
     const preenchidas = itens.filter((p) => {
@@ -229,65 +261,96 @@ export function BioRedesCard({ redesIniciais }: { redesIniciais: RedeEditavel[] 
         </div>
       )}
 
-      {gaveta === null ? (
-        /* Nível 1: as gavetas. Sessenta bolinhas abertas de uma vez viram um
-           paredão em que achar o Spotify custa mais do que digitar o endereço
-           dele à mão — que é o oposto do que a fileira existe para fazer.
-           Aqui cabem sete linhas, e cada uma diz quantas redes tem dentro. */
-        <div className="flex flex-col gap-1">
-          {grupos.map(({ cat, itens, preenchidas }) => (
+      {/* O carrossel das categorias.
+          Uma por vez, e passa para o lado — nem o paredão de sessenta
+          bolinhas nem a lista de gavetas que obrigava a entrar e voltar para
+          espiar o que tem dentro de cada uma. Aqui o conteúdo está sempre em
+          tela e a navegação é um gesto.
+          É rolagem de VERDADE com `scroll-snap`, e não um `translateX`
+          calculado: assim o dedo arrasta no celular sem nenhum código de
+          toque, o teclado navega com as setas nativas, e as flechas viram um
+          atalho para quem está no mouse — em vez de serem a única saída. */}
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => irPara(indice - 1)}
+            aria-label={t('redesAnterior')}
+            className="flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+
+          <p className="flex flex-1 items-center justify-center gap-1.5 text-[11px] font-semibold tracking-wide text-foreground uppercase">
+            {t(rotuloCategoria(grupos[indice].cat))}
+            {grupos[indice].preenchidas > 0 && (
+              <span className="rounded-full bg-primary/10 px-1.5 text-[10px] font-semibold text-primary">
+                {grupos[indice].preenchidas}
+              </span>
+            )}
+          </p>
+
+          <button
+            type="button"
+            onClick={() => irPara(indice + 1)}
+            aria-label={t('redesProxima')}
+            className="flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <ChevronRight className="size-4" />
+          </button>
+        </div>
+
+        <div
+          ref={trilho}
+          onScroll={aoRolar}
+          // `snap-mandatory` e não `proximity`: a parada tem que cair sempre
+          // numa categoria inteira, senão sobra meia fileira de cada lado e
+          // a pessoa não sabe qual das duas está lendo.
+          // `scrollbar-none` só esconde a barra — a rolagem continua.
+          className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {grupos.map(({ cat, itens }) => (
+            // `w-full shrink-0`: cada painel ocupa a largura do cartão, que é
+            // o que faz um snap valer uma categoria. A altura do trilho é a
+            // da MAIOR delas, e isso é de propósito — sem uma altura estável
+            // o cartão pularia a cada passada.
+            <div key={cat} className="flex w-full shrink-0 snap-center flex-wrap content-start gap-2">
+              {itens.map((p) => {
+                const r = redes.find((x) => x.platform === p.id)
+                return (
+                  <Bolinha
+                    key={p.id}
+                    def={p}
+                    preenchida={!!(r?.handle || r?.url)}
+                    aberta={aberta === p.id}
+                    aoClicar={abrir}
+                  />
+                )
+              })}
+            </div>
+          ))}
+        </div>
+
+        {/* Os pontos dizem onde se está e quanto falta. Sem eles o carrossel
+            não tem borda visível: passa-se para o lado sem saber se ainda há
+            lado. Clicáveis porque um ponto que marca posição e não leva até
+            ela é enfeite. */}
+        <div className="flex justify-center gap-1.5 pt-0.5">
+          {grupos.map(({ cat }, i) => (
             <button
               key={cat}
               type="button"
-              onClick={() => { setGaveta(cat); setAberta(null) }}
-              className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-left transition-colors hover:border-primary/40 hover:bg-muted"
-            >
-              <span className="text-sm font-medium text-foreground">{t(rotuloCategoria(cat))}</span>
-              {preenchidas > 0 && (
-                <span className="rounded-full bg-primary/10 px-1.5 text-[10px] font-semibold text-primary">
-                  {preenchidas}
-                </span>
+              onClick={() => irPara(i)}
+              aria-label={t(rotuloCategoria(cat))}
+              aria-current={i === indice}
+              className={cn(
+                'size-1.5 rounded-full transition-colors',
+                i === indice ? 'bg-primary' : 'bg-border hover:bg-muted-foreground',
               )}
-              <span className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
-                {itens.length}
-                <ChevronRight className="size-3.5" />
-              </span>
-            </button>
+            />
           ))}
         </div>
-      ) : (
-        /* Nível 2: a gaveta aberta. O caminho no topo é clicável e devolve
-           para a lista — é a única saída, então ele não pode ser só enfeite. */
-        <div className="flex flex-col gap-1.5">
-          <p className="flex items-center gap-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-            <button
-              type="button"
-              onClick={() => { setGaveta(null); setAberta(null) }}
-              className="flex items-center gap-1 transition-colors hover:text-foreground"
-            >
-              <ChevronLeft className="size-3.5" />
-              {t('redesTodas')}
-            </button>
-            <ChevronRight className="size-3 opacity-50" aria-hidden />
-            <span className="text-foreground">{t(rotuloCategoria(gaveta))}</span>
-          </p>
-
-          <div className="flex flex-wrap gap-2">
-            {PLATFORMS.filter((p) => p.categoria === gaveta).map((p) => {
-              const r = redes.find((x) => x.platform === p.id)
-              return (
-                <Bolinha
-                  key={p.id}
-                  def={p}
-                  preenchida={!!(r?.handle || r?.url)}
-                  aberta={aberta === p.id}
-                  aoClicar={abrir}
-                />
-              )
-            })}
-          </div>
-        </div>
-      )}
+      </div>
 
       {def && (
         <div className="flex flex-col gap-2 rounded-xl border border-border bg-background p-3">
