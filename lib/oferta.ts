@@ -32,8 +32,11 @@ import { clienteAdmin } from './supabase-admin'
  */
 
 export type LinkDaOferta = {
+  /** `divisor` é o título de seção da página. Ver `LinkImportado`. */
+  tipo?: 'link' | 'divisor'
   titulo: string
-  url: string
+  /** Nulo no divisor — exigência do CHECK `creator_links_url_por_tipo`. */
+  url: string | null
   capa_url?: string | null
   estilo?: EstiloItem
 }
@@ -137,8 +140,9 @@ export async function criarOferta(
       for (const [i, link] of dados.links.entries()) {
         await tx`
           insert into public.creator_links (user_id, org_id, titulo, url, capa_url, ordem, tipo, estilo)
-          values (${userId}, ${org.id}, ${link.titulo}, ${link.url},
-                  ${link.capa_url ?? null}, ${i}, 'link', ${link.estilo ?? 'grande'})
+          values (${userId}, ${org.id}, ${link.titulo}, ${link.url ?? null},
+                  ${link.capa_url ?? null}, ${i}, ${link.tipo ?? 'link'},
+                  ${link.estilo ?? 'grande'})
         `
       }
 

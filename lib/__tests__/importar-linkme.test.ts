@@ -45,7 +45,9 @@ const PERFIL_B = `<!DOCTYPE html><html><head>
 <meta property="og:description" content="Discover Beltrana Silva on LinkMe: Estrategista &amp; palestrante"/>
 ${ld('beltrana', ['https://www.linkedin.com/in/beltrana'])}
 </head><body>
+<button type="button" class="total-followers-button"><span class="font-semibold mr-1 notranslate">224.5M</span>Total Followers</button>
 <a style="background-color:#000000ff" href="https://revista.exemplo.com/materia" class="singlealbum singlebigitem socialmedialink cursor-pointer" target="_blank"><div class="pointer-events-none imgbox bgColor-1"><img src="https://media.link.me/b.png" alt="LinkMe"/></div><div class="pointer-events-none albumtextbox"><div class="first colorWhite"><p>Matéria na revista</p></div></div></a>
+<section class="flex w-full mt-[6px] mb-4 items-center gap-2"><div class="relative w-full flex"><section style="text-align:center;justify-content:center;font-weight:900;background:transparent" class="flex w-full items-center justify-center"><span style="color:#ffffffff" class="truncate max-w-[calc(100%-2rem)] text-[17px] notranslate">MY LATEST VIDEOS</span></section></div></section>
 <a style="background-color:#111111ff" href="https://www.exemplo.org/sem-rotulo" class="singlealbum singlebigitem socialmedialink cursor-pointer" target="_blank"><div class="pointer-events-none imgbox bgColor-1"><img src="https://media.link.me/c.png" alt="LinkMe"/></div><div class="pointer-events-none albumtextbox"><div class="first colorWhite"></div></div></a>
 </body></html>`
 
@@ -65,6 +67,7 @@ describe('extrairDeHtml', () => {
   it('encontra o botão quando o href vem antes da classe', () => {
     const p = extrairDeHtml(PERFIL_A)
     expect(p.links).toContainEqual({
+      tipo: 'link',
       titulo: 'Turnê 2026',
       url: 'https://exemplo.com/turne',
       capaUrl: 'https://media.link.me/a.png',
@@ -80,6 +83,7 @@ describe('extrairDeHtml', () => {
   it('usa o domínio como título quando o card não tem rótulo', () => {
     const p = extrairDeHtml(PERFIL_B)
     expect(p.links).toContainEqual({
+      tipo: 'link',
       titulo: 'exemplo.org',
       url: 'https://www.exemplo.org/sem-rotulo',
       capaUrl: 'https://media.link.me/c.png',
@@ -103,9 +107,39 @@ describe('extrairDeHtml', () => {
     expect(extrairDeHtml(PERFIL_B).links[0].estilo).toBe('grande')
   })
 
+  it('importa o título da seção como divisor', () => {
+    const p = extrairDeHtml(PERFIL_B)
+    expect(p.links).toContainEqual({
+      tipo: 'divisor',
+      titulo: 'MY LATEST VIDEOS',
+      url: null,
+      capaUrl: null,
+      estilo: 'grande',
+    })
+  })
+
+  it('o divisor entra na POSIÇÃO em que aparece na página', () => {
+    // O que um divisor significa é "daqui para baixo começa a seção tal".
+    // Fora de ordem ele nomearia o bloco errado, que é pior do que faltar.
+    const p = extrairDeHtml(PERFIL_B)
+    const ordem = p.links.map((l) => `${l.tipo}:${l.titulo}`)
+    expect(ordem.slice(0, 3)).toEqual([
+      'link:Matéria na revista',
+      'divisor:MY LATEST VIDEOS',
+      'link:exemplo.org',
+    ])
+  })
+
+  it('o contador de seguidores não vira seção', () => {
+    // Ele também é um <span notranslate>, e por isso a extração exige o
+    // <section> colado ao <span>: o contador vive dentro de um <button>.
+    const p = extrairDeHtml(PERFIL_B)
+    expect(p.links.map((l) => l.titulo)).not.toContain('224.5M')
+  })
+
   it('rede social que virou link não inventa capa', () => {
     const p = extrairDeHtml(PERFIL_A)
-    expect(p.links.find((l) => l.url.includes('tidal.com'))?.capaUrl).toBeNull()
+    expect(p.links.find((l) => l.url?.includes('tidal.com'))?.capaUrl).toBeNull()
   })
 
   it('separa redes conhecidas de serviços que o app não modela', () => {

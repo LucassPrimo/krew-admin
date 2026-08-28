@@ -68,23 +68,39 @@ export async function acaoCriarOferta(form: FormData) {
   const ESTILOS: EstiloItem[] = ['grande', 'metade', 'meio', 'botao']
 
   let links: {
-    titulo: string; url: string; capa_url?: string | null; estilo?: EstiloItem
+    tipo: 'link' | 'divisor'
+    titulo: string; url: string | null; capa_url?: string | null; estilo?: EstiloItem
   }[] = []
   try {
     const bruto = String(form.get('links') ?? '')
     if (bruto) {
       links = (JSON.parse(bruto) as {
-        titulo: string; url: string; capaUrl?: string | null; estilo?: EstiloItem
+        tipo?: string
+        titulo: string; url?: string | null; capaUrl?: string | null; estilo?: EstiloItem
       }[])
-        .map((l) => ({
-          titulo: String(l.titulo ?? '').trim(),
-          url: String(l.url ?? '').trim(),
-          capa_url: l.capaUrl ?? null,
-          // Só os quatro valores do CHECK passam. Qualquer outra coisa que
-          // chegue no JSON vira 'grande' — o campo é do banco, não do form.
-          estilo: ESTILOS.includes(l.estilo as EstiloItem) ? (l.estilo as EstiloItem) : 'grande',
-        }))
-        .filter((l) => l.titulo && l.url)
+        .map((l) => {
+          const divisor = l.tipo === 'divisor'
+          const url = String(l.url ?? '').trim()
+          return {
+            // `tipo` normalizado aqui e não confiado do JSON: qualquer valor
+            // que não seja exatamente 'divisor' é link, e o CHECK da tabela
+            // só aceita os dois.
+            tipo: divisor ? ('divisor' as const) : ('link' as const),
+            titulo: String(l.titulo ?? '').trim(),
+            // Divisor sem endereço, sempre — mesmo que venha um no JSON. É o
+            // que `creator_links_url_por_tipo` espera, e guardar uma URL num
+            // título de seção só criaria dado que nada lê.
+            url: divisor ? null : url,
+            capa_url: divisor ? null : (l.capaUrl ?? null),
+            // Só os quatro valores do CHECK passam. Qualquer outra coisa que
+            // chegue no JSON vira 'grande' — o campo é do banco, não do form.
+            estilo: ESTILOS.includes(l.estilo as EstiloItem) ? (l.estilo as EstiloItem) : 'grande',
+          }
+        })
+        // Link precisa de título E endereço; divisor é só o título. Antes o
+        // filtro exigia URL dos dois, e era ele que jogava fora toda seção
+        // importada — em silêncio, porque uma seção a menos não parece erro.
+        .filter((l) => l.titulo && (l.tipo === 'divisor' || l.url))
     }
   } catch {
     return { ok: false as const, erro: 'A lista de links veio malformada.' }

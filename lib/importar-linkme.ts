@@ -40,8 +40,20 @@ export type Plataforma =
 
 export type RedeImportada = { plataforma: Plataforma; handle: string; url: string }
 export type LinkImportado = {
+  /**
+   * `divisor` é o TÍTULO DE SEÇÃO da página de origem ("MY LATEST VIDEOS"),
+   * que o link.me desenha entre os botões e o produto guarda na mesma lista,
+   * com `creator_links.tipo = 'divisor'`.
+   *
+   * Um divisor não tem endereço nem arte: `url` e `capaUrl` vêm nulos, e
+   * `estilo` fica inerte. Ele mora na MESMA lista dos links porque é a posição
+   * dele entre eles que diz onde a seção começa — separar em dois arrays
+   * perderia exatamente essa informação.
+   */
+  tipo: 'link' | 'divisor'
   titulo: string
-  url: string
+  /** Nulo no divisor — é o que o CHECK `creator_links_url_por_tipo` exige. */
+  url: string | null
   /**
    * A arte do card no link.me.
    *
@@ -196,9 +208,35 @@ export function extrairDeHtml(doc: string): PerfilLinkme {
         .trim() || null
   }
 
-  // Botões. Lê a tag inteira e procura os atributos dentro — a ordem varia.
-  const links: LinkImportado[] = []
+  /**
+   * Botões e TÍTULOS DE SEÇÃO, na ordem em que aparecem na página.
+   *
+   * A ordem é o ponto. Um divisor não diz nada sozinho — o que ele significa é
+   * "daqui para baixo começa a seção tal", e isso só existe em relação aos
+   * links que vêm depois dele. Por isso os dois são coletados com a POSIÇÃO no
+   * documento (`match.index`) e ordenados juntos no fim, em vez de duas
+   * varreduras independentes que depois não teriam como ser intercaladas.
+   *
+   * O título de seção é um `<section>` que embrulha um único `<span>` marcado
+   * `notranslate`, e é essa forma que o identifica — não a classe, que é uma
+   * pilha de utilitários do Tailwind e muda a cada ajuste de espaçamento no
+   * link.me. O contador de seguidores da página também usa `notranslate`, mas
+   * vive dentro de um `<button>`, então a exigência do `<section>` colado ao
+   * `<span>` já o deixa de fora.
+   */
+  const achados: { pos: number; item: LinkImportado }[] = []
   const vistos = new Set<string>()
+
+  for (const s of doc.matchAll(
+    /<section\s[^>]*>\s*<span[^>]*\bnotranslate\b[^>]*>([\s\S]*?)<\/span>\s*<\/section>/gi,
+  )) {
+    const titulo = decodificar(semTags(s[1])).trim()
+    if (!titulo) continue
+    achados.push({
+      pos: s.index ?? 0,
+      item: { tipo: 'divisor', titulo, url: null, capaUrl: null, estilo: 'grande' },
+    })
+  }
 
   for (const a of doc.matchAll(/<a\s([^>]*)>([\s\S]*?)<\/a>/gi)) {
     const [, atributos, interno] = a
@@ -228,10 +266,20 @@ export function extrairDeHtml(doc: string): PerfilLinkme {
         tituloLink = 'Link'
       }
     }
-    links.push({ titulo: tituloLink, url, capaUrl: capa, estilo })
+    achados.push({
+      pos: a.index ?? 0,
+      item: { tipo: 'link', titulo: tituloLink, url, capaUrl: capa, estilo },
+    })
   }
 
-  if (links.length === 0) {
+  const links: LinkImportado[] = achados
+    .sort((x, y) => x.pos - y.pos)
+    .map((x) => x.item)
+
+  // Conta só os LINKS. Um perfil que devolvesse apenas divisores está tão
+  // quebrado quanto um vazio, e sem esta distinção o aviso sumiria justo no
+  // caso em que a extração dos botões parou de funcionar.
+  if (!links.some((l) => l.tipo === 'link')) {
     avisos.push(
       'Nenhum botão de link foi reconhecido. Ou o perfil não tem nenhum, ou o ' +
         'layout do link.me mudou e a extração dos botões precisa ser revista.',
@@ -256,7 +304,7 @@ export function extrairDeHtml(doc: string): PerfilLinkme {
       // Rede que virou link não tem arte nem formato próprio na origem — e
       // sem arte a página desenha botão de qualquer jeito, então `botao` é o
       // que já diz a verdade sobre como ele vai sair.
-      links.push({ titulo: nomeDoServico, url, capaUrl: null, estilo: 'botao' })
+      links.push({ tipo: 'link', titulo: nomeDoServico, url, capaUrl: null, estilo: 'botao' })
     }
   }
 
