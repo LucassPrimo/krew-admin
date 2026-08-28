@@ -1644,7 +1644,14 @@
     "adicionarImagem": "Adicionar imagem",
     "trocarImagem": "Trocar imagem",
     "adicionar": "Adicionar",
-    "atualizar": "Atualizar"
+    "atualizar": "Atualizar",
+    "categoriaSocial": "Sociais",
+    "categoriaNegocios": "Negócios",
+    "categoriaMusica": "Música",
+    "categoriaPagamento": "Pagamento",
+    "categoriaEntretenimento": "Entretenimento",
+    "categoriaEstilo": "Estilo de vida",
+    "categoriaOutros": "Outros"
   },
   "aparencia": {
     "title": "Aparência",

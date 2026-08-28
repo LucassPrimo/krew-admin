@@ -7,12 +7,35 @@ import { Check, Loader2, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { saveSocialNetworks } from '@/app/actions/social-networks'
 import {
+  CATEGORIAS,
   PLATFORMS,
   PlatformIcon,
   normalizarHandle,
   normalizarUrl,
+  type Categoria,
   type PlatformId,
 } from '@/components/bio/platforms'
+
+/**
+ * A chave de tradução de cada gaveta.
+ *
+ * Um mapa explícito, e não `` `categoria${cat}` ``: chave montada por
+ * concatenação some do `grep`, e o dia em que uma categoria for renomeada o
+ * rótulo simplesmente vira a própria chave em tela, sem erro de build.
+ */
+const ROTULO_CATEGORIA: Record<Categoria, string> = {
+  social: 'categoriaSocial',
+  negocios: 'categoriaNegocios',
+  musica: 'categoriaMusica',
+  pagamento: 'categoriaPagamento',
+  entretenimento: 'categoriaEntretenimento',
+  estilo: 'categoriaEstilo',
+  outros: 'categoriaOutros',
+}
+
+function rotuloCategoria(cat: Categoria) {
+  return ROTULO_CATEGORIA[cat]
+}
 
 interface RedeEditavel {
   platform: string
@@ -110,10 +133,41 @@ export function BioRedesCard({ redesIniciais }: { redesIniciais: RedeEditavel[] 
     })
   }
 
+  /**
+   * As bolinhas agrupadas por categoria, na ordem de `CATEGORIAS`.
+   *
+   * Com uma dezena de redes a fileira única funcionava: cabia em duas linhas e
+   * dava para varrer de olho. Com quase sessenta ela virou um paredão em que
+   * achar o Spotify custa mais do que digitar o endereço dele à mão — que é o
+   * oposto do que a fileira existe para fazer.
+   *
+   * A contagem ao lado do título é o que já está PREENCHIDO naquela gaveta, e
+   * não o total dela. O total é a mesma informação que as bolinhas visíveis já
+   * dão; o preenchido responde "falta alguma coisa aqui?" sem abrir nada.
+   */
+  const grupos = CATEGORIAS.map((cat) => {
+    const itens = PLATFORMS.filter((p) => p.categoria === cat)
+    const preenchidas = itens.filter((p) => {
+      const r = redes.find((x) => x.platform === p.id)
+      return !!(r?.handle || r?.url)
+    }).length
+    return { cat, itens, preenchidas }
+  }).filter((g) => g.itens.length > 0)
+
   return (
     <div className="flex flex-col gap-3">
+      {grupos.map(({ cat, itens, preenchidas }) => (
+      <div key={cat} className="flex flex-col gap-1.5">
+        <p className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+          {t(rotuloCategoria(cat))}
+          {preenchidas > 0 && (
+            <span className="rounded-full bg-primary/10 px-1.5 text-[10px] font-semibold text-primary">
+              {preenchidas}
+            </span>
+          )}
+        </p>
       <div className="flex flex-wrap gap-2">
-        {PLATFORMS.map((p) => {
+        {itens.map((p) => {
           const r = redes.find((x) => x.platform === p.id)
           const preenchida = !!(r?.handle || r?.url)
 
@@ -149,6 +203,8 @@ export function BioRedesCard({ redesIniciais }: { redesIniciais: RedeEditavel[] 
           )
         })}
       </div>
+      </div>
+      ))}
 
       {def && (
         <div className="flex flex-col gap-2 rounded-xl border border-border bg-background p-3">

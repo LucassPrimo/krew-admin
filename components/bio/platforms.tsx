@@ -43,10 +43,77 @@ export type PlatformId =
   | 'applemusic'
   | 'soundcloud'
   | 'website'
+  | 'triller'
+  | 'discord'
+  | 'clubhouse'
+  | 'bereal'
+  | 'linktree'
+  | 'truth-social'
+  | 'rumble'
+  | 'mastodon'
+  | 'stereo'
+  | 'skype'
+  | 'telegram'
+  | 'whatsapp'
+  | 'calendly'
+  | 'github'
+  | 'minnect'
+  | 'opentable'
+  | 'sevenrooms'
+  | 'youtube-music'
+  | 'audiomack'
+  | 'tidal'
+  | 'deezer'
+  | 'amazon-music'
+  | 'pandora'
+  | 'paypal'
+  | 'venmo'
+  | 'cashapp'
+  | 'zelle'
+  | 'playstation'
+  | 'xbox'
+  | 'steam'
+  | 'kick'
+  | 'apple-podcasts'
+  | 'pinterest'
+  | 'vsco'
+  | 'depop'
+  | 'onlyfans'
+  | 'yelp'
+  | 'opensea'
+  | 'cameo'
+  | 'patreon'
+  | 'intro'
+  | 'behance'
+
+/**
+ * As gavetas da fileira de redes, na ordem em que aparecem.
+ *
+ * São as mesmas do link.me, e não uma taxonomia nossa: a lista existe para
+ * quem está montando a bio encontrar a rede que procura, e essa pessoa
+ * provavelmente acabou de vir de lá. Inventar categorias diferentes obrigaria
+ * a reaprender onde cada coisa mora.
+ *
+ * `outros` no fim, porque é a gaveta do que não coube nas outras — e uma
+ * gaveta assim no meio da lista empurra para baixo coisas mais procuradas.
+ */
+export const CATEGORIAS = [
+  'social',
+  'negocios',
+  'musica',
+  'pagamento',
+  'entretenimento',
+  'estilo',
+  'outros',
+] as const
+
+export type Categoria = (typeof CATEGORIAS)[number]
 
 export interface PlatformDef {
   id: PlatformId
   label: string
+  /** Em que gaveta da fileira ela aparece. Ver `CATEGORIAS`. */
+  categoria: Categoria
   /** Prefixo mostrado antes do input, para o criador saber o que digitar. */
   prefix: string
   /** Monta a URL pública a partir do handle. `null` = a rede guarda URL crua. */
@@ -117,6 +184,34 @@ export function normalizarUrl(valor: string) {
   return /^https?:\/\//i.test(limpo) ? limpo : `https://${limpo}`
 }
 
+/**
+ * O glifo de reserva das redes que ainda não têm desenho próprio: as INICIAIS
+ * sobre a cor da marca.
+ *
+ * Ele quase nunca aparece — todas as plataformas apontam para um arquivo em
+ * `public/logos/onde-conheceu/`, e o `PlatformIcon` só cai no glifo quando não
+ * há `logo`. Existe para o caso de um asset sumir da pasta, e para uma
+ * plataforma nova funcionar antes de alguém desenhá-la.
+ *
+ * Duas letras e não uma: `Twitch` e `Tidal`, `Pinterest` e `Patreon` começam
+ * igual, e uma inicial só transformaria a fileira num teste de adivinhação.
+ */
+const letra = (iniciais: string) => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" className="h-full w-full">
+    <text
+      x="12"
+      y="12"
+      textAnchor="middle"
+      dominantBaseline="central"
+      fontSize="11"
+      fontWeight="700"
+      fill="currentColor"
+    >
+      {iniciais}
+    </text>
+  </svg>
+)
+
 const svg = (children: ReactNode) => (
   <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="w-full h-full">
     {children}
@@ -126,6 +221,7 @@ const svg = (children: ReactNode) => (
 export const PLATFORMS: PlatformDef[] = [
   {
     id: 'instagram',
+    categoria: 'social',
     label: 'Instagram',
     prefix: '@',
     href: (h) => `https://instagram.com/${h}`,
@@ -138,6 +234,7 @@ export const PLATFORMS: PlatformDef[] = [
   },
   {
     id: 'tiktok',
+    categoria: 'social',
     label: 'TikTok',
     prefix: '@',
     href: (h) => `https://tiktok.com/@${h}`,
@@ -150,6 +247,7 @@ export const PLATFORMS: PlatformDef[] = [
   },
   {
     id: 'youtube',
+    categoria: 'social',
     label: 'YouTube',
     prefix: 'youtube.com/@',
     href: (h) => `https://youtube.com/@${h}`,
@@ -162,6 +260,7 @@ export const PLATFORMS: PlatformDef[] = [
   },
   {
     id: 'twitter',
+    categoria: 'social',
     label: 'X',
     prefix: '@',
     href: (h) => `https://x.com/${h}`,
@@ -174,6 +273,7 @@ export const PLATFORMS: PlatformDef[] = [
   },
   {
     id: 'twitch',
+    categoria: 'entretenimento',
     label: 'Twitch',
     prefix: 'twitch.tv/',
     href: (h) => `https://twitch.tv/${h}`,
@@ -207,6 +307,7 @@ export const PLATFORMS: PlatformDef[] = [
   },
   {
     id: 'linkedin',
+    categoria: 'negocios',
     label: 'LinkedIn',
     prefix: 'linkedin.com/in/',
     href: (h) => `https://linkedin.com/in/${h}`,
@@ -219,6 +320,7 @@ export const PLATFORMS: PlatformDef[] = [
   },
   {
     id: 'facebook',
+    categoria: 'social',
     label: 'Facebook',
     prefix: 'facebook.com/',
     href: (h) => `https://facebook.com/${h}`,
@@ -231,6 +333,7 @@ export const PLATFORMS: PlatformDef[] = [
   },
   {
     id: 'spotify',
+    categoria: 'musica',
     label: 'Spotify',
     prefix: 'https://',
     href: null,
@@ -243,6 +346,7 @@ export const PLATFORMS: PlatformDef[] = [
   },
   {
     id: 'threads',
+    categoria: 'social',
     label: 'Threads',
     prefix: '@',
     href: (h) => `https://threads.net/@${h}`,
@@ -255,6 +359,7 @@ export const PLATFORMS: PlatformDef[] = [
   },
   {
     id: 'reddit',
+    categoria: 'social',
     label: 'Reddit',
     prefix: 'reddit.com/u/',
     href: (h) => `https://reddit.com/user/${h}`,
@@ -267,6 +372,7 @@ export const PLATFORMS: PlatformDef[] = [
   },
   {
     id: 'snapchat',
+    categoria: 'social',
     label: 'Snapchat',
     prefix: '@',
     href: (h) => `https://snapchat.com/add/${h}`,
@@ -279,6 +385,7 @@ export const PLATFORMS: PlatformDef[] = [
   },
   {
     id: 'applemusic',
+    categoria: 'musica',
     label: 'Apple Music',
     prefix: 'https://',
     href: null,
@@ -291,6 +398,7 @@ export const PLATFORMS: PlatformDef[] = [
   },
   {
     id: 'soundcloud',
+    categoria: 'musica',
     label: 'SoundCloud',
     prefix: 'https://',
     href: null,
@@ -303,6 +411,7 @@ export const PLATFORMS: PlatformDef[] = [
   },
   {
     id: 'website',
+    categoria: 'outros',
     label: 'Website',
     prefix: 'https://',
     href: null,
@@ -312,6 +421,483 @@ export const PLATFORMS: PlatformDef[] = [
     icone: svg(
       <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm6.9 6h-2.95a15.6 15.6 0 0 0-1.4-3.6A8.03 8.03 0 0 1 18.9 8ZM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96ZM4.26 14a8.06 8.06 0 0 1 0-4h3.38a16.5 16.5 0 0 0 0 4H4.26Zm.84 2h2.95c.32 1.25.79 2.45 1.4 3.6A8.03 8.03 0 0 1 5.1 16Zm2.95-8H5.1a8.03 8.03 0 0 1 4.35-3.6A15.6 15.6 0 0 0 8.05 8ZM12 19.96A13.9 13.9 0 0 1 10.09 16h3.82A13.9 13.9 0 0 1 12 19.96ZM14.34 14H9.66a14.7 14.7 0 0 1 0-4h4.68a14.7 14.7 0 0 1 0 4Zm.21 5.6c.61-1.15 1.08-2.35 1.4-3.6h2.95a8.03 8.03 0 0 1-4.35 3.6ZM16.36 14a16.5 16.5 0 0 0 0-4h3.38a8.06 8.06 0 0 1 0 4h-3.38Z" />
     ),
+  },
+
+  /* -------------------------------------------------------------------------
+   * As redes trazidas do catálogo do link.me, agrupadas como lá.
+   *
+   * Elas entram DEPOIS das que o app já tinha, e não intercaladas por
+   * categoria, porque a ordem dentro de cada gaveta é a ordem deste array — e
+   * as antigas são justamente as mais usadas. Quem procura Instagram continua
+   * achando na primeira posição de "Sociais".
+   *
+   * As que não têm URL previsível (Discord, Mastodon, Tidal, Zelle, e as
+   * demais com `href: null`) pedem o endereço inteiro em vez do @: um handle
+   * do Mastodon depende da instância, um do Tidal é um número. Inventar um
+   * padrão para elas produziria links quebrados que só aparecem quando alguém
+   * clica.
+   * ---------------------------------------------------------------------- */
+  {
+    id: 'triller',
+    label: 'Triller',
+    prefix: 'triller.co/@',
+    href: (h) => `https://triller.co/@${h}`,
+    cor: '#FF0055',
+    categoria: 'social',
+    logo: '/logos/onde-conheceu/triller.svg',
+    logoTemTile: true,
+    icone: letra('Tr'),
+  },
+  {
+    id: 'discord',
+    label: 'Discord',
+    prefix: 'URL',
+    href: null,
+    cor: '#5865F2',
+    categoria: 'social',
+    logo: '/logos/onde-conheceu/discord.svg',
+    logoTemTile: true,
+    icone: letra('Dc'),
+  },
+  {
+    id: 'clubhouse',
+    label: 'Clubhouse',
+    prefix: 'clubhouse.com/@',
+    href: (h) => `https://clubhouse.com/@${h}`,
+    cor: '#F2D544',
+    categoria: 'social',
+    logo: '/logos/onde-conheceu/clubhouse.svg',
+    logoTemTile: true,
+    icone: letra('Ch'),
+  },
+  {
+    id: 'bereal',
+    label: 'BeReal',
+    prefix: 'bere.al/',
+    href: (h) => `https://bere.al/${h}`,
+    cor: '#000000',
+    categoria: 'social',
+    logo: '/logos/onde-conheceu/bereal.svg',
+    logoTemTile: true,
+    icone: letra('Be'),
+  },
+  {
+    id: 'linktree',
+    label: 'Linktree',
+    prefix: 'linktr.ee/',
+    href: (h) => `https://linktr.ee/${h}`,
+    cor: '#43E660',
+    categoria: 'social',
+    logo: '/logos/onde-conheceu/linktree.svg',
+    logoTemTile: true,
+    icone: letra('Lt'),
+  },
+  {
+    id: 'truth-social',
+    label: 'Truth Social',
+    prefix: 'truthsocial.com/@',
+    href: (h) => `https://truthsocial.com/@${h}`,
+    cor: '#5448EE',
+    categoria: 'social',
+    logo: '/logos/onde-conheceu/truth-social.svg',
+    logoTemTile: true,
+    icone: letra('Ts'),
+  },
+  {
+    id: 'rumble',
+    label: 'Rumble',
+    prefix: 'rumble.com/c/',
+    href: (h) => `https://rumble.com/c/${h}`,
+    cor: '#85C742',
+    categoria: 'social',
+    logo: '/logos/onde-conheceu/rumble.svg',
+    logoTemTile: true,
+    icone: letra('Rb'),
+  },
+  {
+    id: 'mastodon',
+    label: 'Mastodon',
+    prefix: 'URL',
+    href: null,
+    cor: '#6364FF',
+    categoria: 'social',
+    logo: '/logos/onde-conheceu/mastodon.svg',
+    logoTemTile: true,
+    icone: letra('Ma'),
+  },
+  {
+    id: 'stereo',
+    label: 'Stereo',
+    prefix: 'URL',
+    href: null,
+    cor: '#E8474B',
+    categoria: 'social',
+    logo: '/logos/onde-conheceu/stereo.svg',
+    logoTemTile: true,
+    icone: letra('St'),
+  },
+  {
+    id: 'skype',
+    label: 'Skype',
+    prefix: 'URL',
+    href: null,
+    cor: '#00AFF0',
+    categoria: 'negocios',
+    logo: '/logos/onde-conheceu/skype.svg',
+    logoTemTile: true,
+    icone: letra('Sk'),
+  },
+  {
+    id: 'telegram',
+    label: 'Telegram',
+    prefix: 't.me/',
+    href: (h) => `https://t.me/${h}`,
+    cor: '#2AABEE',
+    categoria: 'negocios',
+    logo: '/logos/onde-conheceu/telegram.svg',
+    logoTemTile: true,
+    icone: letra('Tg'),
+  },
+  {
+    id: 'whatsapp',
+    label: 'WhatsApp',
+    prefix: 'wa.me/',
+    href: (h) => `https://wa.me/${h}`,
+    cor: '#25D366',
+    categoria: 'negocios',
+    logo: '/logos/onde-conheceu/whatsapp.svg',
+    logoTemTile: true,
+    icone: letra('Wa'),
+  },
+  {
+    id: 'calendly',
+    label: 'Calendly',
+    prefix: 'calendly.com/',
+    href: (h) => `https://calendly.com/${h}`,
+    cor: '#006BFF',
+    categoria: 'negocios',
+    logo: '/logos/onde-conheceu/calendly.svg',
+    logoTemTile: true,
+    icone: letra('Cy'),
+  },
+  {
+    id: 'github',
+    label: 'GitHub',
+    prefix: 'github.com/',
+    href: (h) => `https://github.com/${h}`,
+    cor: '#181717',
+    categoria: 'negocios',
+    logo: '/logos/onde-conheceu/github.svg',
+    logoTemTile: true,
+    icone: letra('Gh'),
+  },
+  {
+    id: 'minnect',
+    label: 'Minnect',
+    prefix: 'URL',
+    href: null,
+    cor: '#D93A3A',
+    categoria: 'negocios',
+    logo: '/logos/onde-conheceu/minnect.svg',
+    logoTemTile: true,
+    icone: letra('Mn'),
+  },
+  {
+    id: 'opentable',
+    label: 'OpenTable',
+    prefix: 'URL',
+    href: null,
+    cor: '#DA3743',
+    categoria: 'negocios',
+    logo: '/logos/onde-conheceu/opentable.svg',
+    logoTemTile: true,
+    icone: letra('Ot'),
+  },
+  {
+    id: 'sevenrooms',
+    label: 'SevenRooms',
+    prefix: 'URL',
+    href: null,
+    cor: '#4EBFB5',
+    categoria: 'negocios',
+    logo: '/logos/onde-conheceu/sevenrooms.svg',
+    logoTemTile: true,
+    icone: letra('Sr'),
+  },
+  {
+    id: 'youtube-music',
+    label: 'YouTube Music',
+    prefix: 'URL',
+    href: null,
+    cor: '#FF0000',
+    categoria: 'musica',
+    logo: '/logos/onde-conheceu/youtube-music.svg',
+    logoTemTile: true,
+    icone: letra('YM'),
+  },
+  {
+    id: 'audiomack',
+    label: 'Audiomack',
+    prefix: 'audiomack.com/',
+    href: (h) => `https://audiomack.com/${h}`,
+    cor: '#F7A01B',
+    categoria: 'musica',
+    logo: '/logos/onde-conheceu/audiomack.svg',
+    logoTemTile: true,
+    icone: letra('Am'),
+  },
+  {
+    id: 'tidal',
+    label: 'Tidal',
+    prefix: 'URL',
+    href: null,
+    cor: '#000000',
+    categoria: 'musica',
+    logo: '/logos/onde-conheceu/tidal.svg',
+    logoTemTile: true,
+    icone: letra('Td'),
+  },
+  {
+    id: 'deezer',
+    label: 'Deezer',
+    prefix: 'URL',
+    href: null,
+    cor: '#1A1A1A',
+    categoria: 'musica',
+    logo: '/logos/onde-conheceu/deezer.svg',
+    logoTemTile: true,
+    icone: letra('Dz'),
+  },
+  {
+    id: 'amazon-music',
+    label: 'Amazon Music',
+    prefix: 'URL',
+    href: null,
+    cor: '#2D1DC4',
+    categoria: 'musica',
+    logo: '/logos/onde-conheceu/amazon-music.svg',
+    logoTemTile: true,
+    icone: letra('AM'),
+  },
+  {
+    id: 'pandora',
+    label: 'Pandora',
+    prefix: 'URL',
+    href: null,
+    cor: '#6C3FD1',
+    categoria: 'musica',
+    logo: '/logos/onde-conheceu/pandora.svg',
+    logoTemTile: true,
+    icone: letra('Pa'),
+  },
+  {
+    id: 'paypal',
+    label: 'PayPal',
+    prefix: 'paypal.me/',
+    href: (h) => `https://paypal.me/${h}`,
+    cor: '#0070BA',
+    categoria: 'pagamento',
+    logo: '/logos/onde-conheceu/paypal.svg',
+    logoTemTile: true,
+    icone: letra('PP'),
+  },
+  {
+    id: 'venmo',
+    label: 'Venmo',
+    prefix: 'venmo.com/',
+    href: (h) => `https://venmo.com/${h}`,
+    cor: '#3D95CE',
+    categoria: 'pagamento',
+    logo: '/logos/onde-conheceu/venmo.svg',
+    logoTemTile: true,
+    icone: letra('Vn'),
+  },
+  {
+    id: 'cashapp',
+    label: 'Cash App',
+    prefix: 'cash.app/$',
+    href: (h) => `https://cash.app/$${h}`,
+    cor: '#00D632',
+    categoria: 'pagamento',
+    logo: '/logos/onde-conheceu/cashapp.svg',
+    logoTemTile: true,
+    icone: letra('Ca'),
+  },
+  {
+    id: 'zelle',
+    label: 'Zelle',
+    prefix: 'URL',
+    href: null,
+    cor: '#6D1ED4',
+    categoria: 'pagamento',
+    logo: '/logos/onde-conheceu/zelle.svg',
+    logoTemTile: true,
+    icone: letra('Ze'),
+  },
+  {
+    id: 'playstation',
+    label: 'PlayStation',
+    prefix: 'URL',
+    href: null,
+    cor: '#2E6ADB',
+    categoria: 'entretenimento',
+    logo: '/logos/onde-conheceu/playstation.svg',
+    logoTemTile: true,
+    icone: letra('PS'),
+  },
+  {
+    id: 'xbox',
+    label: 'Xbox',
+    prefix: 'URL',
+    href: null,
+    cor: '#107C10',
+    categoria: 'entretenimento',
+    logo: '/logos/onde-conheceu/xbox.svg',
+    logoTemTile: true,
+    icone: letra('Xb'),
+  },
+  {
+    id: 'steam',
+    label: 'Steam',
+    prefix: 'steamcommunity.com/id/',
+    href: (h) => `https://steamcommunity.com/id/${h}`,
+    cor: '#2A475E',
+    categoria: 'entretenimento',
+    logo: '/logos/onde-conheceu/steam.svg',
+    logoTemTile: true,
+    icone: letra('Sm'),
+  },
+  {
+    id: 'kick',
+    label: 'Kick',
+    prefix: 'kick.com/',
+    href: (h) => `https://kick.com/${h}`,
+    cor: '#53FC18',
+    categoria: 'entretenimento',
+    logo: '/logos/onde-conheceu/kick.svg',
+    logoTemTile: true,
+    icone: letra('Ki'),
+  },
+  {
+    id: 'apple-podcasts',
+    label: 'Apple Podcasts',
+    prefix: 'URL',
+    href: null,
+    cor: '#9933CC',
+    categoria: 'entretenimento',
+    logo: '/logos/onde-conheceu/apple-podcasts.svg',
+    logoTemTile: true,
+    icone: letra('AP'),
+  },
+  {
+    id: 'pinterest',
+    label: 'Pinterest',
+    prefix: 'pinterest.com/',
+    href: (h) => `https://pinterest.com/${h}`,
+    cor: '#E60023',
+    categoria: 'estilo',
+    logo: '/logos/onde-conheceu/pinterest.svg',
+    logoTemTile: true,
+    icone: letra('Pi'),
+  },
+  {
+    id: 'vsco',
+    label: 'VSCO',
+    prefix: 'vsco.co/',
+    href: (h) => `https://vsco.co/${h}`,
+    cor: '#2C6BED',
+    categoria: 'estilo',
+    logo: '/logos/onde-conheceu/vsco.svg',
+    logoTemTile: true,
+    icone: letra('Vs'),
+  },
+  {
+    id: 'depop',
+    label: 'Depop',
+    prefix: 'depop.com/',
+    href: (h) => `https://depop.com/${h}`,
+    cor: '#FF2300',
+    categoria: 'estilo',
+    logo: '/logos/onde-conheceu/depop.svg',
+    logoTemTile: true,
+    icone: letra('Dp'),
+  },
+  {
+    id: 'onlyfans',
+    label: 'OnlyFans',
+    prefix: 'onlyfans.com/',
+    href: (h) => `https://onlyfans.com/${h}`,
+    cor: '#00AFF0',
+    categoria: 'estilo',
+    logo: '/logos/onde-conheceu/onlyfans.svg',
+    logoTemTile: true,
+    icone: letra('OF'),
+  },
+  {
+    id: 'yelp',
+    label: 'Yelp',
+    prefix: 'URL',
+    href: null,
+    cor: '#D32323',
+    categoria: 'estilo',
+    logo: '/logos/onde-conheceu/yelp.svg',
+    logoTemTile: true,
+    icone: letra('Yp'),
+  },
+  {
+    id: 'opensea',
+    label: 'OpenSea',
+    prefix: 'opensea.io/',
+    href: (h) => `https://opensea.io/${h}`,
+    cor: '#2081E2',
+    categoria: 'estilo',
+    logo: '/logos/onde-conheceu/opensea.svg',
+    logoTemTile: true,
+    icone: letra('Os'),
+  },
+  {
+    id: 'cameo',
+    label: 'Cameo',
+    prefix: 'cameo.com/',
+    href: (h) => `https://cameo.com/${h}`,
+    cor: '#111111',
+    categoria: 'estilo',
+    logo: '/logos/onde-conheceu/cameo.svg',
+    logoTemTile: true,
+    icone: letra('Cm'),
+  },
+  {
+    id: 'patreon',
+    label: 'Patreon',
+    prefix: 'patreon.com/',
+    href: (h) => `https://patreon.com/${h}`,
+    cor: '#FF424D',
+    categoria: 'estilo',
+    logo: '/logos/onde-conheceu/patreon.svg',
+    logoTemTile: true,
+    icone: letra('Pt'),
+  },
+  {
+    id: 'intro',
+    label: 'Intro',
+    prefix: 'intro.co/',
+    href: (h) => `https://intro.co/${h}`,
+    cor: '#1C1C1E',
+    categoria: 'estilo',
+    logo: '/logos/onde-conheceu/intro.svg',
+    logoTemTile: true,
+    icone: letra('In'),
+  },
+  {
+    id: 'behance',
+    label: 'Behance',
+    prefix: 'behance.net/',
+    href: (h) => `https://behance.net/${h}`,
+    cor: '#1769FF',
+    categoria: 'estilo',
+    logo: '/logos/onde-conheceu/behance.svg',
+    logoTemTile: true,
+    icone: letra('Bh'),
   },
 ]
 
