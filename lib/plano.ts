@@ -60,7 +60,12 @@ export const LIMITE_SECOES_FREE = 1
  * banco divergiria dele no dia em que ele mudasse.
  */
 export function rebaixarBioParaFree(bio: BioData): BioData {
-  if (!PRO_ATIVO || bio.pro) return bio
+  // `bio.oferta` sai inteira: é vitrine da Krew, não a página gratuita de um
+  // usuário — não há usuário ainda. A conta-fantasma não tem plano porque
+  // `criarOferta` zera o trial de propósito, e sem esta linha a página que
+  // existe para vender o produto mostrava 3 dos 20 links importados. Ver a
+  // migration `20260828140000_oferta_nao_rebaixa`.
+  if (!PRO_ATIVO || bio.pro || bio.oferta) return bio
 
   // Os tetos contam por tipo, como em `criarItemBio`: 3 links e 1 divisor. Os
   // PRIMEIROS de cada, na ordem que o criador arrastou — cortar do fim é o

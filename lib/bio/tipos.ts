@@ -75,6 +75,23 @@ export interface BioData {
   /** Assinatura de pé — a segunda porta para o mesmo selo. Booleano e não a
    *  linha da assinatura: esta página é pública (ver a migration do selo). */
   pro: boolean
+  /**
+   * Página montada pela Krew e ainda sem dono — uma bio de oferta em aberto.
+   *
+   * Existe por causa de uma coisa só: ela NÃO é rebaixada para Free (ver
+   * `rebaixarBioParaFree`). A conta-fantasma não tem plano porque não tem
+   * ninguém, e cortá-la em 3 links faria a vitrine mostrar o produto capado
+   * justamente para quem ainda vai decidir se compra.
+   *
+   * Separado de `pro` de propósito: `pro` também acende o selo de verificado,
+   * e uma página de quem não é cliente não pode exibi-lo. Vira falso no
+   * momento em que a oferta é aceita, e daí em diante valem as regras de
+   * todo mundo.
+   *
+   * Opcional porque `get_bio_leve` e chamadas antigas não o mandam; ausente
+   * é o mesmo que falso.
+   */
+  oferta?: boolean
   tema: {
     theme: string
     bg_color: string
