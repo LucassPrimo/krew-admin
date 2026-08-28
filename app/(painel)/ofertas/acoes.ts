@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 
 import type { TransactionSql } from 'postgres'
 
-import { autorizarEscrita, autorizarEscritaSemStepUp, exigirAtor } from '@/lib/auth'
+import { autorizarEscritaSemStepUp, exigirAtor } from '@/lib/auth'
 import type { EstiloItem } from '@/lib/bio/tipos'
 import { dbRW } from '@/lib/db'
 import { registrarAcao } from '@/lib/mutate'
@@ -153,14 +153,23 @@ export async function acaoMarcarAceita(pageId: string) {
 /**
  * Apaga a oferta e a conta-fantasma inteira. Ver `excluirOferta`.
  *
- * É a única ação daqui que passa por `autorizarEscrita()`, COM o TOTP, e não
- * pela versão sem step-up que as outras usam. O argumento das outras — "é dado
- * numa conta que ainda não é de ninguém, pedir o código a cada oferta só
- * produz atrito" — não sobrevive ao fato de esta ser irreversível: o que se
- * perde num clique errado não volta de lugar nenhum.
+ * Sem step-up, como as outras ações desta tela: quem confirma é o HANDLE
+ * digitado, e ele já responde a pergunta que o TOTP responderia aqui — "é
+ * ESTA oferta mesmo?". O código de 6 dígitos prova quem você é, e isso a
+ * sessão com AAL2 do login já provou; num painel de uma pessoa só ele não
+ * acrescenta prova nenhuma, só um passo entre a decisão e o efeito.
+ *
+ * Digitar o handle é a trava mais adequada ao erro que realmente acontece
+ * aqui, que é apagar a oferta errada — de uma lista de ofertas parecidas,
+ * numa aba que estava aberta desde antes. Um código do autenticador seria
+ * aceito com a mesma facilidade na oferta certa e na errada.
+ *
+ * O que continua de pé: a auditoria antes da exclusão, a recusa de apagar
+ * oferta aceita, e o kill switch — `autorizarEscritaSemStepUp` checa a
+ * sessão, as duas listas de admin e o `ADMIN_WRITES_ENABLED`.
  */
 export async function acaoExcluirOferta(pageId: string, slugConfirmado: string) {
-  const permissao = await autorizarEscrita()
+  const permissao = await autorizarEscritaSemStepUp()
   if (!permissao.ok) return { ok: false as const, erro: permissao.texto }
 
   const ctx = await contexto()
