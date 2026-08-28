@@ -4,6 +4,25 @@ import { getMessages } from 'next-intl/server'
 
 import './globals.css'
 
+/**
+ * Nada aqui é pré-renderizado, e o motivo é o CSP.
+ *
+ * O nonce que o `proxy.ts` gera muda a cada resposta, e uma página gerada no
+ * BUILD não tem como carregá-lo — o Next simplesmente emite os scripts sem
+ * nonce, e o navegador bloqueia todos. Foi o que aconteceu com `/login`,
+ * `/mfa`, `/mfa/cadastrar` e `/negado`, as quatro telas que ainda saíam
+ * estáticas: no ar elas apareciam pretas e vazias.
+ *
+ * `export const dynamic` não cabe nos arquivos delas (são `'use client'`), e
+ * repetir a linha em cada uma deixaria a próxima tela nova de fora — com o
+ * mesmo sintoma mudo. No layout raiz vale para todas, hoje e depois.
+ *
+ * O custo é zero neste app: o middleware roda em toda requisição de qualquer
+ * jeito, e o painel inteiro já era dinâmico. Guardar `/login` num CDN não
+ * economizaria nada numa ferramenta interna de uma pessoa.
+ */
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Krew Admin',
   // O painel não deve ser encontrável. Isto acompanha o X-Robots-Tag do

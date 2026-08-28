@@ -9,44 +9,18 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts')
 /**
  * Cabeçalhos do painel.
  *
- * O `connect-src` lista só o host do Supabase porque é o único destino
- * legítimo de rede: se um dia algum código tentar mandar dado para outro
- * domínio, o navegador recusa. Numa tela que exibe CPF e dado bancário de
- * terceiros, isso vale mais do que parece.
+ * O CSP NÃO mora mais aqui — ele é montado por requisição em `proxy.ts`,
+ * porque precisa de um nonce novo a cada resposta. O que ficou neste arquivo
+ * são os cabeçalhos fixos, que não dependem da requisição.
+ *
+ * Por que a mudança: o CSP estático trazia `script-src 'self'` em produção, e
+ * isso derrubava o painel inteiro no ar — tela preta, sem erro visível. O
+ * `<body>` que o Next 16 entrega não tem conteúdo: a página é construída por
+ * uma dezena de `<script>` INLINE, e `'self'` bloqueia todos eles. Em `next
+ * dev` o problema não aparecia porque a política de desenvolvimento abria
+ * `'unsafe-inline'` — a frouxidão de dev escondia o defeito de produção, que é
+ * o pior lugar para uma diferença entre os dois ambientes.
  */
-const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
-
-const dev = process.env.NODE_ENV !== 'production'
-
-const csp = [
-  "default-src 'self'",
-  // Recharts injeta estilo inline; sem 'unsafe-inline' em style-src os gráficos
-  // saem sem eixo. É a única frouxidão aqui, e é em ESTILO, não em script.
-  "style-src 'self' 'unsafe-inline'",
-  // Script fica estrito EM PRODUÇÃO: nenhum terceiro, nenhum inline.
-  //
-  // Em `next dev` a mesma política derruba o painel antes dele hidratar: o
-  // bootstrap do Next é um punhado de scripts INLINE — um deles define o
-  // `self.__next_r` que o runtime exige, e sem ele o app quebra com
-  // "Expected a request ID to be defined for the document" — e o HMR do
-  // Turbopack roda `eval`. A frouxidão vale só na máquina de quem desenvolve;
-  // o header que vai para o ar continua o estrito.
-  dev ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'" : "script-src 'self'",
-  "img-src 'self' data: https:",
-  // A prévia da oferta é um iframe da página pública de verdade. Sem esta
-  // linha, `frame-src` herda o `default-src 'self'` e o navegador recusa o
-  // iframe em silêncio — a moldura do celular apareceria vazia e nada no build
-  // ou no servidor acusaria o problema.
-  'frame-src https://bekrew.com https://www.bekrew.com https://app.bekrew.com',
-  "font-src 'self' data:",
-  // O websocket do HMR também é destino de rede, e só existe em dev.
-  dev
-    ? `connect-src 'self' ${supabaseHost} ws://localhost:* http://localhost:*`
-    : `connect-src 'self' ${supabaseHost}`,
-  "frame-ancestors 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-].join('; ')
 
 const nextConfig: NextConfig = {
   experimental: {
@@ -71,7 +45,6 @@ const nextConfig: NextConfig = {
       {
         source: '/:path*',
         headers: [
-          { key: 'Content-Security-Policy', value: csp },
           { key: 'X-Robots-Tag', value: 'noindex, nofollow, noarchive' },
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },

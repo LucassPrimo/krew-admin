@@ -16,8 +16,97 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 const PUBLICAS = ['/login', '/negado', '/auth']
 
+const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+const dev = process.env.NODE_ENV !== 'production'
+
+/**
+ * O CSP do painel, montado por requisição.
+ *
+ * ---------------------------------------------------------------------------
+ * Por que aqui e não em `next.config.ts`
+ * ---------------------------------------------------------------------------
+ * Ele já foi um cabeçalho fixo lá, com `script-src 'self'` em produção. Isso
+ * derrubou o painel no ar: tela preta, nenhum erro na tela. O `<body>` que o
+ * Next 16 entrega vem VAZIO — a página é montada por uma dezena de `<script>`
+ * INLINE com o payload do React, e `'self'` bloqueia inline. Não é hidratação
+ * que se perde, é o conteúdo inteiro.
+ *
+ * Em `next dev` nada disso aparecia, porque a política de desenvolvimento
+ * abria `'unsafe-inline'` para o HMR do Turbopack funcionar. A frouxidão de
+ * dev escondia o defeito de produção — que é o pior lugar possível para uma
+ * diferença entre ambientes, porque só se descobre depois de publicar.
+ *
+ * ---------------------------------------------------------------------------
+ * A saída não é afrouxar
+ * ---------------------------------------------------------------------------
+ * Pôr `'unsafe-inline'` em produção resolveria a tela preta e devolveria o
+ * XSS: numa ferramenta que mostra CPF e dado bancário de terceiros, é troca
+ * ruim. O nonce é o meio-termo que o Next suporta nativamente — um número
+ * aleatório por resposta, que só os scripts DELE carregam.
+ *
+ * O Next descobre o nonce lendo o CSP das headers da REQUISIÇÃO (por isso ele
+ * é escrito nos dois lados) e o carimba em cada `<script>` que emite.
+ * `'strict-dynamic'` estende a permissão aos chunks que esses scripts
+ * carregam, sem precisar listar caminho nenhum — e faz os navegadores que o
+ * entendem ignorarem o `'self'`, que fica só de reserva para os que não.
+ */
+function montarCsp(nonce: string) {
+  return [
+    "default-src 'self'",
+    // Recharts injeta estilo inline; sem 'unsafe-inline' em style-src os
+    // gráficos saem sem eixo. É a única frouxidão aqui, e é em ESTILO.
+    "style-src 'self' 'unsafe-inline'",
+    // Em dev o Turbopack roda `eval` no HMR, e o nonce não alcança isso.
+    dev
+      ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+      : `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    "img-src 'self' data: https:",
+    // A prévia da oferta é um iframe da página pública de verdade. Sem esta
+    // linha, `frame-src` herda o `default-src 'self'` e o navegador recusa o
+    // iframe em silêncio.
+    'frame-src https://bekrew.com https://www.bekrew.com https://app.bekrew.com',
+    "font-src 'self' data:",
+    dev
+      ? `connect-src 'self' ${supabaseHost} ws://localhost:* http://localhost:*`
+      : `connect-src 'self' ${supabaseHost}`,
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join('; ')
+}
+
 export async function proxy(request: NextRequest) {
-  let resposta = NextResponse.next({ request })
+  // `crypto.randomUUID` e não um contador: o nonce só vale se for
+  // imprevisível. Repetido entre respostas, ele deixa de ser barreira.
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
+  const csp = montarCsp(nonce)
+
+  /**
+   * Cada `NextResponse.next` daqui precisa levar o CSP na REQUISIÇÃO, senão o
+   * Next não acha o nonce e emite os scripts sem ele — de volta à tela preta.
+   *
+   * As headers são lidas de `request.headers` na hora da chamada, e não de um
+   * retrato tirado no começo: o cliente do Supabase mexe em `request.cookies`
+   * ao renovar a sessão, e essa mudança só chega adiante se a cópia for feita
+   * DEPOIS dela.
+   */
+  const proximo = (extras?: Record<string, string>) => {
+    const cabecalhos = new Headers(request.headers)
+    cabecalhos.set('Content-Security-Policy', csp)
+    for (const [k, v] of Object.entries(extras ?? {})) cabecalhos.set(k, v)
+    const r = NextResponse.next({ request: { headers: cabecalhos } })
+    r.headers.set('Content-Security-Policy', csp)
+    return r
+  }
+
+  /** Redirecionamento não monta página, mas sai com a mesma política. */
+  const irPara = (destino: string) => {
+    const r = NextResponse.redirect(new URL(destino, request.url))
+    r.headers.set('Content-Security-Policy', csp)
+    return r
+  }
+
+  let resposta = proximo()
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -27,7 +116,7 @@ export async function proxy(request: NextRequest) {
         getAll: () => request.cookies.getAll(),
         setAll: (lista) => {
           for (const { name, value } of lista) request.cookies.set(name, value)
-          resposta = NextResponse.next({ request })
+          resposta = proximo()
           for (const { name, value, options } of lista) {
             // NÃO force `httpOnly` aqui. O cliente de navegador do
             // @supabase/ssr guarda a sessão em cookie que o JAVASCRIPT precisa
@@ -60,14 +149,14 @@ export async function proxy(request: NextRequest) {
     // O motivo viaja na URL para que voltar ao login pare de ser um mistério.
     // Sem isto, "sessão expirou", "sua conta não é admin" e "faltou o segundo
     // fator" produzem exatamente a mesma tela em branco.
-    return NextResponse.redirect(new URL('/login?motivo=sessao', request.url))
+    return irPara('/login?motivo=sessao')
   }
 
   // Camada 3 na borda. A lista da Vercel é a checagem barata: uma requisição
   // não autorizada não deve nem chegar a consultar o Postgres.
   const permitidos = (process.env.ADMIN_USER_IDS ?? '').split(',').map((s) => s.trim())
   if (!permitidos.includes(data.user.id)) {
-    return NextResponse.redirect(new URL('/negado', request.url))
+    return irPara('/negado')
   }
 
   // Camada 4 — o TOTP desta sessão. As próprias telas de MFA ficam de fora,
@@ -75,10 +164,10 @@ export async function proxy(request: NextRequest) {
   if (!caminho.startsWith('/mfa')) {
     const { data: nivel } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
     if (nivel?.nextLevel === 'aal1') {
-      return NextResponse.redirect(new URL('/mfa/cadastrar', request.url))
+      return irPara('/mfa/cadastrar')
     }
     if (nivel?.currentLevel !== 'aal2') {
-      return NextResponse.redirect(new URL('/mfa', request.url))
+      return irPara('/mfa')
     }
   }
 
@@ -90,9 +179,7 @@ export async function proxy(request: NextRequest) {
   // que são requisições próprias e sabem de qual tela vieram.
   const oferta = caminho.match(/^\/ofertas\/([0-9a-f-]{36})$/i)?.[1]
   if (oferta) {
-    const cabecalhos = new Headers(request.headers)
-    cabecalhos.set('x-krew-alvo', oferta)
-    resposta = NextResponse.next({ request: { headers: cabecalhos } })
+    resposta = proximo({ 'x-krew-alvo': oferta })
     resposta.cookies.set('krew_admin_alvo', oferta, { path: '/', sameSite: 'lax' })
   }
 
