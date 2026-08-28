@@ -73,6 +73,15 @@ export interface PlatformDef {
    * ocupa o viewBox de um jeito — ver o comentário em `PlatformIcon`.
    */
   logoRespiro?: number
+  /**
+   * Deslocamento do desenho dentro do tile, em % do lado. Existe por causa de
+   * UM caso, o Twitch, e ele explica a regra: quando o tile tem a cor de parte
+   * do asset, o que se enxerga não é o desenho inteiro, é o que sobra dele — e
+   * centralizar o desenho inteiro deixa a parte visível fora do centro.
+   *
+   * Não confundir com `logoRespiro`, que é simétrico e só muda o tamanho.
+   */
+  logoDeslocamento?: { x: number; y: number }
   icone: ReactNode
 }
 
@@ -174,6 +183,24 @@ export const PLATFORMS: PlatformDef[] = [
     // visível entre o corpo do desenho e o fundo.
     logoFundo: '#9F77F7',
     logoRespiro: 12,
+    /**
+     * O asset é o balão de chat INTEIRO — corpo roxo, tela vazada em branco e
+     * a pontinha embaixo à esquerda. Sobre o tile roxo o corpo e a pontinha
+     * somem, e sobra só a tela branca, que não fica no meio do desenho: ela
+     * ocupa x 109,75→402,42 e y 36,59→374,98 de um viewBox de 439×512,17.
+     *
+     * O centro dela cai em (256,09, 205,79) contra o (219,50, 256,08) do
+     * viewBox — 7,14% à direita e 9,82% acima, já convertidos para o tamanho
+     * renderizado (o `object-contain` encaixa pela altura, porque o viewBox é
+     * mais alto que largo). O deslocamento abaixo é exatamente esse desvio,
+     * com o sinal trocado.
+     *
+     * Corrigir aqui e não no SVG é de propósito: recortar o viewBox em volta
+     * da tela branca centralizaria o logo neste tile e quebraria o arquivo em
+     * qualquer outro fundo, onde o corpo roxo É o desenho. O asset continua
+     * completo e correto; quem sabe do tile roxo é quem o pinta.
+     */
+    logoDeslocamento: { x: -7.14, y: 9.82 },
     icone: svg(
       <path d="M4.3 3 3 6.5V19h4.2v2.5h2.4l2.4-2.5h3.5L21 14.2V3H4.3Zm15 10.4-2.8 2.8h-3.6l-2.4 2.4v-2.4H7.2V4.7h12.1v8.7ZM16 7.6v4.6h-1.7V7.6H16Zm-4.5 0v4.6H9.8V7.6h1.7Z" />
     ),
@@ -348,7 +375,18 @@ export function PlatformIcon({
         {/* next/image está com `unoptimized` no projeto — <img> direto evita a
             camada extra sem ganho nenhum num SVG local. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={def.logo} alt="" className="h-full w-full object-contain" />
+        <img
+          src={def.logo}
+          alt=""
+          className="h-full w-full object-contain"
+          style={
+            def.logoDeslocamento
+              ? {
+                  transform: `translate(${def.logoDeslocamento.x}%, ${def.logoDeslocamento.y}%)`,
+                }
+              : undefined
+          }
+        />
       </span>
     )
   }
