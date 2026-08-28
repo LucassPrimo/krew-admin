@@ -54,6 +54,7 @@ export type PlatformId =
   | 'whatsapp'
   | 'calendly'
   | 'github'
+  | 'substack'
   | 'youtube-music'
   | 'audiomack'
   | 'tidal'
@@ -558,6 +559,19 @@ export const PLATFORMS: PlatformDef[] = [
     // vem daqui, senão ele fica transparente e some no fundo do cartão.
     logoRespiro: 16,
     icone: letra('Gh'),
+  },
+  {
+    id: 'substack',
+    label: 'Substack',
+    prefix: 'URL',
+    href: null,
+    cor: '#FF6719',
+    categoria: 'negocios',
+    logo: '/logos/redes/substack.svg',
+    // O arquivo é só o desenho, sem quadrado colorido próprio: o tile
+    // vem daqui, senão ele fica transparente e some no fundo do cartão.
+    logoRespiro: 20,
+    icone: letra('Sb'),
   },
   {
     id: 'youtube-music',
