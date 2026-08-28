@@ -48,18 +48,25 @@
   --color-borda: #272727;
   --color-borda-forte: #3d3d3d;
 
-  /* Texto */
-  --color-texto: #ededed;
-  --color-texto-fraco: #9a9a9a;
+  /* Texto branco, e o cinza de apoio abaixo dele.
+
+     O corpo chegou a ficar em #d6d6d6 para sobrar um degrau acima, onde os
+     links moram. Branco mesmo lê melhor e é o que foi pedido — o degrau que
+     faltou voltou como SUBLINHADO (ver a regra `a.text-acento` no fim deste
+     arquivo), que é um sinal mais forte que meio tom de cinza e funciona
+     para quem não distingue os dois. */
+  --color-texto: #ffffff;
+  --color-texto-fraco: #8f8f8f;
 
   /* Acento: o quase-branco.
-     Num painel sem cor, o destaque não pode vir de matiz — vem de
-     LUMINÂNCIA. `#e8e8e8` sobre `#0a0a0a` dá ~16:1, então o mesmo token
-     serve de fundo de botão (com texto preto por cima) e de cor de
-     texto, que é o que os dois usos já pediam do mint.
+     Num painel sem cor o destaque não vem de matiz. Este token é o mesmo
+     branco do texto: ele serve de fundo de botão (com preto por cima) e de
+     cor de link, que é o que os dois usos já pediam do mint. Como link e
+     parágrafo ficam da MESMA cor, quem separa os dois é o sublinhado no fim
+     deste arquivo.
      O `-fraco` é o cinza de estado inativo — barra de gráfico secundária,
      traço apagado —, não uma segunda cor. */
-  --color-acento: #e8e8e8;
+  --color-acento: #ffffff;
   --color-acento-fraco: #4d4d4d;
 
   /* -----------------------------------------------------------------
@@ -83,7 +90,7 @@
 
   /* `ok` NÃO é sinal: ele confirma o que a pessoa acabou de mandar
      fazer, e o texto já diz ("Notas salvas."). Vira branco como o resto. */
-  --color-ok: #e8e8e8;
+  --color-ok: var(--color-acento);
 
   /* ---------------------------------------------------------------
      Ponte para os nomes semânticos do shadcn.
@@ -212,4 +219,23 @@ table.densa tbody tr:hover {
 }
 .animate-in {
   animation: admin-aparecer 0.12s ease-out;
+}
+
+/* Link em painel monocromático precisa de um segundo sinal.
+
+   `text-acento` era mint e se distinguia sozinho no meio do texto. Branco
+   sobre branco não se distingue de nada, e o `hover:underline` que as telas
+   já traziam só ajuda depois que o mouse chega — o que não serve para
+   encontrar o link, apenas para confirmá-lo.
+
+   O sublinhado fica discreto em repouso (35% de branco, afastado 3px do
+   texto) e fecha no hover. Vale só para `<a>`: `text-acento` também pinta
+   número e rótulo, e sublinhar aquilo prometeria clique onde não há. */
+a.text-acento {
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 255, 255, 0.35);
+  text-underline-offset: 3px;
+}
+a.text-acento:hover {
+  text-decoration-color: currentColor;
 }

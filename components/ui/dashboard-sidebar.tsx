@@ -140,14 +140,17 @@ function Item({
  * prometendo função inexistente. O bloco ficou com o mesmo peso visual e passou
  * a carregar a marca e o estado que importa saber ao olhar para esta tela.
  *
- * O rótulo "interno" ao lado do wordmark não é decoração. O painel usa o mesmo
- * mint do produto, então a cor deixou de ser o sinal de "você não está no app
- * do cliente" — alguma coisa precisa dizer isso, e a palavra diz.
+ * O rótulo "interno" ao lado do wordmark não é decoração. Ele nasceu quando o
+ * painel usava o mint do produto e a cor deixou de distinguir os dois; com a
+ * paleta agora em preto e cinza a distinção voltou a ser visível, mas a
+ * palavra fica — é ela que continua funcionando numa captura de tela, num
+ * monitor mal calibrado ou para quem não vê cor.
  */
 function Identidade({ escritaLigada }: { escritaLigada: boolean }) {
   return (
     <div className="flex items-center gap-3 px-2 py-2 mb-4 rounded-lg select-none">
-      {/* O ícone quadrado já vem com o mint no próprio SVG. */}
+      {/* O ícone quadrado é monocromático no próprio SVG — ladrilho chumbo,
+          glifo branco. Ver o comentário da paleta em `globals.css`. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/krew-icon.svg" alt="" width={32} height={32} className="rounded-[6px] shrink-0" />
 
