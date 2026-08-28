@@ -34,6 +34,8 @@ ${ld('fulano', [
   'https://www.tiktok.com/@fulano?lang=en',
   'https://tidal.com/browse/artist/123',
   'https://music.youtube.com/channel/UC123',
+  // Host que o catálogo NÃO conhece: tem que virar link, não sumir.
+  'https://exemplo-obscuro.com/perfil',
 ])}
 </head><body>
 <a href="https://exemplo.com/turne" class="singlealbum smallfeaturelinks socialmedialink cursor-pointer" target="_blank"><div class="pointer-events-none imgbox bgColor-1"><img src="https://media.link.me/a.png" alt="LinkMe"/></div><div class="pointer-events-none albumtextbox"><div class="first colorWhite"><p><span style="color:#ffffffff">Turnê 2026</span></p></div></div></a>
@@ -137,20 +139,23 @@ describe('extrairDeHtml', () => {
     expect(p.links.map((l) => l.titulo)).not.toContain('224.5M')
   })
 
-  it('rede social que virou link não inventa capa', () => {
+  it('serviço que o app não modela vira link, e sem capa inventada', () => {
     const p = extrairDeHtml(PERFIL_A)
-    expect(p.links.find((l) => l.url?.includes('tidal.com'))?.capaUrl).toBeNull()
+    const link = p.links.find((l) => l.url?.includes('exemplo-obscuro'))
+    expect(link?.capaUrl).toBeNull()
+    expect(link?.titulo).toBe('exemplo-obscuro.com')
   })
 
-  it('separa redes conhecidas de serviços que o app não modela', () => {
+  it('reconhece como REDE tudo que está no catálogo', () => {
+    // Tidal e YouTube Music já viraram link aqui, quando o app só modelava
+    // catorze redes. Hoje são plataformas de verdade, e continuar mandando-as
+    // para a lista de links faria a oferta nascer com um botão cinza no lugar
+    // do ícone da marca.
     const p = extrairDeHtml(PERFIL_A)
-    expect(p.redes.map((r) => r.plataforma)).toEqual(['instagram', 'tiktok'])
+    expect(p.redes.map((r) => r.plataforma).sort()).toEqual(
+      ['instagram', 'tidal', 'tiktok', 'youtube-music'].sort(),
+    )
     expect(p.redes.find((r) => r.plataforma === 'tiktok')?.handle).toBe('fulano')
-
-    // Tidal e YouTube Music não têm plataforma no app — viram link, não somem.
-    const urls = p.links.map((l) => l.url)
-    expect(urls).toContain('https://tidal.com/browse/artist/123')
-    expect(urls).toContain('https://music.youtube.com/channel/UC123')
   })
 
   it('avisa quando nenhum botão foi reconhecido, em vez de fingir perfil vazio', () => {
@@ -167,15 +172,35 @@ describe('plataformaDaUrl', () => {
     expect(plataformaDaUrl('https://open.spotify.com/artist/1')).toBe('spotify')
   })
 
-  it('não confunde YouTube Music com o canal do YouTube', () => {
-    // A tabela tem `unique (user_id, platform)`: tratar os dois como 'youtube'
-    // faria um sobrescrever o outro silenciosamente.
-    expect(plataformaDaUrl('https://music.youtube.com/channel/UC1')).toBeNull()
+  it('o subdomínio específico ganha do domínio geral', () => {
+    // A regra da ORDEM em `HOSTS`. A tabela tem `unique (user_id, platform)`:
+    // tratar os dois como 'youtube' não daria erro, daria um `do nothing` — o
+    // segundo link sumiria sem ninguém ficar sabendo.
+    expect(plataformaDaUrl('https://music.youtube.com/channel/UC1')).toBe('youtube-music')
     expect(plataformaDaUrl('https://www.youtube.com/user/alguem')).toBe('youtube')
+    expect(plataformaDaUrl('https://podcasts.apple.com/br/podcast/x')).toBe('apple-podcasts')
+    expect(plataformaDaUrl('https://music.apple.com/br/artist/1')).toBe('applemusic')
+  })
+
+  it('reconhece as redes que entraram depois', () => {
+    expect(plataformaDaUrl('https://deezer.com/artist/1')).toBe('deezer')
+    expect(plataformaDaUrl('https://t.me/fulano')).toBe('telegram')
+    expect(plataformaDaUrl('https://wa.me/5511999999999')).toBe('whatsapp')
+    expect(plataformaDaUrl('https://cash.app/$fulano')).toBe('cashapp')
+    expect(plataformaDaUrl('https://kick.com/fulano')).toBe('kick')
+    expect(plataformaDaUrl('https://vsco.co/fulano')).toBe('vsco')
+    expect(plataformaDaUrl('https://music.amazon.com.br/artists/B01')).toBe('amazon-music')
+    expect(plataformaDaUrl('https://steamcommunity.com/id/fulano')).toBe('steam')
+  })
+
+  it('tira o $ do handle do Cash App', () => {
+    // O catálogo já põe `cash.app/$` como prefixo. Guardar o cifrão faria a
+    // URL final sair com dois.
+    expect(handleDaUrl('https://cash.app/$fulano')).toBe('fulano')
   })
 
   it('devolve null para o que não é rede conhecida', () => {
-    expect(plataformaDaUrl('https://deezer.com/artist/1')).toBeNull()
+    expect(plataformaDaUrl('https://exemplo-obscuro.com/perfil')).toBeNull()
     expect(plataformaDaUrl('nem-url')).toBeNull()
   })
 })

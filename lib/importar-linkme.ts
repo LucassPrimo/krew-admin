@@ -30,13 +30,22 @@
  * atributos dentro dela.
  */
 
+import type { PlatformId } from '@/components/bio/platforms'
 import type { EstiloItem } from '@/lib/bio/tipos'
 
-/** Plataformas que o app conhece (espelha `PlatformId` do krew-app). */
-export type Plataforma =
-  | 'instagram' | 'tiktok' | 'youtube' | 'twitter' | 'twitch' | 'linkedin'
-  | 'facebook' | 'spotify' | 'threads' | 'reddit' | 'snapchat'
-  | 'applemusic' | 'soundcloud' | 'website'
+/**
+ * Plataformas que o app conhece — o MESMO tipo do catálogo, não uma cópia.
+ *
+ * Já foi uma lista escrita à mão aqui, "espelhando" `PlatformId`. Espelho de
+ * lista não se mantém: com quarenta e cinco redes, a próxima que entrasse no
+ * catálogo ficaria de fora daqui em silêncio, e o importador a trataria como
+ * link comum. É a mesma armadilha do `'pequeno'` que o banco recusava — nome
+ * próprio de um lado, verdade do outro.
+ *
+ * `import type` é apagado na compilação, então nada de `platforms.tsx` (nem o
+ * React que ele usa) entra no pacote deste módulo.
+ */
+export type Plataforma = PlatformId
 
 export type RedeImportada = { plataforma: Plataforma; handle: string; url: string }
 export type LinkImportado = {
@@ -95,12 +104,23 @@ export type PerfilLinkme = {
 /**
  * Host → plataforma do app.
  *
- * O que não está aqui não é descartado: vira link comum (ver `montar`). Serviços
- * de música que o app não modela — Tidal, Deezer, Audiomack, Amazon Music,
- * YouTube Music — são links legítimos do criador, e sumir com eles seria perder
- * exatamente o que a oferta precisa mostrar.
+ * A ORDEM é significativa, e por isso é um array e não um objeto: os padrões
+ * são testados de cima para baixo e o primeiro que casa vence. Os subdomínios
+ * mais específicos vêm ANTES do domínio geral — `music.youtube.com` antes de
+ * `youtube.com`, `podcasts.apple.com` antes de `apple.com` —, senão o serviço
+ * específico seria engolido pelo genérico e as duas coisas virariam a mesma
+ * rede. Como a tabela tem `unique (user_id, platform)`, isso não daria erro:
+ * daria um `on conflict do nothing`, e o segundo link sumiria calado.
+ *
+ * O que não está aqui não é descartado: vira link comum (ver `montar`).
  */
 const HOSTS: [RegExp, Plataforma][] = [
+  // Específicos primeiro — ver a nota sobre ordem acima.
+  [/(^|\.)music\.youtube\.com$/i, 'youtube-music'],
+  [/(^|\.)podcasts\.apple\.com$/i, 'apple-podcasts'],
+  [/(^|\.)music\.apple\.com$/i, 'applemusic'],
+  [/(^|\.)music\.amazon\.[a-z.]+$/i, 'amazon-music'],
+
   [/(^|\.)instagram\.com$/i, 'instagram'],
   [/(^|\.)tiktok\.com$/i, 'tiktok'],
   [/(^|\.)youtube\.com$|(^|\.)youtu\.be$/i, 'youtube'],
@@ -112,17 +132,56 @@ const HOSTS: [RegExp, Plataforma][] = [
   [/(^|\.)threads\.(net|com)$/i, 'threads'],
   [/(^|\.)reddit\.com$/i, 'reddit'],
   [/(^|\.)snapchat\.com$/i, 'snapchat'],
-  [/(^|\.)music\.apple\.com$|(^|\.)apple\.com$/i, 'applemusic'],
+  [/(^|\.)apple\.com$/i, 'applemusic'],
   [/(^|\.)soundcloud\.com$/i, 'soundcloud'],
+
+  // Sociais
+  [/(^|\.)discord\.(com|gg)$/i, 'discord'],
+  [/(^|\.)(join)?clubhouse\.com$/i, 'clubhouse'],
+  [/(^|\.)bere\.al$|(^|\.)bereal\.com$/i, 'bereal'],
+  [/(^|\.)linktr\.ee$|(^|\.)linktree\.com$/i, 'linktree'],
+  [/(^|\.)rumble\.com$/i, 'rumble'],
+  // O Mastodon é federado: não existe UM host. Pegamos as instâncias grandes
+  // e o padrão de nome que a maioria usa; o resto cai como link, que é honesto
+  // — chutar que `exemplo.social` é Mastodon erraria com frequência.
+  [/(^|\.)mastodon\.[a-z.]+$|(^|\.)mstdn\.[a-z.]+$/i, 'mastodon'],
+
+  // Negócios
+  [/(^|\.)skype\.com$/i, 'skype'],
+  [/(^|\.)t\.me$|(^|\.)telegram\.(me|org)$/i, 'telegram'],
+  [/(^|\.)wa\.me$|(^|\.)whatsapp\.com$/i, 'whatsapp'],
+  [/(^|\.)calendly\.com$/i, 'calendly'],
+  [/(^|\.)github\.com$/i, 'github'],
+
+  // Música
+  [/(^|\.)audiomack\.com$/i, 'audiomack'],
+  [/(^|\.)tidal\.com$/i, 'tidal'],
+  [/(^|\.)deezer\.com$|(^|\.)deezer\.page\.link$/i, 'deezer'],
+
+  // Pagamento
+  [/(^|\.)paypal\.(me|com)$/i, 'paypal'],
+  [/(^|\.)cash\.app$/i, 'cashapp'],
+
+  // Entretenimento
+  [/(^|\.)playstation\.com$/i, 'playstation'],
+  [/(^|\.)xbox\.com$/i, 'xbox'],
+  [/(^|\.)steamcommunity\.com$|(^|\.)steampowered\.com$/i, 'steam'],
+  [/(^|\.)kick\.com$/i, 'kick'],
+
+  // Estilo de vida
+  [/(^|\.)pinterest\.[a-z.]+$|(^|\.)pin\.it$/i, 'pinterest'],
+  [/(^|\.)vsco\.co$/i, 'vsco'],
+  [/(^|\.)depop\.com$/i, 'depop'],
+  [/(^|\.)onlyfans\.com$/i, 'onlyfans'],
+  [/(^|\.)opensea\.io$/i, 'opensea'],
+  [/(^|\.)cameo\.com$/i, 'cameo'],
+  [/(^|\.)patreon\.com$/i, 'patreon'],
+  [/(^|\.)behance\.net$/i, 'behance'],
 ]
 
 export function plataformaDaUrl(url: string): Plataforma | null {
   try {
     const host = new URL(url).hostname
-    // `music.youtube.com` casaria com youtube e viraria a MESMA plataforma do
-    // canal — e a tabela tem `unique (user_id, platform)`. Fica de fora de
-    // propósito: é um serviço diferente e vira link.
-    if (/(^|\.)music\.youtube\.com$/i.test(host)) return null
     for (const [re, plataforma] of HOSTS) if (re.test(host)) return plataforma
     return null
   } catch {
@@ -130,13 +189,20 @@ export function plataformaDaUrl(url: string): Plataforma | null {
   }
 }
 
-/** O @ que o app guarda: último segmento do caminho, sem arroba nem query. */
+/**
+ * O @ que o app guarda: último segmento do caminho, sem os prefixos que a
+ * plataforma põe na URL e o app repõe sozinho.
+ *
+ * `@` sempre foi tirado; o `$` entrou junto por causa do Cash App, cuja URL é
+ * `cash.app/$fulano` — e o `prefix` do catálogo já é `cash.app/$`. Guardar o
+ * cifrão faria a URL final sair com dois.
+ */
 export function handleDaUrl(url: string): string {
   try {
     const u = new URL(url)
     const partes = u.pathname.split('/').filter(Boolean)
     const ultimo = partes[partes.length - 1] ?? u.hostname
-    return decodeURIComponent(ultimo).replace(/^@/, '')
+    return decodeURIComponent(ultimo).replace(/^[@$]/, '')
   } catch {
     return url
   }
