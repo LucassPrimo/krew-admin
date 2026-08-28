@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
 import { Check, ChevronLeft, ChevronRight, Loader2, Trash2 } from 'lucide-react'
 
@@ -67,16 +67,25 @@ function Bolinha({
       aria-label={def.label}
       title={def.label}
       className={cn(
-        'relative rounded-full transition-all duration-200',
+        // `shrink-0`: a fileira é `flex`, e sem isto o navegador encolhe as
+        // bolinhas para caber mais numa linha — com muitas redes elas saíam de
+        // tamanhos diferentes, e não é o desenho que muda, é o layout cedendo.
+        //
+        // O `p-1` fica SEMPRE, ligado ou não. Ele é a folga onde o anel de
+        // seleção cabe: como o anel era desenhado do lado de fora
+        // (`ring-offset`), a bolinha da ponta tinha o próprio contorno cortado
+        // pelo recorte do carrossel. Padding constante também garante que
+        // selecionar não mexa em milímetro nenhum da fileira.
+        'relative shrink-0 rounded-full p-1 transition-all duration-200',
         preenchida
           ? 'opacity-100 hover:scale-105'
           : 'opacity-40 grayscale hover:opacity-100 hover:grayscale-0',
-        aberta && 'ring-2 ring-primary ring-offset-2 ring-offset-card',
+        aberta && 'ring-2 ring-primary',
       )}
     >
       <PlatformIcon def={def} className="size-11 rounded-full" />
       {preenchida && (
-        <span className="absolute -right-0.5 -bottom-0.5 rounded-full bg-card p-[2px]">
+        <span className="absolute right-0.5 bottom-0.5 rounded-full bg-card p-[2px]">
           <span className="flex size-4 items-center justify-center rounded-full bg-emerald-500 text-white">
             <Check className="size-2.5" />
           </span>
@@ -125,6 +134,10 @@ export function BioRedesCard({ redesIniciais }: { redesIniciais: RedeEditavel[] 
    *  um em um, e é a posição que ele precisa saber para ir ao lado. */
   const [indice, setIndice] = useState(0)
   const trilho = useRef<HTMLDivElement>(null)
+  /** Ponteiro em cima ou foco dentro: o giro espera. */
+  const [pausado, setPausado] = useState(false)
+  /** Depois de a pessoa navegar por conta própria, o giro não volta. */
+  const [assumido, setAssumido] = useState(false)
   const [valor, setValor] = useState('')
 
   const def = aberta ? (PLATFORMS.find((p) => p.id === aberta) ?? null) : null
@@ -218,9 +231,10 @@ export function BioRedesCard({ redesIniciais }: { redesIniciais: RedeEditavel[] 
    * `setIndice` viesse daqui, arrastar com o dedo deixaria o título falando
    * de uma categoria e o trilho mostrando outra.
    */
-  function irPara(i: number) {
+  function irPara(i: number, manual = true) {
     const el = trilho.current
     if (!el) return
+    if (manual) setAssumido(true)
     const total = grupos.length
     const alvo = ((i % total) + total) % total
     el.scrollTo({ left: alvo * el.clientWidth, behavior: 'smooth' })
@@ -235,6 +249,69 @@ export function BioRedesCard({ redesIniciais }: { redesIniciais: RedeEditavel[] 
     const i = Math.min(Math.max(bruto, 0), grupos.length - 1)
     setIndice((atual) => (atual === i ? atual : i))
   }
+
+  /**
+   * Realinha o trilho quando a LARGURA dele muda.
+   *
+   * A posição de uma categoria é `índice × clientWidth`, em pixels. Abrir o
+   * campo de uma rede faz o cartão crescer, o que pode fazer a página ganhar
+   * barra de rolagem e a coluna encolher alguns pixels — e a posição guardada
+   * deixa de cair na fronteira entre dois painéis. O resultado é meia
+   * categoria de cada lado, que é o "tamanho bugando" ao clicar.
+   *
+   * Sem `smooth`: isto é correção de alinhamento, não navegação. Uma animação
+   * aqui pareceria a tela se mexendo sozinha.
+   */
+  useEffect(() => {
+    const el = trilho.current
+    if (!el) return
+    const obs = new ResizeObserver(() => {
+      el.scrollTo({ left: indice * el.clientWidth, behavior: 'auto' })
+    })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [indice])
+
+  /**
+   * O giro automático.
+   *
+   * Ele existe para MOSTRAR que há mais categorias do lado: um carrossel
+   * parado na primeira gaveta parece uma fileira comum, e a pessoa nunca
+   * descobre que Música e Pagamento existem. Passando sozinho, devagar, a
+   * descoberta acontece sem ninguém precisar clicar em nada.
+   *
+   * Ele para em quatro situações, e cada uma tem um motivo diferente:
+   *
+   *   - `aberta` — há um campo aberto. Girar tiraria da tela a bolinha que a
+   *     pessoa acabou de clicar, no meio da digitação;
+   *   - `pausado` — o ponteiro está em cima ou o foco está dentro. Quem está
+   *     lendo a fileira não quer que ela ande;
+   *   - `assumido` — a pessoa navegou por conta própria (seta, ponto, arrasto).
+   *     Daí em diante ela manda, e o giro não volta: um carrossel que retoma
+   *     depois de você escolher uma categoria é briga por controle;
+   *   - `prefers-reduced-motion` — movimento automático é exatamente o que
+   *     essa preferência pede para não acontecer.
+   *
+   * Sete segundos: tempo de ler a fileira inteira antes de ela trocar.
+   */
+  useEffect(() => {
+    if (aberta || pausado || assumido) return
+    if (typeof window === 'undefined') return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+
+    const id = setInterval(() => {
+      const el = trilho.current
+      if (!el || el.clientWidth === 0) return
+      // A posição atual vem do DOM, e não do estado: assim o intervalo não
+      // precisa ser recriado a cada passada, e um giro em andamento nunca é
+      // contado duas vezes.
+      const atual = Math.round(el.scrollLeft / el.clientWidth)
+      irPara(atual + 1, false)
+    }, 7000)
+
+    return () => clearInterval(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aberta, pausado, assumido])
 
   const grupos = CATEGORIAS.map((cat) => {
     const itens = PLATFORMS.filter((p) => p.categoria === cat)
@@ -270,7 +347,16 @@ export function BioRedesCard({ redesIniciais }: { redesIniciais: RedeEditavel[] 
           calculado: assim o dedo arrasta no celular sem nenhum código de
           toque, o teclado navega com as setas nativas, e as flechas viram um
           atalho para quem está no mouse — em vez de serem a única saída. */}
-      <div className="flex flex-col gap-1.5">
+      <div
+        className="flex flex-col gap-1.5"
+        onPointerEnter={() => setPausado(true)}
+        onPointerLeave={() => setPausado(false)}
+        onFocusCapture={() => setPausado(true)}
+        onBlurCapture={() => setPausado(false)}
+        // Arrastar com o dedo é navegar: `pointerleave` não chega no toque, e
+        // sem isto o giro voltaria a empurrar a fileira logo depois.
+        onPointerDown={() => setAssumido(true)}
+      >
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -307,7 +393,7 @@ export function BioRedesCard({ redesIniciais }: { redesIniciais: RedeEditavel[] 
           // numa categoria inteira, senão sobra meia fileira de cada lado e
           // a pessoa não sabe qual das duas está lendo.
           // `scrollbar-none` só esconde a barra — a rolagem continua.
-          className="flex snap-x snap-mandatory overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex snap-x snap-mandatory overflow-x-auto motion-safe:scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {grupos.map(({ cat, itens }) => (
             // `w-full shrink-0`: cada painel ocupa a largura do cartão, que é
