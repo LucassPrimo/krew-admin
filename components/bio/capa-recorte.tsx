@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import Cropper, { type Area } from 'react-easy-crop'
 import { Check, Loader2, X, ZoomIn } from 'lucide-react'
@@ -86,13 +86,43 @@ export function CapaRecorte({
   onConfirmar: (recortado: File) => void
 }) {
   const t = useTranslations('bioConfig')
-  const [url] = useState(() => URL.createObjectURL(arquivo))
+  const [blobUrl] = useState(() => URL.createObjectURL(arquivo))
+  const [url, setUrl] = useState(blobUrl)
   const [posicao, setPosicao] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
   const [area, setArea] = useState<Area | null>(null)
   const [processando, setProcessando] = useState(false)
+  const [falhou, setFalhou] = useState(false)
+  const tentouDataUrl = useRef(false)
 
   const aoCompletar = useCallback((_: Area, pixels: Area) => setArea(pixels), [])
+
+  /**
+   * A prévia não carregou — e o que se via até aqui era um retângulo PRETO sem
+   * uma palavra de explicação, porque o cropper desenha a moldura mesmo com a
+   * imagem quebrada (sem tamanho natural, o `<img>` estica até o contêiner, e é
+   * daí que vinha a moldura grande demais para a foto).
+   *
+   * Antes de desistir, tenta a mesma imagem como `data:`. O motivo conhecido de
+   * uma `blob:` morrer aqui é CSP — `img-src` sem `blob:` derruba a prévia em
+   * silêncio, e é uma linha de header que só existe no painel, num arquivo que
+   * ninguém lembra de olhar quando a foto some. `data:` está liberado em todo
+   * ambiente, então a prévia volta sozinha em vez de virar chamado.
+   *
+   * O corte em si nunca dependeu disto: `recortar` lê o File pelo
+   * `createImageBitmap`, sem passar por URL nenhuma.
+   */
+  function aoFalharPrevia() {
+    if (tentouDataUrl.current) {
+      setFalhou(true)
+      return
+    }
+    tentouDataUrl.current = true
+    const leitor = new FileReader()
+    leitor.onload = () => setUrl(String(leitor.result))
+    leitor.onerror = () => setFalhou(true)
+    leitor.readAsDataURL(arquivo)
+  }
 
   async function confirmar() {
     if (!area) return
@@ -101,12 +131,12 @@ export function CapaRecorte({
       onConfirmar(await recortar(arquivo, area, proporcao))
     } finally {
       setProcessando(false)
-      URL.revokeObjectURL(url)
+      URL.revokeObjectURL(blobUrl)
     }
   }
 
   function cancelar() {
-    URL.revokeObjectURL(url)
+    URL.revokeObjectURL(blobUrl)
     onCancelar()
   }
 
@@ -126,6 +156,7 @@ export function CapaRecorte({
             onZoomChange={setZoom}
             onCropComplete={aoCompletar}
             showGrid={false}
+            mediaProps={{ onError: aoFalharPrevia }}
           />
         </div>
 
@@ -144,7 +175,11 @@ export function CapaRecorte({
             />
           </label>
 
-          <p className="text-xs text-muted-foreground">{t('recorteDica')}</p>
+          {falhou ? (
+            <p className="text-xs text-destructive">{t('recorteFalhou')}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">{t('recorteDica')}</p>
+          )}
 
           <div className="flex justify-end gap-2">
             <button
@@ -159,7 +194,7 @@ export function CapaRecorte({
             <button
               type="button"
               onClick={confirmar}
-              disabled={processando || !area}
+              disabled={processando || falhou || !area}
               className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
             >
               {processando ? (

@@ -379,8 +379,20 @@ export async function criarLinkBio(
   // Free trava em 1 seção e 3 links — Pro é ilimitado. Checado no servidor e
   // não só na UI porque a action é o único portão real; o botão desabilitado
   // no card é só o aviso antecipado.
+  //
+  // Bio de oferta em aberto não tem teto, pela mesma razão dos interruptores
+  // pagos em `atualizarConfigBio` e do `bio.oferta` em `rebaixarBioParaFree`:
+  // a conta-fantasma não tem plano porque não tem ninguém, e a oferta é a
+  // vitrine que existe para VENDER o plano — montá-la com 3 links e 1 seção
+  // não venderia nada. O editor do painel já manda `pro` para o card, mas a
+  // UI liberada sozinha só troca o botão desabilitado por uma mensagem de
+  // erro depois do clique: o portão é aqui.
+  const { data: ehOfertaAberta } = await supabase.rpc('oferta_aberta_do_usuario', {
+    p_user_id: user.id,
+  })
+
   const { assinatura } = await getAssinatura(user.id)
-  if (!ehPro(assinatura)) {
+  if (ehOfertaAberta !== true && !ehPro(assinatura)) {
     const { count } = await supabase
       .from('creator_links')
       .select('id', { count: 'exact', head: true })
