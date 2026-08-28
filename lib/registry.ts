@@ -303,7 +303,7 @@ export const REGISTRY: Record<string, TabelaAdmin> = {
       url: { tipo: 'text', editavel: true },
       capa_url: { tipo: 'text', editavel: true },
       tipo: { tipo: 'enum', editavel: true, opcoes: ['link', 'divisor'] },
-      estilo: { tipo: 'enum', editavel: true, opcoes: ['grande', 'pequeno'] },
+      estilo: { tipo: 'enum', editavel: true, opcoes: ['grande', 'metade', 'meio', 'botao'] },
       ordem: { tipo: 'inteiro', editavel: true, min: 0 },
       ativo: { tipo: 'booleano', editavel: true },
       cliques: { tipo: 'inteiro', editavel: false },

@@ -2,6 +2,7 @@ import type { TransactionSql } from 'postgres'
 
 import { dbRO, dbRW } from './db'
 import { env } from './env'
+import type { EstiloItem } from './bio/tipos'
 import type { RedeImportada } from './importar-linkme'
 import { registrarAcao } from './mutate'
 import { clienteAdmin } from './supabase-admin'
@@ -34,7 +35,7 @@ export type LinkDaOferta = {
   titulo: string
   url: string
   capa_url?: string | null
-  estilo?: 'grande' | 'pequeno'
+  estilo?: EstiloItem
 }
 
 export type NovaOferta = {

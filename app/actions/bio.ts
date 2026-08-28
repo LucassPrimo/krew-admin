@@ -23,7 +23,7 @@ import type { TipoItem, EstiloItem } from '@/lib/bio/tipos'
  * build com "can only export async functions, found object".
  */
 const TIPOS_ITEM: TipoItem[] = ['link', 'divisor']
-const ESTILOS_ITEM: EstiloItem[] = ['grande', 'metade', 'meio']
+const ESTILOS_ITEM: EstiloItem[] = ['grande', 'metade', 'meio', 'botao']
 
 /**
  * Página de bio (`/@handle`) — o link que o criador cola na bio do Instagram.

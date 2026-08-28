@@ -2,6 +2,8 @@
 
 import { ChevronDown, ChevronUp, ImageOff, Plus, Trash2 } from 'lucide-react'
 
+import type { EstiloItem } from '@/lib/bio/tipos'
+
 /**
  * A lista de links, no formato do produto: um card por link, com a arte à
  * esquerda.
@@ -21,7 +23,7 @@ export type LinkEditavel = {
   titulo: string
   url: string
   capaUrl: string | null
-  estilo: 'grande' | 'pequeno'
+  estilo: EstiloItem
 }
 
 export function ListaLinks({
@@ -34,7 +36,7 @@ export function ListaLinks({
     aoMudar(links.map((l, j) => (j === i ? { ...l, [campo]: campo === 'capaUrl' ? valor || null : valor } : l)))
   }
 
-  function trocarEstilo(i: number, estilo: 'grande' | 'pequeno') {
+  function trocarEstilo(i: number, estilo: EstiloItem) {
     aoMudar(links.map((l, j) => (j === i ? { ...l, estilo } : l)))
   }
 
@@ -91,27 +93,28 @@ export function ListaLinks({
                    placeholder="URL da capa — vazio vira botão"
                    className={`${campo} font-mono text-xs`} />
 
-            {/* O formato é do par (estilo, capa): sem capa a página desenha um
-                botão, e dizer "Card grande" aqui seria mentir. Por isso o
-                seletor some quando não há capa. */}
-            {link.capaUrl ? (
-              <div className="flex gap-1">
-                {([['grande', 'Card grande'], ['pequeno', 'Compacto']] as const).map(([v, r]) => (
-                  <button
-                    key={v} type="button" onClick={() => trocarEstilo(i, v)}
-                    className={`rounded-full border px-2.5 py-0.5 text-[11px] ${
-                      link.estilo === v
-                        ? 'border-primary text-primary'
-                        : 'border-border text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    {r}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <p className="text-[11px] text-muted-foreground">Sem capa: sai como botão.</p>
-            )}
+            {/* Os dois formatos de card precisam de imagem — sem capa a
+                página desenha botão, e oferecer "Card grande" ali seria
+                mentir. "Botão" aparece sempre, porque agora ele é estilo de
+                verdade: dá para pôr um link como botão SEM perder a arte, e
+                voltar atrás depois. */}
+            <div className="flex gap-1">
+              {(link.capaUrl
+                ? ([['grande', 'Card grande'], ['metade', 'Compacto'], ['botao', 'Botão']] as const)
+                : ([['botao', 'Botão']] as const)
+              ).map(([v, r]) => (
+                <button
+                  key={v} type="button" onClick={() => trocarEstilo(i, v)}
+                  className={`rounded-full border px-2.5 py-0.5 text-[11px] ${
+                    link.estilo === v
+                      ? 'border-primary text-primary'
+                      : 'border-border text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
           </div>
 
           <button type="button" onClick={() => aoMudar(links.filter((_, j) => j !== i))}

@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import type { TransactionSql } from 'postgres'
 
 import { autorizarEscritaSemStepUp, exigirAtor } from '@/lib/auth'
+import type { EstiloItem } from '@/lib/bio/tipos'
 import { dbRW } from '@/lib/db'
 import { registrarAcao } from '@/lib/mutate'
 import { buscarPerfil, type RedeImportada } from '@/lib/importar-linkme'
@@ -61,20 +62,27 @@ export async function acaoCriarOferta(form: FormData) {
   // importação passou a trazer a CAPA de cada card, um formato de uma linha só
   // não dava mais conta — e inventar um terceiro separador para a imagem seria
   // pedir para alguém colar uma URL com barra vertical dentro e quebrar tudo.
+  // Os quatro valores que o CHECK de `creator_links` aceita. A lista mora
+  // aqui, e não num `'grande' | 'pequeno'` inventado: o campo é do banco, e
+  // um nome próprio deste lado só reaparece como erro de constraint no insert.
+  const ESTILOS: EstiloItem[] = ['grande', 'metade', 'meio', 'botao']
+
   let links: {
-    titulo: string; url: string; capa_url?: string | null; estilo?: 'grande' | 'pequeno'
+    titulo: string; url: string; capa_url?: string | null; estilo?: EstiloItem
   }[] = []
   try {
     const bruto = String(form.get('links') ?? '')
     if (bruto) {
       links = (JSON.parse(bruto) as {
-        titulo: string; url: string; capaUrl?: string | null; estilo?: 'grande' | 'pequeno'
+        titulo: string; url: string; capaUrl?: string | null; estilo?: EstiloItem
       }[])
         .map((l) => ({
           titulo: String(l.titulo ?? '').trim(),
           url: String(l.url ?? '').trim(),
           capa_url: l.capaUrl ?? null,
-          estilo: l.estilo === 'pequeno' ? ('pequeno' as const) : ('grande' as const),
+          // Só os quatro valores do CHECK passam. Qualquer outra coisa que
+          // chegue no JSON vira 'grande' — o campo é do banco, não do form.
+          estilo: ESTILOS.includes(l.estilo as EstiloItem) ? (l.estilo as EstiloItem) : 'grande',
         }))
         .filter((l) => l.titulo && l.url)
     }

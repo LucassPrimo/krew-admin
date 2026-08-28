@@ -10,16 +10,21 @@ import { cn } from '@/lib/utils'
 /**
  * Os quatro formatos que a pessoa escolhe, e como eles caem no banco.
  *
- * A tabela guarda TRÊS estilos (`grande`, `meio`, `metade` — ver o CHECK em
- * `creator_links`) e o botão não é um quarto: é o que a página desenha quando
- * o link não tem imagem. Então "Botão" aqui não grava um estilo novo, grava
- * `capa = null`. É por isso que escolher Grande/Médio/Pequeno sem imagem avisa
- * que vai sair como botão — não é limitação desta tela, é o que a página
- * pública realmente faz.
+ * Os quatro são estilos DE VERDADE em `creator_links.estilo` (ver o CHECK, e a
+ * migration `20260828120000_estilo_botao`). `botao` é o mais novo, e o único
+ * que não fala de largura: ele manda não desenhar a imagem.
  *
- * Mapear na UI em vez de criar um quarto valor evita uma migration e, mais
- * importante, evita dois jeitos de dizer a mesma coisa no banco ("estilo =
- * botao" e "sem capa"), que mais cedo ou mais tarde discordariam.
+ * Ele já foi o contrário disso — "Botão" gravava `capa = null`, porque a
+ * página desenhava botão por ausência de imagem e um quarto valor pareceu
+ * duplicação. O que essa economia custava só aparecia usando: pôr um link como
+ * botão exigia APAGAR a arte dele, e voltar atrás exigia reenviá-la. Quem
+ * importa um perfil inteiro do link.me esbarra nisso na primeira limpeza da
+ * página.
+ *
+ * A leitura por ausência continua valendo — item sem capa é botão em qualquer
+ * estilo —, e é o que fez a mudança não precisar converter nada do que já
+ * estava gravado. `precisaImagem` é o que separa os dois casos: os três
+ * formatos de card precisam da imagem e avisam quando ela falta; o botão não.
  */
 export const FORMATOS = [
   { chave: 'grande', rotulo: 'formatoGrande', icone: Square, precisaImagem: true },
@@ -30,8 +35,16 @@ export const FORMATOS = [
 
 export type Formato = (typeof FORMATOS)[number]['chave']
 
-/** O formato escolhido a partir do que está gravado: sem capa, é botão. */
+/**
+ * O formato escolhido a partir do que está gravado.
+ *
+ * A ordem importa e é a mesma da página pública (`bio-perfil.tsx`): o estilo
+ * `botao` manda primeiro, mesmo havendo capa — é uma escolha explícita, e a
+ * arte guardada não pode desfazê-la. Só depois vale a ausência de imagem, que
+ * é o caminho antigo e cobre tudo que já estava no banco.
+ */
 export function formatoDoItem(estilo: EstiloItem | string, capa: string | null): Formato {
+  if (estilo === 'botao') return 'botao'
   if (!capa) return 'botao'
   return (FORMATOS.find((f) => f.chave === estilo)?.chave ?? 'grande') as Formato
 }

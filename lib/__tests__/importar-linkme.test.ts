@@ -68,7 +68,7 @@ describe('extrairDeHtml', () => {
       titulo: 'Turnê 2026',
       url: 'https://exemplo.com/turne',
       capaUrl: 'https://media.link.me/a.png',
-      estilo: 'pequeno',
+      estilo: 'metade',
     })
   })
 
@@ -93,9 +93,13 @@ describe('extrairDeHtml', () => {
     expect(materia?.capaUrl).toBe('https://media.link.me/b.png')
   })
 
-  it('importa o formato do card: singlebigitem vira grande, smallfeaturelinks vira pequeno', () => {
+  it('importa o formato do card: singlebigitem vira grande, smallfeaturelinks vira metade', () => {
     // Sem isto um perfil de 15 links compactos sairia como coluna de banners.
-    expect(extrairDeHtml(PERFIL_A).links[0].estilo).toBe('pequeno')
+    //
+    // `metade` e não `pequeno`: os valores são os do CHECK de `creator_links`.
+    // Enquanto o importador usava nome próprio, o erro só aparecia no insert —
+    // e derrubava a criação da oferta inteira.
+    expect(extrairDeHtml(PERFIL_A).links[0].estilo).toBe('metade')
     expect(extrairDeHtml(PERFIL_B).links[0].estilo).toBe('grande')
   })
 

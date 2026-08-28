@@ -24,16 +24,27 @@ export interface BioRede {
 export type TipoItem = 'link' | 'divisor'
 
 /**
- * Como o card é desenhado. Os três formatos da página de referência:
+ * Como o card é desenhado. Os três formatos da página de referência, mais o
+ * botão:
  *
  *   grande  largura inteira, capa alta, ícone grande no canto
  *   metade  meia largura, dois por linha
  *   meio    faixa com o fundo desfocado da própria capa e miniatura ao lado
+ *   botao   bloco tingido, sem imagem — a linha de texto com o glifo da marca
  *
  * Substituiu o antigo `destaque` booleano, que só sabia responder
  * "largo ou não" — e a referência tem três larguras, não duas.
+ *
+ * `botao` entrou depois, e é o único que NÃO fala de largura: ele diz para não
+ * desenhar a imagem. Antes disso o botão era uma ausência — item sem capa —, o
+ * que obrigava a APAGAR a arte para enxugar um link e a reenviá-la para voltar
+ * atrás. Sendo estilo, a capa fica guardada enquanto não for mostrada.
+ *
+ * A ausência continua valendo: item sem capa sai como botão em qualquer
+ * estilo. São dois caminhos para o mesmo desenho, e é de propósito — é o que
+ * fez esta mudança não precisar converter uma linha do que já estava gravado.
  */
-export type EstiloItem = 'grande' | 'metade' | 'meio'
+export type EstiloItem = 'grande' | 'metade' | 'meio' | 'botao'
 
 
 export interface BioLink {

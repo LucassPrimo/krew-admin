@@ -473,14 +473,11 @@ function ItemArrastavel({
             titulo={item.titulo}
             capa={item.capa_url ?? item.preview_url}
             url={item.url}
-            aoEscolher={(f) => {
-              // "Botão" não é um estilo no banco: é o card SEM capa. Escolher
-              // o botão, portanto, tira a capa; escolher qualquer outro
-              // formato só muda o estilo — a capa que estiver lá volta a
-              // aparecer sozinha.
-              if (f === 'botao') onCapa(null)
-              else onEstilo(f)
-            }}
+            // Os quatro formatos gravam estilo, o botão inclusive — e por
+            // isso escolhê-lo NÃO apaga mais a capa. A arte fica guardada e
+            // volta a aparecer ao trocar para qualquer card, que é o que
+            // torna a escolha reversível sem reenviar imagem.
+            aoEscolher={onEstilo}
           />
         </div>
       )}

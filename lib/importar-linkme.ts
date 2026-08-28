@@ -30,6 +30,8 @@
  * atributos dentro dela.
  */
 
+import type { EstiloItem } from '@/lib/bio/tipos'
+
 /** Plataformas que o app conhece (espelha `PlatformId` do krew-app). */
 export type Plataforma =
   | 'instagram' | 'tiktok' | 'youtube' | 'twitter' | 'twitch' | 'linkedin'
@@ -57,8 +59,14 @@ export type LinkImportado = {
    * compacta. Importar isso é o que faz a página chegar parecida com a
    * original — sem ele, tudo virava 'grande' e um perfil de 15 links compactos
    * saía como uma coluna de banners.
+   *
+   * Os valores são os do PRODUTO (`EstiloItem`, em `lib/bio/tipos.ts`), e não
+   * um vocabulário próprio do importador. Aqui já houve um `'pequeno'`, que o
+   * CHECK de `creator_links` recusa — e como o valor só era testado na hora do
+   * insert, importar um perfil com fileira compacta abortava a criação da
+   * oferta inteira. Nome inventado deste lado vira erro de banco do outro.
    */
-  estilo: 'grande' | 'pequeno'
+  estilo: EstiloItem
 }
 
 export type PerfilLinkme = {
@@ -208,8 +216,8 @@ export function extrairDeHtml(doc: string): PerfilLinkme {
     // nada — pegar o primeiro é o que separa os dois.
     const capa = interno.match(/imgbox[^"]*"[^>]*>\s*<img[^>]*src="([^"]+)"/i)?.[1] ?? null
 
-    const estilo: 'grande' | 'pequeno' =
-      /\bsmallfeaturelinks\b/.test(classe) ? 'pequeno' : 'grande'
+    const estilo: EstiloItem =
+      /\bsmallfeaturelinks\b/.test(classe) ? 'metade' : 'grande'
     // Card só de imagem não tem rótulo. O domínio é um nome provisório honesto
     // — melhor do que uma linha em branco na oferta, e você renomeia na tela.
     let tituloLink = rotulo ? decodificar(semTags(rotulo)).trim() : ''
@@ -245,8 +253,10 @@ export function extrairDeHtml(doc: string): PerfilLinkme {
       try {
         nomeDoServico = new URL(url).hostname.replace(/^www\./, '')
       } catch { /* url estranha: fica o rótulo genérico */ }
-      // Rede que virou link não tem arte nem formato próprio na origem.
-      links.push({ titulo: nomeDoServico, url, capaUrl: null, estilo: 'pequeno' })
+      // Rede que virou link não tem arte nem formato próprio na origem — e
+      // sem arte a página desenha botão de qualquer jeito, então `botao` é o
+      // que já diz a verdade sobre como ele vai sair.
+      links.push({ titulo: nomeDoServico, url, capaUrl: null, estilo: 'botao' })
     }
   }
 
