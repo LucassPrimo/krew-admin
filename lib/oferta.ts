@@ -148,18 +148,20 @@ export async function criarOferta(
         update public.subscriptions set trial_ends_at = null where user_id = ${userId}
       `
 
-      // `bio_ativo = false`: a oferta NÃO nasce pública.
+      // `bio_ativo = true`: a oferta nasce no ar, em `/@handle`.
       //
-      // Publicar nome, foto e links de uma pessoa real numa página aberta e
-      // buscável antes de ela saber que a página existe é uso comercial de
-      // nome e imagem sem autorização — e o fluxo de venda nunca precisou
-      // disso, precisa que UMA pessoa veja. Ela vê pelo link secreto
-      // (`/oferta/{token}`); o `/@handle` só entra no ar no aceite, junto com
-      // o consentimento. Ver a migration `20260828170000`.
+      // Já esteve atrás de um link secreto, para não publicar nome e imagem de
+      // alguém antes do aceite. A oferta passou a ser criada só para criadores
+      // com quem o aceite já foi combinado, então o consentimento acontece
+      // ANTES daqui e o segredo não tinha mais o que proteger. Ver a migration
+      // `20260828190000`.
+      //
+      // O que isso implica continua valendo: quem cria a oferta responde pelo
+      // consentimento, porque o sistema não o exige mais em lugar nenhum.
       const [pagina] = await tx<{ id: string }[]>`
         insert into public.proposal_pages
           (user_id, org_id, slug, bio_ativo, bio_headline, bio_texto, bio_capa_url, bio_bg_color)
-        values (${userId}, ${org.id}, ${dados.slug}, false,
+        values (${userId}, ${org.id}, ${dados.slug}, true,
                 ${dados.headline ?? null}, ${dados.texto ?? null}, ${capaNossa},
                 ${dados.corFundo ?? null})
         returning id
@@ -189,9 +191,6 @@ export async function criarOferta(
         `
       }
 
-      // `token` fica com o default da coluna — 16 bytes aleatórios do próprio
-      // Postgres. Sorteá-lo aqui só moveria o segredo para o lado que menos
-      // precisa conhecê-lo.
       await tx`
         insert into public.bio_ofertas (page_id, criada_por, email_convite, notas)
         values (${pagina.id}, ${contexto.atorId}, ${dados.email?.trim() ?? null}, ${dados.notas ?? null})
@@ -293,14 +292,6 @@ export async function marcarAceita(
       returning (select user_id from public.proposal_pages where id = page_id) as user_id
     `
     if (!linha) throw new Error('Oferta não encontrada ou já aceita.')
-
-    // A página entra no ar AGORA, e não antes: o aceite é o consentimento que
-    // faltava para publicar nome e imagem do criador. Daqui em diante ela vive
-    // no `/@handle`, aparece na busca, e o link secreto para de funcionar
-    // (`get_bio_por_token` exige `aceita_em is null`).
-    await tx`
-      update public.proposal_pages set bio_ativo = true where id = ${pageId}
-    `
 
     await tx`
       update public.subscriptions
@@ -429,8 +420,6 @@ export async function excluirOferta(
 export type OfertaListada = {
   page_id: string
   slug: string
-  /** Segredo do link de prévia. Enquanto não aceita, é a única porta. */
-  token: string
   nome: string | null
   criada_em: string
   email_convite: string | null
@@ -441,7 +430,7 @@ export type OfertaListada = {
 
 export async function listarOfertas(): Promise<OfertaListada[]> {
   return dbRO<OfertaListada[]>`
-    select o.page_id, p.slug, o.token, pr.full_name as nome, o.criada_em,
+    select o.page_id, p.slug, pr.full_name as nome, o.criada_em,
            o.email_convite, o.convite_enviado_em, o.aceita_em,
            coalesce((select sum(l.cliques) from public.creator_links l
                      where l.user_id = p.user_id), 0)::int as cliques

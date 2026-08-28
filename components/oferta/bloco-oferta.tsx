@@ -27,14 +27,11 @@ const CAMPO =
   'h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary'
 
 export function BlocoOferta({
-  pageId, slug, linkPrevia, emailInicial, conviteEnviadoEm, aceitaEm, notasIniciais,
+  pageId, slug, emailInicial, conviteEnviadoEm, aceitaEm, notasIniciais,
 }: {
   pageId: string
   /** O handle da página — é ele que se digita para confirmar a exclusão. */
   slug: string
-  /** O link secreto da prévia. `null` depois do aceite, quando ele deixa de
-   *  funcionar e a página passa a viver no `/@handle`. */
-  linkPrevia: string | null
   emailInicial: string | null
   conviteEnviadoEm: string | null
   aceitaEm: string | null
@@ -47,7 +44,6 @@ export function BlocoOferta({
   const [msg, setMsg] = useState<{ tom: 'ok' | 'erro'; texto: string } | null>(null)
   const [excluindo, setExcluindo] = useState(false)
   const [confirmacao, setConfirmacao] = useState('')
-  const [copiado, setCopiado] = useState(false)
 
   const notasSujas = notas !== (notasIniciais ?? '')
 
@@ -68,35 +64,6 @@ export function BlocoOferta({
         </p>
       ) : (
         <>
-          {/* O link secreto vem PRIMEIRO no bloco, antes do convite: enquanto a
-              oferta não é aceita, ele é a única forma de alguém ver a página, e
-              é o que você manda no WhatsApp antes de qualquer e-mail. */}
-          {linkPrevia && (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-foreground">Link da prévia</label>
-              <div className="flex items-center gap-2">
-                <input readOnly value={linkPrevia} className={`${CAMPO} font-mono text-xs`} />
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(linkPrevia)
-                    setCopiado(true)
-                    setTimeout(() => setCopiado(false), 1500)
-                  }}
-                  className="flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-border px-3 text-xs font-semibold text-muted-foreground hover:text-foreground"
-                >
-                  {copiado ? <Check className="size-3.5" /> : null}
-                  {copiado ? 'copiado' : 'copiar'}
-                </button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                A página está fora do ar e fora da busca. Só quem tem este link
-                vê — e ele para de funcionar quando a oferta for aceita, porque
-                aí ela passa a viver em /@{slug}.
-              </p>
-            </div>
-          )}
-
           {conviteEnviadoEm && (
             <p className="text-xs text-muted-foreground">
               Convite enviado {relativo(conviteEnviadoEm)} para {emailInicial}.
