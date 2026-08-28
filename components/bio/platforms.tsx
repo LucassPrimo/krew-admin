@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 /**
  * Registry de plataformas da página de bio — fonte única de verdade.
  *
- * Os logos de marca vêm de `public/logos/onde-conheceu/`, que já existia no
+ * Os logos de marca vêm de `public/logos/redes/`, que já existia no
  * projeto (é o mesmo conjunto usado no onboarding). São os logos oficiais, em
  * cores — bem melhores que glifo monocromático, e sem dependência nova.
  *
@@ -43,33 +43,24 @@ export type PlatformId =
   | 'applemusic'
   | 'soundcloud'
   | 'website'
-  | 'triller'
   | 'discord'
   | 'clubhouse'
   | 'bereal'
   | 'linktree'
-  | 'truth-social'
   | 'rumble'
   | 'mastodon'
-  | 'stereo'
   | 'skype'
   | 'telegram'
   | 'whatsapp'
   | 'calendly'
   | 'github'
-  | 'minnect'
-  | 'opentable'
-  | 'sevenrooms'
   | 'youtube-music'
   | 'audiomack'
   | 'tidal'
   | 'deezer'
   | 'amazon-music'
-  | 'pandora'
   | 'paypal'
-  | 'venmo'
   | 'cashapp'
-  | 'zelle'
   | 'playstation'
   | 'xbox'
   | 'steam'
@@ -79,11 +70,9 @@ export type PlatformId =
   | 'vsco'
   | 'depop'
   | 'onlyfans'
-  | 'yelp'
   | 'opensea'
   | 'cameo'
   | 'patreon'
-  | 'intro'
   | 'behance'
 
 /**
@@ -120,7 +109,7 @@ export interface PlatformDef {
   href: ((handle: string) => string) | null
   /** Cor de marca — fundo do ícone quando não há logo oficial. */
   cor: string
-  /** Logo oficial em `public/logos/onde-conheceu/`. */
+  /** Logo oficial em `public/logos/redes/`. */
   logo?: string
   /** O asset já traz o próprio quadrado colorido (vai de borda a borda). */
   logoTemTile?: boolean
@@ -189,7 +178,7 @@ export function normalizarUrl(valor: string) {
  * sobre a cor da marca.
  *
  * Ele quase nunca aparece — todas as plataformas apontam para um arquivo em
- * `public/logos/onde-conheceu/`, e o `PlatformIcon` só cai no glifo quando não
+ * `public/logos/redes/`, e o `PlatformIcon` só cai no glifo quando não
  * há `logo`. Existe para o caso de um asset sumir da pasta, e para uma
  * plataforma nova funcionar antes de alguém desenhá-la.
  *
@@ -226,7 +215,7 @@ export const PLATFORMS: PlatformDef[] = [
     prefix: '@',
     href: (h) => `https://instagram.com/${h}`,
     cor: '#E1306C',
-    logo: '/logos/onde-conheceu/instagram.svg',
+    logo: '/logos/redes/instagram.svg',
     logoTemTile: true,
     icone: svg(
       <path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.8 3.8 0 0 1-1.38-.9 3.8 3.8 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07Zm0 6.18a3.66 3.66 0 1 0 0 7.32 3.66 3.66 0 0 0 0-7.32Zm0 6.04a2.38 2.38 0 1 1 0-4.76 2.38 2.38 0 0 1 0 4.76Zm4.66-6.18a.86.86 0 1 1-1.71 0 .86.86 0 0 1 1.71 0Z" />
@@ -239,7 +228,7 @@ export const PLATFORMS: PlatformDef[] = [
     prefix: '@',
     href: (h) => `https://tiktok.com/@${h}`,
     cor: '#010101',
-    logo: '/logos/onde-conheceu/tiktok.svg',
+    logo: '/logos/redes/tiktok.svg',
     logoTemTile: true,
     icone: svg(
       <path d="M16.6 5.82A4.28 4.28 0 0 1 15.54 3h-3.09v12.4a2.59 2.59 0 1 1-1.79-2.46V9.8a5.67 5.67 0 1 0 4.88 5.61V9.01a7.35 7.35 0 0 0 4.29 1.38V7.3a4.28 4.28 0 0 1-3.23-1.48Z" />
@@ -252,7 +241,7 @@ export const PLATFORMS: PlatformDef[] = [
     prefix: 'youtube.com/@',
     href: (h) => `https://youtube.com/@${h}`,
     cor: '#FF0000',
-    logo: '/logos/onde-conheceu/youtube.svg',
+    logo: '/logos/redes/youtube.svg',
     logoRespiro: 12,
     icone: svg(
       <path d="M21.58 7.19a2.51 2.51 0 0 0-1.77-1.77C18.25 5 12 5 12 5s-6.25 0-7.81.42a2.51 2.51 0 0 0-1.77 1.77A26.1 26.1 0 0 0 2 12a26.1 26.1 0 0 0 .42 4.81 2.51 2.51 0 0 0 1.77 1.77C5.75 19 12 19 12 19s6.25 0 7.81-.42a2.51 2.51 0 0 0 1.77-1.77A26.1 26.1 0 0 0 22 12a26.1 26.1 0 0 0-.42-4.81ZM10 15.02V8.98L15.2 12 10 15.02Z" />
@@ -265,7 +254,7 @@ export const PLATFORMS: PlatformDef[] = [
     prefix: '@',
     href: (h) => `https://x.com/${h}`,
     cor: '#000000',
-    logo: '/logos/onde-conheceu/x.svg',
+    logo: '/logos/redes/x.svg',
     logoTemTile: true,
     icone: svg(
       <path d="M17.53 3h3.06l-6.69 7.64L21.75 21h-6.16l-4.82-6.3L5.25 21H2.19l7.15-8.17L2.25 3h6.31l4.36 5.77L17.53 3Zm-1.07 16.14h1.69L7.6 4.77H5.79l10.67 14.37Z" />
@@ -278,7 +267,7 @@ export const PLATFORMS: PlatformDef[] = [
     prefix: 'twitch.tv/',
     href: (h) => `https://twitch.tv/${h}`,
     cor: '#9146FF',
-    logo: '/logos/onde-conheceu/twitch.svg',
+    logo: '/logos/redes/twitch.svg',
     // O mesmo roxo que o arquivo usa. Um tom diferente aqui criaria emenda
     // visível entre o corpo do desenho e o fundo.
     logoFundo: '#9F77F7',
@@ -312,7 +301,7 @@ export const PLATFORMS: PlatformDef[] = [
     prefix: 'linkedin.com/in/',
     href: (h) => `https://linkedin.com/in/${h}`,
     cor: '#0A66C2',
-    logo: '/logos/onde-conheceu/linkedin.svg',
+    logo: '/logos/redes/linkedin.svg',
     logoTemTile: true,
     icone: svg(
       <path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5ZM3 9h4v12H3V9Zm6.5 0h3.8v1.65h.05c.53-.95 1.83-1.95 3.76-1.95 4.02 0 4.76 2.5 4.76 5.76V21h-4v-5.65c0-1.35-.02-3.08-1.9-3.08-1.9 0-2.19 1.46-2.19 2.98V21h-4V9Z" />
@@ -325,7 +314,7 @@ export const PLATFORMS: PlatformDef[] = [
     prefix: 'facebook.com/',
     href: (h) => `https://facebook.com/${h}`,
     cor: '#1877F2',
-    logo: '/logos/onde-conheceu/facebook.svg',
+    logo: '/logos/redes/facebook.svg',
     logoTemTile: true,
     icone: svg(
       <path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0 0 22 12Z" />
@@ -338,7 +327,7 @@ export const PLATFORMS: PlatformDef[] = [
     prefix: 'https://',
     href: null,
     cor: '#1DB954',
-    logo: '/logos/onde-conheceu/spotify.svg',
+    logo: '/logos/redes/spotify.svg',
     logoTemTile: true,
     icone: svg(
       <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm4.59 14.42a.62.62 0 0 1-.86.21c-2.35-1.44-5.3-1.76-8.79-.96a.62.62 0 1 1-.28-1.22c3.81-.87 7.08-.5 9.72 1.11.29.18.38.57.21.86Zm1.22-2.72a.78.78 0 0 1-1.07.26c-2.69-1.65-6.79-2.13-9.97-1.17a.78.78 0 1 1-.45-1.49c3.63-1.1 8.15-.57 11.24 1.33.36.22.48.7.25 1.07Zm.11-2.84c-3.23-1.92-8.55-2.09-11.63-1.16a.94.94 0 1 1-.54-1.8c3.54-1.07 9.42-.86 13.13 1.34a.94.94 0 0 1-.96 1.62Z" />
@@ -351,7 +340,7 @@ export const PLATFORMS: PlatformDef[] = [
     prefix: '@',
     href: (h) => `https://threads.net/@${h}`,
     cor: '#000000',
-    logo: '/logos/onde-conheceu/threads.svg',
+    logo: '/logos/redes/threads.svg',
     logoTemTile: true,
     icone: svg(
       <path d="M17.1 11.2c-.1-.05-.2-.1-.3-.14-.18-3.3-1.98-5.18-5-5.2h-.04c-1.8 0-3.3.77-4.23 2.18l1.66 1.14c.69-1.05 1.78-1.28 2.57-1.28h.03c.98 0 1.72.29 2.2.85.35.4.58.97.7 1.68a12.7 12.7 0 0 0-2.85-.14c-2.87.17-4.72 1.84-4.6 4.17.06 1.18.65 2.2 1.66 2.86.85.56 1.95.83 3.09.77 1.5-.08 2.68-.66 3.5-1.7.63-.8 1.02-1.83 1.2-3.14.72.43 1.25 1 1.55 1.68.5 1.16.53 3.07-1.02 4.62-1.36 1.36-3 1.95-5.48 1.97-2.75-.02-4.83-.9-6.19-2.61C4.3 17.4 3.64 15.1 3.62 12c.02-3.1.68-5.4 1.93-6.99C6.91 3.3 8.99 2.42 11.74 2.4c2.77.02 4.88.9 6.29 2.62.69.84 1.21 1.9 1.55 3.13l1.94-.52c-.42-1.51-1.08-2.82-1.98-3.9C17.74 1.53 15.11.4 11.75.38h-.01C8.4.4 5.8 1.53 4.11 3.74 2.6 5.7 1.83 8.44 1.8 11.99v.02c.03 3.55.8 6.28 2.31 8.25 1.69 2.2 4.29 3.33 7.63 3.36h.01c2.97-.02 5.06-.8 6.79-2.52 2.26-2.26 2.19-5.1 1.45-6.84-.54-1.25-1.56-2.26-2.9-2.94v-.12Zm-5.06 4.9c-1.26.07-2.57-.5-2.63-1.66-.05-.86.61-1.82 2.71-1.94.24-.01.47-.02.7-.02.76 0 1.48.07 2.13.21-.24 3.03-1.66 3.35-2.91 3.41Z" />
@@ -364,7 +353,7 @@ export const PLATFORMS: PlatformDef[] = [
     prefix: 'reddit.com/u/',
     href: (h) => `https://reddit.com/user/${h}`,
     cor: '#FF4500',
-    logo: '/logos/onde-conheceu/reddit.svg',
+    logo: '/logos/redes/reddit.svg',
     logoTemTile: true,
     icone: svg(
       <path d="M22 12.07a2.1 2.1 0 0 0-3.56-1.5 10.3 10.3 0 0 0-5.6-1.78l.95-4.49 3.12.66a1.5 1.5 0 1 0 .17-1.02l-3.49-.74a.5.5 0 0 0-.59.39l-1.06 5.2a10.3 10.3 0 0 0-5.68 1.78 2.1 2.1 0 1 0-2.32 3.43 4.14 4.14 0 0 0-.05.64c0 3.24 3.77 5.87 8.42 5.87s8.42-2.63 8.42-5.87c0-.21-.02-.42-.05-.63A2.1 2.1 0 0 0 22 12.07ZM7.6 13.57a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Zm8.32 3.96c-1.02 1.02-2.98 1.1-3.55 1.1-.57 0-2.53-.08-3.55-1.1a.39.39 0 0 1 .55-.55c.64.64 2.02.87 3 .87.98 0 2.36-.23 3-.87a.39.39 0 1 1 .55.55Zm-.03-2.46a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z" />
@@ -377,7 +366,7 @@ export const PLATFORMS: PlatformDef[] = [
     prefix: '@',
     href: (h) => `https://snapchat.com/add/${h}`,
     cor: '#FFFC00',
-    logo: '/logos/onde-conheceu/snapchat.svg',
+    logo: '/logos/redes/snapchat.svg',
     logoTemTile: true,
     icone: svg(
       <path d="M12.2 2c2.6 0 4.4 1.86 4.5 4.5.02.5 0 1 0 1.5.02.34.13.5.47.4.28-.08.6-.16.87-.05.4.16.55.5.44.9-.14.5-.63.7-1.06.87-.3.12-.63.2-.7.55-.08.4.16.8.36 1.14.68 1.16 1.7 2.02 2.98 2.46.4.14.53.42.4.8-.2.6-1.13.9-1.9 1.03-.32.05-.4.2-.44.5-.06.4-.16.72-.6.72-.5 0-1-.13-1.5-.1-.9.06-1.55.62-2.2 1.16-.6.5-1.2.9-2 .9s-1.4-.4-2-.9c-.65-.54-1.3-1.1-2.2-1.16-.5-.03-1 .1-1.5.1-.44 0-.54-.32-.6-.72-.04-.3-.12-.45-.44-.5-.77-.13-1.7-.43-1.9-1.03-.13-.38 0-.66.4-.8 1.28-.44 2.3-1.3 2.98-2.46.2-.34.44-.74.36-1.14-.07-.35-.4-.43-.7-.55-.43-.17-.92-.37-1.06-.87-.11-.4.04-.74.44-.9.27-.11.59-.03.87.05.34.1.45-.06.47-.4 0-.5-.02-1 0-1.5C7.7 3.86 9.5 2 12.1 2h.1Z" />
@@ -390,7 +379,7 @@ export const PLATFORMS: PlatformDef[] = [
     prefix: 'https://',
     href: null,
     cor: '#FA243C',
-    logo: '/logos/onde-conheceu/apple-music.svg',
+    logo: '/logos/redes/apple-music.svg',
     logoTemTile: true,
     icone: svg(
       <path d="M18.7 3.2a1 1 0 0 1 .8 1v12.1c0 1.7-1.3 2.9-3 2.9-1.6 0-2.8-1-2.8-2.4 0-1.4 1.1-2.4 2.9-2.5l1.4-.1V8.5l-7.6 1.5v8.4c0 1.7-1.3 2.9-3 2.9-1.6 0-2.8-1-2.8-2.4 0-1.4 1.1-2.4 2.9-2.5l1.4-.1V6.7c0-.6.4-1 1-1.1l8.8-1.4Z" />
@@ -403,7 +392,7 @@ export const PLATFORMS: PlatformDef[] = [
     prefix: 'https://',
     href: null,
     cor: '#FF5500',
-    logo: '/logos/onde-conheceu/soundcloud.svg',
+    logo: '/logos/redes/soundcloud.svg',
     logoTemTile: true,
     icone: svg(
       <path d="M1.5 13.2c-.2 0-.3.1-.3.3l-.2 1.9.2 1.8c0 .2.1.3.3.3.1 0 .3-.1.3-.3l.2-1.8-.2-1.9c0-.2-.2-.3-.3-.3Zm2-1.3c-.2 0-.3.2-.3.3l-.3 3.2.3 3.1c0 .2.1.3.3.3s.3-.1.3-.3l.3-3.1-.3-3.2c0-.1-.1-.3-.3-.3Zm2-.9c-.2 0-.4.2-.4.4l-.2 4 .2 3.8c0 .2.2.4.4.4s.4-.2.4-.4l.3-3.8-.3-4c0-.2-.2-.4-.4-.4Zm2.1-.5c-.2 0-.4.2-.4.4l-.2 4.5.2 3.7c0 .3.2.4.4.4.3 0 .4-.1.4-.4l.3-3.7-.3-4.5c0-.2-.1-.4-.4-.4Zm2.2 0c-.3 0-.5.2-.5.5l-.2 4.4.2 3.7c0 .3.2.5.5.5s.5-.2.5-.5l.2-3.7-.2-4.4c0-.3-.2-.5-.5-.5Zm2.3-1.1c-.3 0-.5.2-.5.5l-.2 5.5.2 3.6c0 .3.2.5.5.5s.5-.2.5-.5l.2-3.6-.2-5.5c0-.3-.2-.5-.5-.5Zm2.7 1.2c-.3 0-.5.2-.5.6l-.1 4.2.1 3.5c0 .3.2.6.5.6s.6-.3.6-.6l.2-3.5-.2-4.2c0-.4-.3-.6-.6-.6Zm2.6-2.5c-.4 0-.6.3-.6.6l-.2 6.7.2 3.4c0 .3.2.6.6.6.3 0 .6-.3.6-.6l.2-3.4-.2-6.7c0-.3-.3-.6-.6-.6Zm2.9 2.8c-.6 0-1.1.1-1.6.3-.3-3.5-3.2-6.2-6.8-6.2-.9 0-1.7.2-2.4.5-.3.1-.4.2-.4.5v13.4c0 .3.2.5.5.5h10.7A3.4 3.4 0 0 0 24 16.6a3.4 3.4 0 0 0-3.7-3.4Z" />
@@ -416,7 +405,7 @@ export const PLATFORMS: PlatformDef[] = [
     prefix: 'https://',
     href: null,
     cor: '#6B7280',
-    logo: '/logos/onde-conheceu/website.svg',
+    logo: '/logos/redes/website.svg',
     logoTemTile: true,
     icone: svg(
       <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm6.9 6h-2.95a15.6 15.6 0 0 0-1.4-3.6A8.03 8.03 0 0 1 18.9 8ZM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96ZM4.26 14a8.06 8.06 0 0 1 0-4h3.38a16.5 16.5 0 0 0 0 4H4.26Zm.84 2h2.95c.32 1.25.79 2.45 1.4 3.6A8.03 8.03 0 0 1 5.1 16Zm2.95-8H5.1a8.03 8.03 0 0 1 4.35-3.6A15.6 15.6 0 0 0 8.05 8ZM12 19.96A13.9 13.9 0 0 1 10.09 16h3.82A13.9 13.9 0 0 1 12 19.96ZM14.34 14H9.66a14.7 14.7 0 0 1 0-4h4.68a14.7 14.7 0 0 1 0 4Zm.21 5.6c.61-1.15 1.08-2.35 1.4-3.6h2.95a8.03 8.03 0 0 1-4.35 3.6ZM16.36 14a16.5 16.5 0 0 0 0-4h3.38a8.06 8.06 0 0 1 0 4h-3.38Z" />
@@ -438,24 +427,13 @@ export const PLATFORMS: PlatformDef[] = [
    * clica.
    * ---------------------------------------------------------------------- */
   {
-    id: 'triller',
-    label: 'Triller',
-    prefix: 'triller.co/@',
-    href: (h) => `https://triller.co/@${h}`,
-    cor: '#FF0055',
-    categoria: 'social',
-    logo: '/logos/onde-conheceu/triller.svg',
-    logoTemTile: true,
-    icone: letra('Tr'),
-  },
-  {
     id: 'discord',
     label: 'Discord',
     prefix: 'URL',
     href: null,
     cor: '#5865F2',
     categoria: 'social',
-    logo: '/logos/onde-conheceu/discord.svg',
+    logo: '/logos/redes/discord.svg',
     logoTemTile: true,
     icone: letra('Dc'),
   },
@@ -466,8 +444,10 @@ export const PLATFORMS: PlatformDef[] = [
     href: (h) => `https://clubhouse.com/@${h}`,
     cor: '#F2D544',
     categoria: 'social',
-    logo: '/logos/onde-conheceu/clubhouse.svg',
-    logoTemTile: true,
+    logo: '/logos/redes/clubhouse.svg',
+    // O arquivo é só o desenho, sem quadrado colorido próprio: o tile
+    // vem daqui, senão ele fica transparente e some no fundo do cartão.
+    logoRespiro: 16,
     icone: letra('Ch'),
   },
   {
@@ -477,7 +457,7 @@ export const PLATFORMS: PlatformDef[] = [
     href: (h) => `https://bere.al/${h}`,
     cor: '#000000',
     categoria: 'social',
-    logo: '/logos/onde-conheceu/bereal.svg',
+    logo: '/logos/redes/bereal.svg',
     logoTemTile: true,
     icone: letra('Be'),
   },
@@ -488,20 +468,11 @@ export const PLATFORMS: PlatformDef[] = [
     href: (h) => `https://linktr.ee/${h}`,
     cor: '#43E660',
     categoria: 'social',
-    logo: '/logos/onde-conheceu/linktree.svg',
-    logoTemTile: true,
+    logo: '/logos/redes/linktree.svg',
+    // O arquivo é só o desenho, sem quadrado colorido próprio: o tile
+    // vem daqui, senão ele fica transparente e some no fundo do cartão.
+    logoRespiro: 18,
     icone: letra('Lt'),
-  },
-  {
-    id: 'truth-social',
-    label: 'Truth Social',
-    prefix: 'truthsocial.com/@',
-    href: (h) => `https://truthsocial.com/@${h}`,
-    cor: '#5448EE',
-    categoria: 'social',
-    logo: '/logos/onde-conheceu/truth-social.svg',
-    logoTemTile: true,
-    icone: letra('Ts'),
   },
   {
     id: 'rumble',
@@ -510,8 +481,10 @@ export const PLATFORMS: PlatformDef[] = [
     href: (h) => `https://rumble.com/c/${h}`,
     cor: '#85C742',
     categoria: 'social',
-    logo: '/logos/onde-conheceu/rumble.svg',
-    logoTemTile: true,
+    logo: '/logos/redes/rumble.svg',
+    // O arquivo é só o desenho, sem quadrado colorido próprio: o tile
+    // vem daqui, senão ele fica transparente e some no fundo do cartão.
+    logoRespiro: 18,
     icone: letra('Rb'),
   },
   {
@@ -521,20 +494,9 @@ export const PLATFORMS: PlatformDef[] = [
     href: null,
     cor: '#6364FF',
     categoria: 'social',
-    logo: '/logos/onde-conheceu/mastodon.svg',
+    logo: '/logos/redes/mastodon.svg',
     logoTemTile: true,
     icone: letra('Ma'),
-  },
-  {
-    id: 'stereo',
-    label: 'Stereo',
-    prefix: 'URL',
-    href: null,
-    cor: '#E8474B',
-    categoria: 'social',
-    logo: '/logos/onde-conheceu/stereo.svg',
-    logoTemTile: true,
-    icone: letra('St'),
   },
   {
     id: 'skype',
@@ -543,8 +505,10 @@ export const PLATFORMS: PlatformDef[] = [
     href: null,
     cor: '#00AFF0',
     categoria: 'negocios',
-    logo: '/logos/onde-conheceu/skype.svg',
-    logoTemTile: true,
+    logo: '/logos/redes/skype.svg',
+    // O arquivo é só o desenho, sem quadrado colorido próprio: o tile
+    // vem daqui, senão ele fica transparente e some no fundo do cartão.
+    logoRespiro: 18,
     icone: letra('Sk'),
   },
   {
@@ -554,7 +518,7 @@ export const PLATFORMS: PlatformDef[] = [
     href: (h) => `https://t.me/${h}`,
     cor: '#2AABEE',
     categoria: 'negocios',
-    logo: '/logos/onde-conheceu/telegram.svg',
+    logo: '/logos/redes/telegram.svg',
     logoTemTile: true,
     icone: letra('Tg'),
   },
@@ -565,7 +529,7 @@ export const PLATFORMS: PlatformDef[] = [
     href: (h) => `https://wa.me/${h}`,
     cor: '#25D366',
     categoria: 'negocios',
-    logo: '/logos/onde-conheceu/whatsapp.svg',
+    logo: '/logos/redes/whatsapp.svg',
     logoTemTile: true,
     icone: letra('Wa'),
   },
@@ -576,8 +540,10 @@ export const PLATFORMS: PlatformDef[] = [
     href: (h) => `https://calendly.com/${h}`,
     cor: '#006BFF',
     categoria: 'negocios',
-    logo: '/logos/onde-conheceu/calendly.svg',
-    logoTemTile: true,
+    logo: '/logos/redes/calendly.svg',
+    // O arquivo é só o desenho, sem quadrado colorido próprio: o tile
+    // vem daqui, senão ele fica transparente e some no fundo do cartão.
+    logoRespiro: 18,
     icone: letra('Cy'),
   },
   {
@@ -587,42 +553,11 @@ export const PLATFORMS: PlatformDef[] = [
     href: (h) => `https://github.com/${h}`,
     cor: '#181717',
     categoria: 'negocios',
-    logo: '/logos/onde-conheceu/github.svg',
-    logoTemTile: true,
+    logo: '/logos/redes/github.svg',
+    // O arquivo é só o desenho, sem quadrado colorido próprio: o tile
+    // vem daqui, senão ele fica transparente e some no fundo do cartão.
+    logoRespiro: 16,
     icone: letra('Gh'),
-  },
-  {
-    id: 'minnect',
-    label: 'Minnect',
-    prefix: 'URL',
-    href: null,
-    cor: '#D93A3A',
-    categoria: 'negocios',
-    logo: '/logos/onde-conheceu/minnect.svg',
-    logoTemTile: true,
-    icone: letra('Mn'),
-  },
-  {
-    id: 'opentable',
-    label: 'OpenTable',
-    prefix: 'URL',
-    href: null,
-    cor: '#DA3743',
-    categoria: 'negocios',
-    logo: '/logos/onde-conheceu/opentable.svg',
-    logoTemTile: true,
-    icone: letra('Ot'),
-  },
-  {
-    id: 'sevenrooms',
-    label: 'SevenRooms',
-    prefix: 'URL',
-    href: null,
-    cor: '#4EBFB5',
-    categoria: 'negocios',
-    logo: '/logos/onde-conheceu/sevenrooms.svg',
-    logoTemTile: true,
-    icone: letra('Sr'),
   },
   {
     id: 'youtube-music',
@@ -631,7 +566,7 @@ export const PLATFORMS: PlatformDef[] = [
     href: null,
     cor: '#FF0000',
     categoria: 'musica',
-    logo: '/logos/onde-conheceu/youtube-music.svg',
+    logo: '/logos/redes/youtube-music.svg',
     logoTemTile: true,
     icone: letra('YM'),
   },
@@ -642,7 +577,7 @@ export const PLATFORMS: PlatformDef[] = [
     href: (h) => `https://audiomack.com/${h}`,
     cor: '#F7A01B',
     categoria: 'musica',
-    logo: '/logos/onde-conheceu/audiomack.svg',
+    logo: '/logos/redes/audiomack.svg',
     logoTemTile: true,
     icone: letra('Am'),
   },
@@ -653,7 +588,7 @@ export const PLATFORMS: PlatformDef[] = [
     href: null,
     cor: '#000000',
     categoria: 'musica',
-    logo: '/logos/onde-conheceu/tidal.svg',
+    logo: '/logos/redes/tidal.svg',
     logoTemTile: true,
     icone: letra('Td'),
   },
@@ -664,8 +599,10 @@ export const PLATFORMS: PlatformDef[] = [
     href: null,
     cor: '#1A1A1A',
     categoria: 'musica',
-    logo: '/logos/onde-conheceu/deezer.svg',
-    logoTemTile: true,
+    logo: '/logos/redes/deezer.svg',
+    // O arquivo é só o desenho, sem quadrado colorido próprio: o tile
+    // vem daqui, senão ele fica transparente e some no fundo do cartão.
+    logoRespiro: 18,
     icone: letra('Dz'),
   },
   {
@@ -675,20 +612,11 @@ export const PLATFORMS: PlatformDef[] = [
     href: null,
     cor: '#2D1DC4',
     categoria: 'musica',
-    logo: '/logos/onde-conheceu/amazon-music.svg',
-    logoTemTile: true,
+    logo: '/logos/redes/amazon-music.svg',
+    // O arquivo é só o desenho, sem quadrado colorido próprio: o tile
+    // vem daqui, senão ele fica transparente e some no fundo do cartão.
+    logoRespiro: 18,
     icone: letra('AM'),
-  },
-  {
-    id: 'pandora',
-    label: 'Pandora',
-    prefix: 'URL',
-    href: null,
-    cor: '#6C3FD1',
-    categoria: 'musica',
-    logo: '/logos/onde-conheceu/pandora.svg',
-    logoTemTile: true,
-    icone: letra('Pa'),
   },
   {
     id: 'paypal',
@@ -697,20 +625,11 @@ export const PLATFORMS: PlatformDef[] = [
     href: (h) => `https://paypal.me/${h}`,
     cor: '#0070BA',
     categoria: 'pagamento',
-    logo: '/logos/onde-conheceu/paypal.svg',
-    logoTemTile: true,
+    logo: '/logos/redes/paypal.svg',
+    // O arquivo é só o desenho, sem quadrado colorido próprio: o tile
+    // vem daqui, senão ele fica transparente e some no fundo do cartão.
+    logoRespiro: 18,
     icone: letra('PP'),
-  },
-  {
-    id: 'venmo',
-    label: 'Venmo',
-    prefix: 'venmo.com/',
-    href: (h) => `https://venmo.com/${h}`,
-    cor: '#3D95CE',
-    categoria: 'pagamento',
-    logo: '/logos/onde-conheceu/venmo.svg',
-    logoTemTile: true,
-    icone: letra('Vn'),
   },
   {
     id: 'cashapp',
@@ -719,20 +638,9 @@ export const PLATFORMS: PlatformDef[] = [
     href: (h) => `https://cash.app/$${h}`,
     cor: '#00D632',
     categoria: 'pagamento',
-    logo: '/logos/onde-conheceu/cashapp.svg',
+    logo: '/logos/redes/cashapp.svg',
     logoTemTile: true,
     icone: letra('Ca'),
-  },
-  {
-    id: 'zelle',
-    label: 'Zelle',
-    prefix: 'URL',
-    href: null,
-    cor: '#6D1ED4',
-    categoria: 'pagamento',
-    logo: '/logos/onde-conheceu/zelle.svg',
-    logoTemTile: true,
-    icone: letra('Ze'),
   },
   {
     id: 'playstation',
@@ -741,8 +649,10 @@ export const PLATFORMS: PlatformDef[] = [
     href: null,
     cor: '#2E6ADB',
     categoria: 'entretenimento',
-    logo: '/logos/onde-conheceu/playstation.svg',
-    logoTemTile: true,
+    logo: '/logos/redes/playstation.svg',
+    // O arquivo é só o desenho, sem quadrado colorido próprio: o tile
+    // vem daqui, senão ele fica transparente e some no fundo do cartão.
+    logoRespiro: 22,
     icone: letra('PS'),
   },
   {
@@ -752,8 +662,10 @@ export const PLATFORMS: PlatformDef[] = [
     href: null,
     cor: '#107C10',
     categoria: 'entretenimento',
-    logo: '/logos/onde-conheceu/xbox.svg',
-    logoTemTile: true,
+    logo: '/logos/redes/xbox.svg',
+    // O arquivo é só o desenho, sem quadrado colorido próprio: o tile
+    // vem daqui, senão ele fica transparente e some no fundo do cartão.
+    logoRespiro: 18,
     icone: letra('Xb'),
   },
   {
@@ -763,7 +675,7 @@ export const PLATFORMS: PlatformDef[] = [
     href: (h) => `https://steamcommunity.com/id/${h}`,
     cor: '#2A475E',
     categoria: 'entretenimento',
-    logo: '/logos/onde-conheceu/steam.svg',
+    logo: '/logos/redes/steam.svg',
     logoTemTile: true,
     icone: letra('Sm'),
   },
@@ -774,8 +686,11 @@ export const PLATFORMS: PlatformDef[] = [
     href: (h) => `https://kick.com/${h}`,
     cor: '#53FC18',
     categoria: 'entretenimento',
-    logo: '/logos/onde-conheceu/kick.svg',
-    logoTemTile: true,
+    logo: '/logos/redes/kick.svg',
+    // O arquivo é só o desenho, sem quadrado colorido próprio: o tile
+    // vem daqui, senão ele fica transparente e some no fundo do cartão.
+    logoFundo: '#0F0F0F',
+    logoRespiro: 18,
     icone: letra('Ki'),
   },
   {
@@ -785,7 +700,7 @@ export const PLATFORMS: PlatformDef[] = [
     href: null,
     cor: '#9933CC',
     categoria: 'entretenimento',
-    logo: '/logos/onde-conheceu/apple-podcasts.svg',
+    logo: '/logos/redes/apple-podcasts.svg',
     logoTemTile: true,
     icone: letra('AP'),
   },
@@ -796,7 +711,7 @@ export const PLATFORMS: PlatformDef[] = [
     href: (h) => `https://pinterest.com/${h}`,
     cor: '#E60023',
     categoria: 'estilo',
-    logo: '/logos/onde-conheceu/pinterest.svg',
+    logo: '/logos/redes/pinterest.svg',
     logoTemTile: true,
     icone: letra('Pi'),
   },
@@ -805,10 +720,17 @@ export const PLATFORMS: PlatformDef[] = [
     label: 'VSCO',
     prefix: 'vsco.co/',
     href: (h) => `https://vsco.co/${h}`,
-    cor: '#2C6BED',
+    // O preto do selo, e não o azul que a grade do link.me mostra: a marca da
+    // VSCO é monocromática, e a cor aqui é o que pinta o fundo se um dia o
+    // arquivo sumir.
+    cor: '#000000',
     categoria: 'estilo',
-    logo: '/logos/onde-conheceu/vsco.svg',
-    logoTemTile: true,
+    logo: '/logos/redes/vsco.svg',
+    // O selo ocupa o viewBox inteiro, mas é DESENHO preto sobre transparente
+    // — não um disco colorido. Marcá-lo como tile próprio o deixaria preto
+    // sobre o fundo escuro do painel, ou seja, invisível. Tile branco resolve
+    // e é como a VSCO usa a marca.
+    logoRespiro: 10,
     icone: letra('Vs'),
   },
   {
@@ -818,7 +740,7 @@ export const PLATFORMS: PlatformDef[] = [
     href: (h) => `https://depop.com/${h}`,
     cor: '#FF2300',
     categoria: 'estilo',
-    logo: '/logos/onde-conheceu/depop.svg',
+    logo: '/logos/redes/depop.svg',
     logoTemTile: true,
     icone: letra('Dp'),
   },
@@ -829,20 +751,11 @@ export const PLATFORMS: PlatformDef[] = [
     href: (h) => `https://onlyfans.com/${h}`,
     cor: '#00AFF0',
     categoria: 'estilo',
-    logo: '/logos/onde-conheceu/onlyfans.svg',
-    logoTemTile: true,
+    logo: '/logos/redes/onlyfans.svg',
+    // O arquivo é só o desenho, sem quadrado colorido próprio: o tile
+    // vem daqui, senão ele fica transparente e some no fundo do cartão.
+    logoRespiro: 20,
     icone: letra('OF'),
-  },
-  {
-    id: 'yelp',
-    label: 'Yelp',
-    prefix: 'URL',
-    href: null,
-    cor: '#D32323',
-    categoria: 'estilo',
-    logo: '/logos/onde-conheceu/yelp.svg',
-    logoTemTile: true,
-    icone: letra('Yp'),
   },
   {
     id: 'opensea',
@@ -851,7 +764,7 @@ export const PLATFORMS: PlatformDef[] = [
     href: (h) => `https://opensea.io/${h}`,
     cor: '#2081E2',
     categoria: 'estilo',
-    logo: '/logos/onde-conheceu/opensea.svg',
+    logo: '/logos/redes/opensea.svg',
     logoTemTile: true,
     icone: letra('Os'),
   },
@@ -862,8 +775,10 @@ export const PLATFORMS: PlatformDef[] = [
     href: (h) => `https://cameo.com/${h}`,
     cor: '#111111',
     categoria: 'estilo',
-    logo: '/logos/onde-conheceu/cameo.svg',
-    logoTemTile: true,
+    logo: '/logos/redes/cameo.svg',
+    // O arquivo é só o desenho, sem quadrado colorido próprio: o tile
+    // vem daqui, senão ele fica transparente e some no fundo do cartão.
+    logoRespiro: 18,
     icone: letra('Cm'),
   },
   {
@@ -873,20 +788,11 @@ export const PLATFORMS: PlatformDef[] = [
     href: (h) => `https://patreon.com/${h}`,
     cor: '#FF424D',
     categoria: 'estilo',
-    logo: '/logos/onde-conheceu/patreon.svg',
-    logoTemTile: true,
+    logo: '/logos/redes/patreon.svg',
+    // O arquivo é só o desenho, sem quadrado colorido próprio: o tile
+    // vem daqui, senão ele fica transparente e some no fundo do cartão.
+    logoRespiro: 20,
     icone: letra('Pt'),
-  },
-  {
-    id: 'intro',
-    label: 'Intro',
-    prefix: 'intro.co/',
-    href: (h) => `https://intro.co/${h}`,
-    cor: '#1C1C1E',
-    categoria: 'estilo',
-    logo: '/logos/onde-conheceu/intro.svg',
-    logoTemTile: true,
-    icone: letra('In'),
   },
   {
     id: 'behance',
@@ -895,7 +801,7 @@ export const PLATFORMS: PlatformDef[] = [
     href: (h) => `https://behance.net/${h}`,
     cor: '#1769FF',
     categoria: 'estilo',
-    logo: '/logos/onde-conheceu/behance.svg',
+    logo: '/logos/redes/behance.svg',
     logoTemTile: true,
     icone: letra('Bh'),
   },
