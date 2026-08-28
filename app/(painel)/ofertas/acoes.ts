@@ -5,12 +5,12 @@ import { revalidatePath } from 'next/cache'
 
 import type { TransactionSql } from 'postgres'
 
-import { autorizarEscritaSemStepUp, exigirAtor } from '@/lib/auth'
+import { autorizarEscrita, autorizarEscritaSemStepUp, exigirAtor } from '@/lib/auth'
 import type { EstiloItem } from '@/lib/bio/tipos'
 import { dbRW } from '@/lib/db'
 import { registrarAcao } from '@/lib/mutate'
 import { buscarPerfil, type RedeImportada } from '@/lib/importar-linkme'
-import { criarOferta, enviarConvite, marcarAceita, slugDisponivel } from '@/lib/oferta'
+import { criarOferta, enviarConvite, excluirOferta, marcarAceita, slugDisponivel } from '@/lib/oferta'
 
 /**
  * As ações da oferta de bio.
@@ -148,6 +148,34 @@ export async function acaoMarcarAceita(pageId: string) {
   } catch (e) {
     return { ok: false as const, erro: (e as Error).message }
   }
+}
+
+/**
+ * Apaga a oferta e a conta-fantasma inteira. Ver `excluirOferta`.
+ *
+ * É a única ação daqui que passa por `autorizarEscrita()`, COM o TOTP, e não
+ * pela versão sem step-up que as outras usam. O argumento das outras — "é dado
+ * numa conta que ainda não é de ninguém, pedir o código a cada oferta só
+ * produz atrito" — não sobrevive ao fato de esta ser irreversível: o que se
+ * perde num clique errado não volta de lugar nenhum.
+ */
+export async function acaoExcluirOferta(pageId: string, slugConfirmado: string) {
+  const permissao = await autorizarEscrita()
+  if (!permissao.ok) return { ok: false as const, erro: permissao.texto }
+
+  const ctx = await contexto()
+
+  const r = await excluirOferta(pageId, slugConfirmado, {
+    atorId: permissao.ator.id,
+    ...ctx,
+  })
+  if (!r.ok) return r
+
+  // A tela da oferta deixou de existir; quem volta para ela cai num 404. Só a
+  // lista é revalidada — o redirecionamento é do cliente, que sabe se ainda
+  // está nela.
+  revalidatePath('/ofertas')
+  return { ok: true as const, slug: r.slug }
 }
 
 /**

@@ -277,6 +277,112 @@ export async function marcarAceita(
   })
 }
 
+/**
+ * Apaga uma oferta inteira: a página, os links, as redes, a conta.
+ *
+ * ---------------------------------------------------------------------------
+ * Por que a conta, e não só a página
+ * ---------------------------------------------------------------------------
+ * A oferta É uma conta — `criarOferta` cria um usuário de auth de verdade, e
+ * a org, o perfil, a página e os links penduram nele. Apagar só a
+ * `proposal_pages` deixaria uma conta órfã com o e-mail interno preso: o
+ * handle voltaria a ficar livre, mas refazer a oferta para o mesmo criador
+ * esbarraria numa conta fantasma que ninguém mais vê. Uma limpeza que deixa
+ * lixo invisível é pior que nenhuma, porque some do painel e continua no
+ * banco.
+ *
+ * A remoção é UMA chamada — `auth.admin.deleteUser` — e o resto vai por
+ * cascata declarada no schema: `organizations.owner_user_id`, `profiles.id`,
+ * `proposal_pages.user_id`, `creator_links`, `creator_social_networks`,
+ * `link_bio_events`, `subscriptions`. Não escrevemos um `delete` por tabela
+ * justamente para não termos uma segunda lista para manter sincronizada com a
+ * primeira.
+ *
+ * ---------------------------------------------------------------------------
+ * O que NÃO se apaga
+ * ---------------------------------------------------------------------------
+ * Oferta aceita. A partir do aceite a conta é de uma pessoa de verdade, que
+ * definiu senha e pode ter entrado — apagá-la aqui seria destruir o cliente
+ * pelo botão de arrumar a vitrine. O painel recusa, e o caminho passa a ser o
+ * mesmo de qualquer outra conta.
+ *
+ * A auditoria também fica. `admin_audit` é append-only e `registro_id` não é
+ * chave estrangeira, então o registro de que ESTA oferta existiu e foi
+ * apagada sobrevive à cascata — que é o ponto de auditar.
+ *
+ * ---------------------------------------------------------------------------
+ * A ordem: auditar, depois apagar
+ * ---------------------------------------------------------------------------
+ * A auditoria vai numa transação que COMMITA antes da exclusão. É de propósito
+ * e não é grátis: se a chamada ao auth falhar, sobra um registro de exclusão
+ * que não aconteceu. O contrário — apagar e então auditar — arrisca o dado
+ * sumir sem registro nenhum, e entre um registro a mais e um sumiço sem
+ * rastro, o erro que dá para investigar é o primeiro. O retrato do que sumiu é
+ * tirado antes, pela mesma razão: depois não haveria de onde tirá-lo.
+ */
+export async function excluirOferta(
+  pageId: string,
+  slugConfirmado: string,
+  contexto: { atorId: string; ip: string | null; userAgent: string | null },
+): Promise<{ ok: true; slug: string } | { ok: false; erro: string }> {
+  const [oferta] = await dbRO<
+    { user_id: string; slug: string; aceita_em: string | null; links: number; redes: number }[]
+  >`
+    select p.user_id, p.slug, o.aceita_em,
+           (select count(*) from public.creator_links l where l.user_id = p.user_id)::int as links,
+           (select count(*) from public.creator_social_networks n where n.user_id = p.user_id)::int as redes
+    from public.bio_ofertas o
+    join public.proposal_pages p on p.id = o.page_id
+    where o.page_id = ${pageId}
+  `
+
+  // A consulta parte de `bio_ofertas`: uma página que não é oferta não chega
+  // aqui, e é isso que impede esta função de virar um apagador de contas de
+  // criador pelo id da página.
+  if (!oferta) return { ok: false, erro: 'Oferta não encontrada.' }
+  if (oferta.aceita_em) {
+    return {
+      ok: false,
+      erro: 'Esta oferta já foi aceita: a conta é do criador e não se apaga por aqui.',
+    }
+  }
+
+  // O handle digitado é a confirmação. Não é teatro de segurança: a ação é
+  // irreversível e a tela mostra várias ofertas parecidas — digitar o handle é
+  // a diferença entre confirmar ESTA e confirmar a que estava aberta antes.
+  if (slugConfirmado.trim().toLowerCase() !== oferta.slug.toLowerCase()) {
+    return { ok: false, erro: 'O handle digitado não confere com o desta oferta.' }
+  }
+
+  await dbRW.begin(async (tx: TransactionSql) => {
+    await registrarAcao(tx, {
+      atorId: contexto.atorId,
+      tabela: 'bio_ofertas',
+      registroId: pageId,
+      detalhe: {
+        acao: 'oferta_excluida',
+        slug: oferta.slug,
+        user_id: oferta.user_id,
+        links: oferta.links,
+        redes: oferta.redes,
+      },
+      motivo: `Oferta @${oferta.slug} excluída pelo painel, com a conta-fantasma inteira`,
+      ip: contexto.ip,
+      userAgent: contexto.userAgent,
+    })
+  })
+
+  const { error } = await clienteAdmin().auth.admin.deleteUser(oferta.user_id)
+  if (error) {
+    return {
+      ok: false,
+      erro: `A auditoria foi registrada, mas a conta não foi apagada: ${error.message}`,
+    }
+  }
+
+  return { ok: true, slug: oferta.slug }
+}
+
 export type OfertaListada = {
   page_id: string
   slug: string

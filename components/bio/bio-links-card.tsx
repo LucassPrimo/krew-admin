@@ -106,6 +106,11 @@ export function BioLinksCard({
   const [titulo, setTitulo] = useState('')
   const [url, setUrl] = useState('')
   const [capa, setCapa] = useState<string | null>(null)
+  // O formato do link que está sendo criado. Antes todo item nascia 'grande' e
+  // o ajuste vinha depois, item por item — o que num perfil importado inteiro
+  // significa abrir o seletor uma vez por link para desfazer um padrão que
+  // ninguém escolheu. Escolher aqui é escolher uma vez.
+  const [novoEstilo, setNovoEstilo] = useState<EstiloItem>('grande')
   const [erro, setErro] = useState<string | null>(null)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
@@ -118,7 +123,9 @@ export function BioLinksCard({
   function criar(tipo: 'link' | 'divisor') {
     setErro(null)
     startTransition(async () => {
-      const r = await criarLinkBio(titulo, url, capa, tipo, 'grande')
+      // O divisor não tem card, então o formato não o alcança — vai 'grande'
+      // como sempre foi, e o campo fica inerte no banco.
+      const r = await criarLinkBio(titulo, url, capa, tipo, tipo === 'link' ? novoEstilo : 'grande')
       if (r?.error) {
         setErro(
           r.error === 'url_invalida'
@@ -137,6 +144,7 @@ export function BioLinksCard({
       setTitulo('')
       setUrl('')
       setCapa(null)
+      setNovoEstilo('grande')
     })
   }
 
@@ -256,6 +264,24 @@ export function BioLinksCard({
             />
           </div>
         </div>
+
+        {/* O seletor só aparece quando já há o que desenhar. Em repouso o
+            formulário são dois campos e dois botões; mostrar uma prévia vazia
+            e quatro formatos antes de existir link seria encher a tela com uma
+            escolha que ainda não tem sobre o quê incidir. Assim que se digita
+            um título ou se escolhe uma capa, ele entra — e o que aparece é o
+            card que vai ser criado, não um ícone representando-o. */}
+        {(titulo.trim() || url.trim() || capa) && (
+          <SeletorFormato
+            // Pelo PAR (estilo, capa), igual às linhas da lista: sem capa o
+            // desenho é botão, e o aviso do próprio seletor explica por quê.
+            formato={formatoDoItem(novoEstilo, capa)}
+            titulo={titulo}
+            capa={capa}
+            url={url}
+            aoEscolher={setNovoEstilo}
+          />
+        )}
 
         {erro && <p className="text-xs text-destructive">{erro}</p>}
 

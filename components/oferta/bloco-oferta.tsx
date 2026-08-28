@@ -1,9 +1,15 @@
 'use client'
 
-import { Check, Loader2 } from 'lucide-react'
+import { Check, Loader2, Trash2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 
-import { acaoEnviarConvite, acaoMarcarAceita, acaoSalvarNotas } from '@/app/(painel)/ofertas/acoes'
+import {
+  acaoEnviarConvite,
+  acaoExcluirOferta,
+  acaoMarcarAceita,
+  acaoSalvarNotas,
+} from '@/app/(painel)/ofertas/acoes'
 import { dataHora, relativo } from '@/lib/format'
 
 /**
@@ -21,18 +27,23 @@ const CAMPO =
   'h-10 w-full rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary'
 
 export function BlocoOferta({
-  pageId, emailInicial, conviteEnviadoEm, aceitaEm, notasIniciais,
+  pageId, slug, emailInicial, conviteEnviadoEm, aceitaEm, notasIniciais,
 }: {
   pageId: string
+  /** O handle da página — é ele que se digita para confirmar a exclusão. */
+  slug: string
   emailInicial: string | null
   conviteEnviadoEm: string | null
   aceitaEm: string | null
   notasIniciais: string | null
 }) {
+  const router = useRouter()
   const [pendente, startTransition] = useTransition()
   const [email, setEmail] = useState(emailInicial ?? '')
   const [notas, setNotas] = useState(notasIniciais ?? '')
   const [msg, setMsg] = useState<{ tom: 'ok' | 'erro'; texto: string } | null>(null)
+  const [excluindo, setExcluindo] = useState(false)
+  const [confirmacao, setConfirmacao] = useState('')
 
   const notasSujas = notas !== (notasIniciais ?? '')
 
@@ -116,6 +127,69 @@ export function BlocoOferta({
 
       {msg && (
         <p className={`text-xs ${msg.tom === 'ok' ? 'text-ok' : 'text-destructive'}`}>{msg.texto}</p>
+      )}
+
+      {/* A exclusão fica no PÉ, atrás de um clique, e some quando a oferta foi
+          aceita — não porque incomode olhar, mas porque a partir do aceite ela
+          não é mais permitida (ver `excluirOferta`), e um botão que sempre
+          recusa só ensina a ignorar avisos. */}
+      {!aceitaEm && (
+        <div className="mt-1 flex flex-col gap-2 border-t border-border pt-3">
+          {!excluindo ? (
+            <button
+              type="button"
+              onClick={() => { setExcluindo(true); setMsg(null) }}
+              className="flex items-center gap-1.5 self-start text-xs font-medium text-muted-foreground transition-colors hover:text-destructive"
+            >
+              <Trash2 className="size-3.5" />
+              Excluir esta oferta
+            </button>
+          ) : (
+            <div className="flex flex-col gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3">
+              <p className="text-xs text-foreground">
+                Apaga a página, os links, as redes, os cliques e a conta inteira
+                — que ainda não é de ninguém. Não tem como desfazer.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Digite <span className="font-mono font-semibold text-foreground">{slug}</span> para
+                confirmar.
+              </p>
+              <input
+                value={confirmacao}
+                onChange={(e) => setConfirmacao(e.target.value)}
+                placeholder="o handle desta oferta"
+                className={`${CAMPO} font-mono`}
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  disabled={pendente || confirmacao.trim().toLowerCase() !== slug.toLowerCase()}
+                  onClick={() => {
+                    setMsg(null)
+                    startTransition(async () => {
+                      const r = await acaoExcluirOferta(pageId, confirmacao)
+                      // Sem mensagem de sucesso: a tela que a mostraria acabou
+                      // de deixar de existir. A lista é o recibo.
+                      if (r.ok) router.replace('/ofertas')
+                      else setMsg({ tom: 'erro', texto: r.erro ?? 'Falhou.' })
+                    })
+                  }}
+                  className="flex items-center gap-1.5 rounded-full bg-destructive px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+                >
+                  {pendente ? <Loader2 className="size-3.5 animate-spin" /> : <Trash2 className="size-3.5" />}
+                  Excluir para sempre
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setExcluindo(false); setConfirmacao('') }}
+                  className="text-xs font-medium text-muted-foreground hover:text-foreground"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
     </div>
   )

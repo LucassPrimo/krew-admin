@@ -190,6 +190,7 @@ export default async function EditorDaOferta({ params }: { params: Promise<{ id:
           >
             <BlocoOferta
               pageId={id}
+              slug={alvo.slug}
               emailInicial={oferta?.email_convite ?? null}
               conviteEnviadoEm={oferta?.convite_enviado_em ?? null}
               aceitaEm={oferta?.aceita_em ?? null}
