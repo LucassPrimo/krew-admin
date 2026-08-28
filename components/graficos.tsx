@@ -22,25 +22,25 @@ export function Barras({
     <div style={{ height: altura }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={dados} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
-          <CartesianGrid strokeDasharray="2 4" stroke="#232b27" vertical={false} />
+          <CartesianGrid strokeDasharray="2 4" stroke="var(--color-borda)" vertical={false} />
           <XAxis
-            dataKey="rotulo" tick={{ fill: '#98a29c', fontSize: 10 }}
+            dataKey="rotulo" tick={{ fill: 'var(--color-texto-fraco)', fontSize: 10 }}
             axisLine={false} tickLine={false}
             // Trinta rótulos de data não cabem: mostrar um a cada cinco mantém
             // a referência temporal sem virar borrão.
             interval={Math.max(Math.floor(dados.length / 6), 0)}
           />
           <YAxis
-            tick={{ fill: '#98a29c', fontSize: 10 }} axisLine={false} tickLine={false}
+            tick={{ fill: 'var(--color-texto-fraco)', fontSize: 10 }} axisLine={false} tickLine={false}
             allowDecimals={false}
           />
           <Tooltip
-            cursor={{ fill: '#17251f' }}
+            cursor={{ fill: 'var(--color-painel-2)' }}
             contentStyle={{
-              background: '#101312', border: '1px solid #232b27',
-              borderRadius: 8, fontSize: 12, color: '#eef0ee',
+              background: 'var(--color-painel)', border: '1px solid var(--color-borda)',
+              borderRadius: 8, fontSize: 12, color: 'var(--color-texto)',
             }}
-            labelStyle={{ color: '#98a29c' }}
+            labelStyle={{ color: 'var(--color-texto-fraco)' }}
           />
           {/* A cor vem do token, não de um hex solto: assim a barra acompanha
               qualquer mudança de acento em vez de virar a única coisa da tela

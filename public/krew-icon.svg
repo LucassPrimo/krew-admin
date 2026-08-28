@@ -1,6 +1,6 @@
 <svg width="300" height="300" viewBox="0 0 300 300" fill="none" xmlns="http://www.w3.org/2000/svg">
 <g clip-path="url(#clip0_186_2)">
-<rect width="300" height="300" rx="75" fill="#0A9A7D"/>
+<rect width="300" height="300" rx="75" fill="#1A1A1A"/>
 <g filter="url(#filter0_f_186_2)">
 <rect width="300" height="300" rx="75" fill="black" fill-opacity="0.01"/>
 </g>
@@ -49,7 +49,7 @@
 </linearGradient>
 <linearGradient id="paint1_linear_186_2" x1="0" y1="0" x2="300" y2="300" gradientUnits="userSpaceOnUse">
 <stop stop-color="white"/>
-<stop offset="0.634615" stop-color="#0A9A7D"/>
+<stop offset="0.634615" stop-color="#8A8A8A"/>
 </linearGradient>
 <clipPath id="clip0_186_2">
 <rect width="300" height="300" rx="75" fill="white"/>

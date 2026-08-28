@@ -3,10 +3,16 @@
 /* ============================================================
    Krew Admin — tokens
    ------------------------------------------------------------
-   Mesma paleta do krew-app, mint incluído: o painel usa a marca.
-   Como a cor deixou de distinguir admin de produto, quem faz esse
-   trabalho agora é o rótulo "interno" ao lado do wordmark e a
-   faixa amarela de modo leitura — texto, não cor.
+   Preto e cinza. O painel NÃO usa a paleta do produto.
+
+   Ele já teve o mint, e a razão de tirar não é gosto: esta é a
+   ferramenta que olha para a marca, e metade das telas mostra a
+   prévia de páginas coloridas de criadores. Cromo neutro deixa a
+   cor da prévia ser a única cor em tela.
+
+   Sobra o vermelho de perigo e o amarelo do modo leitura — ver o
+   porquê junto dos tokens. O que separa admin de produto continua
+   sendo texto: o rótulo "interno" ao lado do wordmark.
    ============================================================ */
 
 /* O painel é escuro e só escuro. Sem esta linha, `dark:` no Tailwind v4 cai no
@@ -20,31 +26,64 @@
   --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
 
-  /* Superfícies — escuro, do krew-app */
-  --color-fundo: #0b0d0c;
-  --color-painel: #101312;
-  --color-painel-2: #17251f;
-  --color-borda: #232b27;
-  --color-borda-forte: #33403a;
+  /* -----------------------------------------------------------------
+     Preto e cinza.
+
+     A paleta do produto (mint sobre superfícies levemente esverdeadas)
+     saiu daqui. O painel não é a marca: é a ferramenta que olha para a
+     marca, e ele passa o dia mostrando a PRÉVIA de páginas coloridas de
+     criadores. Cromo neutro é o que deixa a cor da prévia ser a única
+     cor da tela — quando o quadro tem moldura da mesma cor do quadro,
+     nenhuma das duas se lê.
+
+     Os cinzas são neutros de verdade (R=G=B). Os antigos tinham verde
+     dentro — `#0b0d0c`, `#17251f`, `#98a29c` — e num painel inteiro
+     isso não lê como "preto", lê como "esverdeado sujo".
+     ----------------------------------------------------------------- */
+
+  /* Superfícies — do mais fundo ao mais alto */
+  --color-fundo: #0a0a0a;
+  --color-painel: #141414;
+  --color-painel-2: #1f1f1f;
+  --color-borda: #272727;
+  --color-borda-forte: #3d3d3d;
 
   /* Texto */
-  --color-texto: #eef0ee;
-  --color-texto-fraco: #98a29c;
+  --color-texto: #ededed;
+  --color-texto-fraco: #9a9a9a;
 
-  /* Acento: o mint da Krew, o mesmo do produto.
-     Contraste conferido sobre o fundo escuro (#0B0D0C): ~5.6:1, acima do
-     mínimo de 4.5:1 para texto — então ele serve tanto de fundo de botão
-     quanto de cor de link, sem virar cinza-esverdeado ilegível. */
-  --color-acento: #0a9a7d;
-  --color-acento-fraco: #0a5f4d;
-  /* O amarelo da marca, reservado ao aviso de modo leitura. */
+  /* Acento: o quase-branco.
+     Num painel sem cor, o destaque não pode vir de matiz — vem de
+     LUMINÂNCIA. `#e8e8e8` sobre `#0a0a0a` dá ~16:1, então o mesmo token
+     serve de fundo de botão (com texto preto por cima) e de cor de
+     texto, que é o que os dois usos já pediam do mint.
+     O `-fraco` é o cinza de estado inativo — barra de gráfico secundária,
+     traço apagado —, não uma segunda cor. */
+  --color-acento: #e8e8e8;
+  --color-acento-fraco: #4d4d4d;
+
+  /* -----------------------------------------------------------------
+     As DUAS cores que ficaram, e por quê.
+
+     "Preto e cinza" vale para o cromo — o que é identidade e decoração.
+     Estes dois não são: são sinais, e um sinal em cinza dentro de uma
+     tela inteiramente cinza deixa de ser sinal.
+
+     `perigo` pinta o botão que apaga uma oferta e a conta junto, sem
+     desfazer. `lime` pinta a faixa de modo leitura, cujo trabalho é
+     responder "isso vai gravar mesmo?" ANTES do clique. Se algum dia
+     esses dois lugares perderem a cor, o painel fica mais bonito e menos
+     seguro — que é uma troca ruim numa ferramenta que edita dado de
+     terceiros.
+     ----------------------------------------------------------------- */
   --color-lime: #eeff3d;
-
-  /* Semânticas */
   --color-perigo: #ff6b6b;
   --color-perigo-fundo: #2a1414;
-  --color-ok: #3ecf8e;
   --color-aviso: #eeff3d;
+
+  /* `ok` NÃO é sinal: ele confirma o que a pessoa acabou de mandar
+     fazer, e o texto já diz ("Notas salvas."). Vira branco como o resto. */
+  --color-ok: #e8e8e8;
 
   /* ---------------------------------------------------------------
      Ponte para os nomes semânticos do shadcn.
@@ -65,8 +104,9 @@
   --color-muted-foreground: var(--color-texto-fraco);
   --color-border: var(--color-borda);
   --color-input: var(--color-borda);
-  --color-ring: var(--color-acento);
-  /* `primary` é o mint da Krew — o mesmo do produto. */
+  /* Anel de foco em cinza médio, e não no acento quase-branco: sobre o
+     próprio branco do botão em foco o anel sumiria. */
+  --color-ring: #6b6b6b;
   --color-primary: var(--color-acento);
   --color-primary-foreground: var(--color-fundo);
   --color-accent: var(--color-painel-2);
@@ -93,18 +133,20 @@
 
   /* A trilha do switch desligado e as bordas que precisam pesar mais que a
      borda comum. */
-  --color-border-strong: rgba(245, 244, 243, 0.18);
+  --color-border-strong: rgba(255, 255, 255, 0.20);
 
-  /* O mint por NOME, além de `primary`. A barra de perfil da bio pinta o
-     link e o "copiado" com `text-mint` — o mesmo verde, chamado do jeito
-     que o produto chama. */
-  --color-mint: #0a9a7d;
-  --color-mint-deep: #0a9a7d;
+  /* `mint` é NOME de token, não promessa de cor. Os arquivos copiados do
+     produto pedem `text-mint` na barra de perfil da bio; mantendo o nome
+     eles continuam idênticos aos do krew-app, e aqui a cor apontada é o
+     mesmo quase-branco de todo o resto. Renomear obrigaria a editar
+     arquivo portado, que é o que a cópia existe para evitar. */
+  --color-mint: var(--color-acento);
+  --color-mint-deep: var(--color-acento);
 
   /* Fundo do badge neutro. Sem ele o badge sai transparente sobre o card e o
      texto flutua sem pílula. */
   --color-secondary: var(--color-painel-2);
-  --color-secondary-foreground: #f5f4f3;
+  --color-secondary-foreground: var(--color-texto);
 
   /* O vermelho ESCURO, para texto de erro sobre fundo claro de destaque —
      `--color-perigo` é o vermelho vivo, que só serve de fundo. */
@@ -127,9 +169,11 @@ body {
 
 /* A faixa que aparece quando a escrita está desligada. Fixa e no topo porque a
    pergunta "isso vai gravar mesmo?" precisa de resposta antes do clique, não
-   depois. */
-/* A faixa de modo leitura usa o AMARELO da marca, não o mint: o mint aqui é a
-   cor de tudo que é normal, e um aviso pintado da cor do normal não avisa. */
+   depois.
+
+   É a ÚNICA superfície colorida do painel, e ganhou peso com o resto virando
+   cinza: antes ela disputava com o mint, agora é a única coisa em tela que não
+   é neutra. O aviso ficou mais alto sem mudar de tamanho. */
 .faixa-leitura {
   background: repeating-linear-gradient(
     45deg, #1b1c10, #1b1c10 10px, #1f2113 10px, #1f2113 20px
