@@ -1,0 +1,171 @@
+@import 'tailwindcss';
+
+/* ============================================================
+   Krew Admin — tokens
+   ------------------------------------------------------------
+   Mesma paleta do krew-app, mint incluído: o painel usa a marca.
+   Como a cor deixou de distinguir admin de produto, quem faz esse
+   trabalho agora é o rótulo "interno" ao lado do wordmark e a
+   faixa amarela de modo leitura — texto, não cor.
+   ============================================================ */
+
+/* O painel é escuro e só escuro. Sem esta linha, `dark:` no Tailwind v4 cai no
+   `prefers-color-scheme` do sistema — e quem estiver com o macOS no claro veria
+   os `dark:bg-white/5` de hover simplesmente não aplicarem, deixando a navegação
+   sem nenhum retorno visual ao passar o mouse. Prendendo a variante à classe
+   `.dark` (que o <html> carrega sempre), o tema do sistema deixa de importar. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Superfícies — escuro, do krew-app */
+  --color-fundo: #0b0d0c;
+  --color-painel: #101312;
+  --color-painel-2: #17251f;
+  --color-borda: #232b27;
+  --color-borda-forte: #33403a;
+
+  /* Texto */
+  --color-texto: #eef0ee;
+  --color-texto-fraco: #98a29c;
+
+  /* Acento: o mint da Krew, o mesmo do produto.
+     Contraste conferido sobre o fundo escuro (#0B0D0C): ~5.6:1, acima do
+     mínimo de 4.5:1 para texto — então ele serve tanto de fundo de botão
+     quanto de cor de link, sem virar cinza-esverdeado ilegível. */
+  --color-acento: #0a9a7d;
+  --color-acento-fraco: #0a5f4d;
+  /* O amarelo da marca, reservado ao aviso de modo leitura. */
+  --color-lime: #eeff3d;
+
+  /* Semânticas */
+  --color-perigo: #ff6b6b;
+  --color-perigo-fundo: #2a1414;
+  --color-ok: #3ecf8e;
+  --color-aviso: #eeff3d;
+
+  /* ---------------------------------------------------------------
+     Ponte para os nomes semânticos do shadcn.
+
+     O componente de navegação veio escrito nesse vocabulário
+     (`bg-card`, `text-muted-foreground`, `bg-primary`…). Em vez de
+     reescrever o componente — ou de rodar `shadcn init`, que traria
+     Radix, cva, clsx e tailwind-merge para um painel cuja regra é
+     superfície mínima — os nomes apontam para a mesma paleta que as
+     telas já usam. Um só conjunto de cores, dois vocabulários.
+     --------------------------------------------------------------- */
+  --color-background: var(--color-fundo);
+  --color-card: var(--color-painel);
+  --color-popover: var(--color-painel);
+  --color-foreground: var(--color-texto);
+  --color-card-foreground: var(--color-texto);
+  --color-muted: var(--color-painel-2);
+  --color-muted-foreground: var(--color-texto-fraco);
+  --color-border: var(--color-borda);
+  --color-input: var(--color-borda);
+  --color-ring: var(--color-acento);
+  /* `primary` é o mint da Krew — o mesmo do produto. */
+  --color-primary: var(--color-acento);
+  --color-primary-foreground: var(--color-fundo);
+  --color-accent: var(--color-painel-2);
+  --color-accent-foreground: var(--color-texto);
+  --color-destructive: var(--color-perigo);
+
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  /* `rounded-pill` NÃO é do Tailwind — é token da Krew, e os componentes
+     copiados do produto dependem dele. Sem esta linha o utilitário não existe
+     e a classe é ignorada em silêncio: o switch vira um retângulo com um
+     quadrado branco dentro, o badge vira caixa. Nada acusa, porque uma classe
+     desconhecida não é erro de build. */
+  --radius-pill: 999px;
+
+  /* ---------------------------------------------------------------
+     O resto do vocabulário que os arquivos copiados do krew-app usam.
+
+     Os valores são os do tema ESCURO de lá, porque o painel é escuro e só
+     escuro — copiar os dois temas traria um `:root` claro que nunca seria
+     lido. Cada um destes tinha uma classe correspondente já escrita nos
+     componentes portados e caindo no vazio.
+     --------------------------------------------------------------- */
+
+  /* A trilha do switch desligado e as bordas que precisam pesar mais que a
+     borda comum. */
+  --color-border-strong: rgba(245, 244, 243, 0.18);
+
+  /* O mint por NOME, além de `primary`. A barra de perfil da bio pinta o
+     link e o "copiado" com `text-mint` — o mesmo verde, chamado do jeito
+     que o produto chama. */
+  --color-mint: #0a9a7d;
+  --color-mint-deep: #0a9a7d;
+
+  /* Fundo do badge neutro. Sem ele o badge sai transparente sobre o card e o
+     texto flutua sem pílula. */
+  --color-secondary: var(--color-painel-2);
+  --color-secondary-foreground: #f5f4f3;
+
+  /* O vermelho ESCURO, para texto de erro sobre fundo claro de destaque —
+     `--color-perigo` é o vermelho vivo, que só serve de fundo. */
+  --color-danger-deep: #c23f3f;
+
+  /* `shadow-card`: a sombra difusa dos cartões da bio. */
+  --shadow-card: 0 1px 2px rgba(11, 13, 12, 0.03), 0 12px 28px rgba(11, 13, 12, 0.05);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-fundo);
+  color: var(--color-texto);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* A faixa que aparece quando a escrita está desligada. Fixa e no topo porque a
+   pergunta "isso vai gravar mesmo?" precisa de resposta antes do clique, não
+   depois. */
+/* A faixa de modo leitura usa o AMARELO da marca, não o mint: o mint aqui é a
+   cor de tudo que é normal, e um aviso pintado da cor do normal não avisa. */
+.faixa-leitura {
+  background: repeating-linear-gradient(
+    45deg, #1b1c10, #1b1c10 10px, #1f2113 10px, #1f2113 20px
+  );
+  border-bottom: 1px solid #4a5210;
+}
+
+table.densa {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+}
+table.densa th {
+  text-align: left;
+  font-weight: 500;
+  color: var(--color-texto-fraco);
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--color-borda);
+  white-space: nowrap;
+}
+table.densa td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--color-borda);
+  vertical-align: top;
+}
+table.densa tbody tr:hover {
+  background: var(--color-painel-2);
+}
+
+/* As duas animações que o menu usa. Escritas à mão em vez de instalar
+   `tw-animate-css` — são doze linhas, e cada pacote a mais neste app é uma
+   chave a mais na fechadura de outra pessoa. */
+@keyframes admin-aparecer {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.animate-in {
+  animation: admin-aparecer 0.12s ease-out;
+}

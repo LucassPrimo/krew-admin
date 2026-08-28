@@ -1,0 +1,14 @@
+node_modules
+.next
+out
+build
+.DS_Store
+
+# Nunca. As credenciais aqui abrem o banco inteiro de produção.
+.env
+.env*.local
+*.pem
+
+.vercel
+next-env.d.ts
+tsconfig.tsbuildinfo

@@ -1,0 +1,24 @@
+# O painel que alcança o banco inteiro é o último lugar onde vale confiar só na
+# revisão manual. Typecheck e testes dos guards em todo push e PR.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm test
+      # Uma dependência maliciosa aqui lê o banco de todos os clientes. O audit
+      # falha o build em vulnerabilidade alta ou crítica — nas outras, avisa.
+      - run: npm audit --audit-level=high
