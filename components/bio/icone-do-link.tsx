@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react'
 import type { IconType } from 'react-icons'
 import { FaLinkedinIn } from 'react-icons/fa6'
 import {
@@ -123,6 +124,35 @@ export const GLIFO_POR_PLATAFORMA: Record<string, IconType> = {
 }
 
 /**
+ * Marcas cujo desenho pede um CONTORNO sobre o tile branco.
+ *
+ * O verde do Spotify (`#1DB954`) é claro: no tamanho em que o selo aparece —
+ * 16px no canto do card, ~15px na fileira de redes — ele chega quase lavado
+ * sobre o branco, e o logo perde a borda que faz a gente reconhecê-lo de
+ * relance. Um traço da mesma cor, mais escuro, devolve a silhueta sem trocar a
+ * cor da marca por outra.
+ *
+ * Uma LISTA e não uma regra de luminância de propósito: o amarelo do Snapchat
+ * tem o mesmo problema e é uma decisão tomada (ver o comentário de
+ * `corSobreBranco`) — uma regra automática o mudaria junto, sem ninguém pedir.
+ */
+const CONTORNO_SOBRE_BRANCO = new Set(['#1DB954'])
+
+/** Espessura do contorno em unidades do viewBox dos glifos (24×24), e não em
+ *  px: assim ele acompanha o selo, que é desenhado em três tamanhos. */
+const CONTORNO_ESPESSURA = 1
+
+/** A mesma cor, mais escura. `fator` < 1 escurece. */
+function escurecer(hex: string, fator: number): string {
+  const n = parseInt(hex.slice(1), 16)
+  const canal = (deslocamento: number) =>
+    Math.round(((n >> deslocamento) & 0xff) * fator)
+      .toString(16)
+      .padStart(2, '0')
+  return `#${canal(16)}${canal(8)}${canal(0)}`
+}
+
+/**
  * Cor do glifo sobre o tile BRANCO da fileira de redes.
  *
  * Para quase toda marca é a cor crua: rosa do Instagram, vermelho do YouTube,
@@ -132,9 +162,37 @@ export const GLIFO_POR_PLATAFORMA: Record<string, IconType> = {
  * no amarelo dele (`#FFFC00`). Antes o amarelo virava o FUNDO e o desenho ia a
  * preto, para ganhar contraste — mas isso punha um disco amarelo cheio no meio
  * de uma fileira de tiles brancos. Uma regra só para todas as redes.
+ *
+ * O `contorno` é o ajuste fino disso, e só para as marcas de
+ * `CONTORNO_SOBRE_BRANCO`: o desenho continua na cor da marca, ganhando só uma
+ * borda dela mesma.
  */
-export function corSobreBranco(hex: string): { fundo: string; glifo: string } {
+export function corSobreBranco(hex: string): {
+  fundo: string
+  glifo: string
+  contorno?: string
+} {
   const n = parseInt(hex.slice(1), 16)
   if (Number.isNaN(n)) return { fundo: '#FFFFFF', glifo: '#111111' }
-  return { fundo: '#FFFFFF', glifo: hex }
+  const contorno = CONTORNO_SOBRE_BRANCO.has(hex.toUpperCase())
+    ? escurecer(hex, 0.62)
+    : undefined
+  return { fundo: '#FFFFFF', glifo: hex, contorno }
+}
+
+/**
+ * O `style` do tile branco, pronto para o selo — é o formato em que os quatro
+ * lugares que desenham o selo consomem `corSobreBranco`.
+ *
+ * `stroke` e `strokeWidth` no CONTÊINER e não no `<svg>`: as duas são
+ * propriedades SVG herdadas, e os glifos vêm do react-icons sem gancho para
+ * estilo próprio. Herdar é o que evita ter que embrulhar cada ícone.
+ */
+export function estiloSobreBranco(hex: string): CSSProperties {
+  const { fundo, glifo, contorno } = corSobreBranco(hex)
+  return {
+    backgroundColor: fundo,
+    color: glifo,
+    ...(contorno && { stroke: contorno, strokeWidth: CONTORNO_ESPESSURA }),
+  }
 }

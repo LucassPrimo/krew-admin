@@ -3,7 +3,7 @@
 import { useTranslations } from 'next-intl'
 import { AlertTriangle, RectangleHorizontal, Square, SquareDashed } from 'lucide-react'
 
-import { GENERICO_ID, corSobreBranco, iconeDoLink } from '@/components/bio/icone-do-link'
+import { GENERICO_ID, estiloSobreBranco, iconeDoLink } from '@/components/bio/icone-do-link'
 import type { EstiloItem } from '@/lib/bio/tipos'
 import { cn } from '@/lib/utils'
 
@@ -131,7 +131,7 @@ export function PreviaItem({
 }) {
   const icone = iconeDoLink(url)
   const Glifo = icone.icone
-  const paleta = corSobreBranco(icone.cor)
+  const paleta = estiloSobreBranco(icone.cor)
   const generico = icone.id === GENERICO_ID
   // Sem imagem a página desenha o botão, qualquer que seja o estilo.
   const semImagem = formato === 'botao' || !capa
@@ -143,7 +143,7 @@ export function PreviaItem({
         'flex size-7 shrink-0 items-center justify-center rounded-full [&>svg]:size-3.5',
         generico && 'bg-transparent text-white'
       )}
-      style={generico ? undefined : { backgroundColor: paleta.fundo, color: paleta.glifo }}
+      style={generico ? undefined : paleta}
     >
       <Glifo />
     </span>
