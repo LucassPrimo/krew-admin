@@ -175,11 +175,24 @@ export async function atualizarConfigBio(campo: keyof ConfigBio, valor: boolean 
   // (`rebaixarBioParaFree`), o que devolve tudo intacto quando o pagamento
   // volta.
   if (valor === true && CAMPOS_PAGOS.includes(campo)) {
+    // Bio de oferta em aberto não passa pelo gate. Ela é vitrine da Krew — a
+    // conta-fantasma não tem plano porque não tem ninguém —, e barrá-la fazia
+    // o switch do painel voltar sozinho, sem mensagem, porque o `ToggleBio`
+    // desfaz em silêncio. É a mesma regra de `rebaixarBioParaFree`, e a
+    // definição de "aberta" mora numa função só (ver a migration
+    // `20260828150000_oferta_aberta_helper`): não aceita E com a conta nunca
+    // acessada. Quem entrou na conta tem conta, e volta a pagar como todo
+    // mundo mesmo antes de o painel marcar o aceite.
+    const { data: ehOfertaAberta } = await supabase.rpc('oferta_aberta_do_usuario', {
+      p_user_id: user.id,
+    })
+
     const { assinatura } = await getAssinatura(user.id)
     const liberado =
-      campo === 'bio_mostrar_propostas'
+      ehOfertaAberta === true ||
+      (campo === 'bio_mostrar_propostas'
         ? temAcesso(estadoAssinatura(assinatura))
-        : ehPro(assinatura)
+        : ehPro(assinatura))
 
     if (!liberado) {
       return {
