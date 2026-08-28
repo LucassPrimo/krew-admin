@@ -60,7 +60,10 @@ function montarCsp(nonce: string) {
     dev
       ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
       : `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
-    "img-src 'self' data: https:",
+    // `blob:` por causa do recorte da capa: a prévia do arquivo escolhido é um
+    // `URL.createObjectURL`, e sem isto o navegador bloqueia a imagem em
+    // silêncio — o cropper abre com a moldura vazia.
+    "img-src 'self' data: blob: https:",
     // A prévia da oferta é um iframe da página pública de verdade. Sem esta
     // linha, `frame-src` herda o `default-src 'self'` e o navegador recusa o
     // iframe em silêncio.
