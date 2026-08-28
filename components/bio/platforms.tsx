@@ -853,16 +853,31 @@ export function PlatformIcon({
   def: PlatformDef
   className?: string
 }) {
+  /**
+   * O respiro é o TAMANHO DO DESENHO, não o padding do tile — e essa distinção
+   * é a diferença entre funcionar e explodir.
+   *
+   * `padding: 15%` parece dizer "15% de mim", mas porcentagem em padding
+   * resolve contra a LARGURA DO PAI, sempre. Enquanto o pai era do tamanho da
+   * bolinha (a fileira de redes), os dois valores coincidiam e ninguém notava.
+   * Bastou o mesmo ícone aparecer no cabeçalho do campo — onde o pai é uma
+   * linha de largura inteira — para o padding virar ~160px: com `box-sizing:
+   * border-box`, a caixa não tem como encolher abaixo do próprio padding, e o
+   * `size-6` de 24px virou um disco branco gigante.
+   *
+   * Medindo a IMAGEM em vez do tile, a porcentagem passa a se referir ao span
+   * — que tem tamanho definido por quem o usa — e o ícone fica igual em
+   * qualquer contexto.
+   */
+  const respiro = def.logoRespiro ?? 15
+  const ladoDoDesenho = `${100 - respiro * 2}%`
+
   if (def.logo) {
     return (
       <span
         aria-hidden
         className={`flex items-center justify-center overflow-hidden ${className}`}
-        style={
-          def.logoTemTile
-            ? undefined
-            : { backgroundColor: def.logoFundo ?? '#FFFFFF', padding: `${def.logoRespiro ?? 15}%` }
-        }
+        style={def.logoTemTile ? undefined : { backgroundColor: def.logoFundo ?? '#FFFFFF' }}
       >
         {/* next/image está com `unoptimized` no projeto — <img> direto evita a
             camada extra sem ganho nenhum num SVG local. */}
@@ -870,14 +885,16 @@ export function PlatformIcon({
         <img
           src={def.logo}
           alt=""
-          className="h-full w-full object-contain"
-          style={
-            def.logoDeslocamento
-              ? {
-                  transform: `translate(${def.logoDeslocamento.x}%, ${def.logoDeslocamento.y}%)`,
-                }
-              : undefined
-          }
+          className="object-contain"
+          style={{
+            // Com tile próprio o asset vai de borda a borda; sem ele, encolhe
+            // para abrir a margem que faz o desenho ler como ícone de app.
+            width: def.logoTemTile ? '100%' : ladoDoDesenho,
+            height: def.logoTemTile ? '100%' : ladoDoDesenho,
+            ...(def.logoDeslocamento
+              ? { transform: `translate(${def.logoDeslocamento.x}%, ${def.logoDeslocamento.y}%)` }
+              : null),
+          }}
         />
       </span>
     )
@@ -887,9 +904,13 @@ export function PlatformIcon({
     <span
       aria-hidden
       className={`flex items-center justify-center overflow-hidden text-white ${className}`}
-      style={{ backgroundColor: def.cor, padding: '22%' }}
+      style={{ backgroundColor: def.cor }}
     >
-      {def.icone}
+      {/* Mesma correção do caso acima: quem mede é o glifo, não o tile. 56% é
+          o que os antigos 22% de padding davam. */}
+      <span className="flex items-center justify-center" style={{ width: '56%', height: '56%' }}>
+        {def.icone}
+      </span>
     </span>
   )
 }
