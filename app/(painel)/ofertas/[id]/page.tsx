@@ -63,7 +63,7 @@ export default async function EditorDaOferta({ params }: { params: Promise<{ id:
       .order('created_at'),
     supabase
       .from('bio_ofertas')
-      .select('aceita_em, email_convite, convite_enviado_em, notas')
+      .select('aceita_em, email_convite, convite_enviado_em, notas, token')
       .eq('page_id', id)
       .maybeSingle(),
   ])
@@ -71,24 +71,37 @@ export default async function EditorDaOferta({ params }: { params: Promise<{ id:
   const oferta = ofertaRes.data as
     | {
         aceita_em: string | null; email_convite: string | null
-        convite_enviado_em: string | null; notas: string | null
+        convite_enviado_em: string | null; notas: string | null; token: string
       }
     | null
 
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        {/* O endereço que MOSTRA depende do estado da oferta, e não é
+            cosmético: enquanto ela não é aceita, o `/@handle` devolve 404 de
+            propósito (a página nasce `bio_ativo = false`), e a única porta é o
+            link secreto. Oferecer o handle aqui seria mandar você divulgar um
+            endereço quebrado. */}
         <div className="flex items-center gap-2">
           <a
-            href={`https://bekrew.com/@${alvo.slug}`}
+            href={
+              oferta?.aceita_em
+                ? `https://bekrew.com/@${alvo.slug}`
+                : `https://bekrew.com/oferta/${oferta?.token ?? ''}`
+            }
             target="_blank"
             rel="noreferrer"
             className="rounded-full border border-border bg-card px-3 py-1.5 text-sm font-semibold text-foreground hover:text-primary"
           >
-            bekrew.com/@{alvo.slug}
+            {oferta?.aceita_em ? `bekrew.com/@${alvo.slug}` : 'abrir a prévia'}
           </a>
-          {oferta?.aceita_em && (
+          {oferta?.aceita_em ? (
             <span className="text-xs text-muted-foreground">oferta já aceita</span>
+          ) : (
+            <span className="text-xs text-muted-foreground">
+              fora do ar e fora da busca — só quem tem o link vê
+            </span>
           )}
         </div>
         <Link href="/ofertas" className="text-sm text-muted-foreground hover:text-foreground">
@@ -191,6 +204,9 @@ export default async function EditorDaOferta({ params }: { params: Promise<{ id:
             <BlocoOferta
               pageId={id}
               slug={alvo.slug}
+              linkPrevia={
+                oferta?.token ? `https://bekrew.com/oferta/${oferta.token}` : null
+              }
               emailInicial={oferta?.email_convite ?? null}
               conviteEnviadoEm={oferta?.convite_enviado_em ?? null}
               aceitaEm={oferta?.aceita_em ?? null}
@@ -201,7 +217,15 @@ export default async function EditorDaOferta({ params }: { params: Promise<{ id:
 
         <PreviewPublica
           versao={String(Date.now())}
-          abas={[{ chave: 'bio', label: `/@${alvo.slug}`, url: `https://bekrew.com/@${alvo.slug}` }]}
+          abas={[
+            oferta?.aceita_em
+              ? { chave: 'bio', label: `/@${alvo.slug}`, url: `https://bekrew.com/@${alvo.slug}` }
+              : {
+                  chave: 'bio',
+                  label: 'prévia',
+                  url: `https://bekrew.com/oferta/${oferta?.token ?? ''}`,
+                },
+          ]}
         />
       </div>
     </div>

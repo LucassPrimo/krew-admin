@@ -849,9 +849,26 @@ export const PLATFORM_BY_ID = new Map(PLATFORMS.map((p) => [p.id, p]))
 export function PlatformIcon({
   def,
   className = '',
+  sobreTileBranco = false,
 }: {
   def: PlatformDef
   className?: string
+  /**
+   * O ícone está sendo desenhado DENTRO do tile branco da fileira (o estilo
+   * `branco` da bio), e quem pintou o fundo foi quem chamou.
+   *
+   * Existe porque `logoTemTile` responde "o arquivo traz o próprio quadrado
+   * colorido?" — e a resposta certa muda com o contexto. No estilo `original`
+   * o YouTube Music tem que ir de borda a borda, é o logo dele. No estilo
+   * `branco` o mesmo arquivo cobria o tile inteiro e devolvia um disco
+   * vermelho no meio de uma fileira de tiles brancos: a rede simplesmente não
+   * recebia o estilo escolhido, e só as que têm glifo monocromático mapeado
+   * (as catorze antigas) obedeciam.
+   *
+   * Ligado, o desenho encolhe para dentro do tile e não pinta fundo nenhum —
+   * o de fora já é o branco certo.
+   */
+  sobreTileBranco?: boolean
 }) {
   /**
    * O respiro é o TAMANHO DO DESENHO, não o padding do tile — e essa distinção
@@ -871,13 +888,20 @@ export function PlatformIcon({
    */
   const respiro = def.logoRespiro ?? 15
   const ladoDoDesenho = `${100 - respiro * 2}%`
+  // Vai de borda a borda só quando o arquivo traz o próprio tile E ninguém já
+  // pintou um por fora.
+  const deBordaABorda = def.logoTemTile && !sobreTileBranco
 
   if (def.logo) {
     return (
       <span
         aria-hidden
         className={`flex items-center justify-center overflow-hidden ${className}`}
-        style={def.logoTemTile ? undefined : { backgroundColor: def.logoFundo ?? '#FFFFFF' }}
+        style={
+          deBordaABorda || sobreTileBranco
+            ? undefined
+            : { backgroundColor: def.logoFundo ?? '#FFFFFF' }
+        }
       >
         {/* next/image está com `unoptimized` no projeto — <img> direto evita a
             camada extra sem ganho nenhum num SVG local. */}
@@ -889,8 +913,8 @@ export function PlatformIcon({
           style={{
             // Com tile próprio o asset vai de borda a borda; sem ele, encolhe
             // para abrir a margem que faz o desenho ler como ícone de app.
-            width: def.logoTemTile ? '100%' : ladoDoDesenho,
-            height: def.logoTemTile ? '100%' : ladoDoDesenho,
+            width: deBordaABorda ? '100%' : ladoDoDesenho,
+            height: deBordaABorda ? '100%' : ladoDoDesenho,
             ...(def.logoDeslocamento
               ? { transform: `translate(${def.logoDeslocamento.x}%, ${def.logoDeslocamento.y}%)` }
               : null),
@@ -903,8 +927,10 @@ export function PlatformIcon({
   return (
     <span
       aria-hidden
-      className={`flex items-center justify-center overflow-hidden text-white ${className}`}
-      style={{ backgroundColor: def.cor }}
+      className={`flex items-center justify-center overflow-hidden ${sobreTileBranco ? '' : 'text-white'} ${className}`}
+      // Sobre o tile branco o glifo herda a cor de quem chamou (a marca, via
+      // `corSobreBranco`); fora dele, é branco sobre a cor da marca.
+      style={sobreTileBranco ? undefined : { backgroundColor: def.cor }}
     >
       {/* Mesma correção do caso acima: quem mede é o glifo, não o tile. 56% é
           o que os antigos 22% de padding davam. */}

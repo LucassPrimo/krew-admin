@@ -4,6 +4,7 @@ import { dbRO, dbRW } from './db'
 import { env } from './env'
 import type { EstiloItem } from './bio/tipos'
 import type { RedeImportada } from './importar-linkme'
+import { trazerImagem } from './importar-midia'
 import { registrarAcao } from './mutate'
 import { clienteAdmin } from './supabase-admin'
 
@@ -105,6 +106,25 @@ export async function criarOferta(
 
   const userId = criado.user.id
 
+  /**
+   * As imagens vêm para o nosso bucket ANTES da transação.
+   *
+   * Antes de gravar, e não durante: `trazerImagem` faz rede, e rede dentro de
+   * uma transação de banco segura uma conexão do pool pelo tempo do download
+   * mais lento. Com vinte capas isso vira uma transação de dezenas de
+   * segundos — e o `statement_timeout` do painel a mataria no meio.
+   *
+   * Em paralelo porque são independentes entre si; falhar não interrompe as
+   * outras (`trazerImagem` devolve `null` em vez de lançar). O que não vier
+   * simplesmente não tem imagem, e a página desenha o card sem arte — que é o
+   * botão, um formato que ela já sabe fazer.
+   */
+  const [avatarNosso, capaNossa, capasDosLinks] = await Promise.all([
+    trazerImagem(dados.avatarUrl, userId, 'avatar'),
+    trazerImagem(dados.capaUrl, userId, 'capa'),
+    Promise.all(dados.links.map((l) => trazerImagem(l.capa_url, userId, 'capa'))),
+  ])
+
   try {
     const pageId = await dbRW.begin(async (tx: TransactionSql) => {
       // O trigger já criou org e membership; pegamos a org que ele fez.
@@ -116,7 +136,7 @@ export async function criarOferta(
       await tx`
         update public.profiles
         set full_name = ${dados.nomeCompleto},
-            avatar_url = ${dados.avatarUrl ?? null},
+            avatar_url = ${avatarNosso},
             nicho = ${dados.nicho ?? null}
         where id = ${userId}
       `
@@ -128,11 +148,19 @@ export async function criarOferta(
         update public.subscriptions set trial_ends_at = null where user_id = ${userId}
       `
 
+      // `bio_ativo = false`: a oferta NÃO nasce pública.
+      //
+      // Publicar nome, foto e links de uma pessoa real numa página aberta e
+      // buscável antes de ela saber que a página existe é uso comercial de
+      // nome e imagem sem autorização — e o fluxo de venda nunca precisou
+      // disso, precisa que UMA pessoa veja. Ela vê pelo link secreto
+      // (`/oferta/{token}`); o `/@handle` só entra no ar no aceite, junto com
+      // o consentimento. Ver a migration `20260828170000`.
       const [pagina] = await tx<{ id: string }[]>`
         insert into public.proposal_pages
           (user_id, org_id, slug, bio_ativo, bio_headline, bio_texto, bio_capa_url, bio_bg_color)
-        values (${userId}, ${org.id}, ${dados.slug}, true,
-                ${dados.headline ?? null}, ${dados.texto ?? null}, ${dados.capaUrl ?? null},
+        values (${userId}, ${org.id}, ${dados.slug}, false,
+                ${dados.headline ?? null}, ${dados.texto ?? null}, ${capaNossa},
                 ${dados.corFundo ?? null})
         returning id
       `
@@ -141,7 +169,7 @@ export async function criarOferta(
         await tx`
           insert into public.creator_links (user_id, org_id, titulo, url, capa_url, ordem, tipo, estilo)
           values (${userId}, ${org.id}, ${link.titulo}, ${link.url ?? null},
-                  ${link.capa_url ?? null}, ${i}, ${link.tipo ?? 'link'},
+                  ${capasDosLinks[i] ?? null}, ${i}, ${link.tipo ?? 'link'},
                   ${link.estilo ?? 'grande'})
         `
       }
@@ -161,6 +189,9 @@ export async function criarOferta(
         `
       }
 
+      // `token` fica com o default da coluna — 16 bytes aleatórios do próprio
+      // Postgres. Sorteá-lo aqui só moveria o segredo para o lado que menos
+      // precisa conhecê-lo.
       await tx`
         insert into public.bio_ofertas (page_id, criada_por, email_convite, notas)
         values (${pagina.id}, ${contexto.atorId}, ${dados.email?.trim() ?? null}, ${dados.notas ?? null})
@@ -262,6 +293,14 @@ export async function marcarAceita(
       returning (select user_id from public.proposal_pages where id = page_id) as user_id
     `
     if (!linha) throw new Error('Oferta não encontrada ou já aceita.')
+
+    // A página entra no ar AGORA, e não antes: o aceite é o consentimento que
+    // faltava para publicar nome e imagem do criador. Daqui em diante ela vive
+    // no `/@handle`, aparece na busca, e o link secreto para de funcionar
+    // (`get_bio_por_token` exige `aceita_em is null`).
+    await tx`
+      update public.proposal_pages set bio_ativo = true where id = ${pageId}
+    `
 
     await tx`
       update public.subscriptions
@@ -390,6 +429,8 @@ export async function excluirOferta(
 export type OfertaListada = {
   page_id: string
   slug: string
+  /** Segredo do link de prévia. Enquanto não aceita, é a única porta. */
+  token: string
   nome: string | null
   criada_em: string
   email_convite: string | null
@@ -400,7 +441,7 @@ export type OfertaListada = {
 
 export async function listarOfertas(): Promise<OfertaListada[]> {
   return dbRO<OfertaListada[]>`
-    select o.page_id, p.slug, pr.full_name as nome, o.criada_em,
+    select o.page_id, p.slug, o.token, pr.full_name as nome, o.criada_em,
            o.email_convite, o.convite_enviado_em, o.aceita_em,
            coalesce((select sum(l.cliques) from public.creator_links l
                      where l.user_id = p.user_id), 0)::int as cliques

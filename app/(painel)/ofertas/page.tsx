@@ -77,10 +77,14 @@ export default async function Ofertas() {
             <tbody>
               {abertas.map((o) => (
                 <tr key={o.page_id}>
+                  {/* Oferta ABERTA não tem `/@handle` no ar — a página nasce
+                      desligada e só o link secreto abre. Apontar para o handle
+                      aqui daria 404 e pareceria defeito. */}
                   <td className="font-mono text-xs">
                     <a
-                      href={`https://bekrew.com/@${o.slug}`}
+                      href={`https://bekrew.com/oferta/${o.token}`}
                       target="_blank" rel="noreferrer"
+                      title="Prévia por link secreto — a página ainda não está no ar"
                       className="text-acento hover:underline"
                     >
                       @{o.slug}
