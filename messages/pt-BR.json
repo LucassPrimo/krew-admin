@@ -1651,7 +1651,8 @@
     "categoriaPagamento": "Pagamento",
     "categoriaEntretenimento": "Entretenimento",
     "categoriaEstilo": "Estilo de vida",
-    "categoriaOutros": "Outros"
+    "categoriaOutros": "Outros",
+    "redesTodas": "Todas as redes"
   },
   "aparencia": {
     "title": "Aparência",

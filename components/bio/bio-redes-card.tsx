@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useTranslations } from 'next-intl'
-import { Check, Loader2, Trash2 } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, Loader2, Trash2 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { saveSocialNetworks } from '@/app/actions/social-networks'
@@ -35,6 +35,55 @@ const ROTULO_CATEGORIA: Record<Categoria, string> = {
 
 function rotuloCategoria(cat: Categoria) {
   return ROTULO_CATEGORIA[cat]
+}
+
+/**
+ * Uma bolinha da fileira.
+ *
+ * Extraída porque ela aparece em DOIS lugares — nas redes já escolhidas e
+ * dentro da gaveta aberta — e duas cópias do mesmo botão divergiriam no
+ * primeiro ajuste de estado visual.
+ */
+function Bolinha({
+  def,
+  preenchida,
+  aberta,
+  aoClicar,
+}: {
+  def: (typeof PLATFORMS)[number]
+  preenchida: boolean
+  aberta: boolean
+  aoClicar: (id: PlatformId) => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => aoClicar(def.id)}
+      aria-pressed={preenchida}
+      aria-expanded={aberta}
+      // O nome só no `title`/`aria-label`: o rótulo embaixo de cada bolinha
+      // dobrava a altura da fileira para repetir o que o desenho da marca já
+      // diz.
+      aria-label={def.label}
+      title={def.label}
+      className={cn(
+        'relative rounded-full transition-all duration-200',
+        preenchida
+          ? 'opacity-100 hover:scale-105'
+          : 'opacity-40 grayscale hover:opacity-100 hover:grayscale-0',
+        aberta && 'ring-2 ring-primary ring-offset-2 ring-offset-card',
+      )}
+    >
+      <PlatformIcon def={def} className="size-11 rounded-full" />
+      {preenchida && (
+        <span className="absolute -right-0.5 -bottom-0.5 rounded-full bg-card p-[2px]">
+          <span className="flex size-4 items-center justify-center rounded-full bg-emerald-500 text-white">
+            <Check className="size-2.5" />
+          </span>
+        </span>
+      )}
+    </button>
+  )
 }
 
 interface RedeEditavel {
@@ -72,6 +121,8 @@ export function BioRedesCard({ redesIniciais }: { redesIniciais: RedeEditavel[] 
   )
 
   const [aberta, setAberta] = useState<PlatformId | null>(null)
+  /** A gaveta aberta. `null` mostra a lista de gavetas. */
+  const [gaveta, setGaveta] = useState<Categoria | null>(null)
   const [valor, setValor] = useState('')
 
   const def = aberta ? (PLATFORMS.find((p) => p.id === aberta) ?? null) : null
@@ -145,6 +196,14 @@ export function BioRedesCard({ redesIniciais }: { redesIniciais: RedeEditavel[] 
    * não o total dela. O total é a mesma informação que as bolinhas visíveis já
    * dão; o preenchido responde "falta alguma coisa aqui?" sem abrir nada.
    */
+  // Na ordem do PRÓPRIO criador (`ordem` da rede), e não na ordem do catálogo:
+  // esta fileira é a página dele, e vê-la fora de ordem aqui atrapalharia
+  // justamente quem veio conferir como ela ficou.
+  const escolhidas = redes
+    .filter((r) => r.handle || r.url)
+    .map((r) => PLATFORMS.find((p) => p.id === r.platform))
+    .filter((p): p is (typeof PLATFORMS)[number] => !!p)
+
   const grupos = CATEGORIAS.map((cat) => {
     const itens = PLATFORMS.filter((p) => p.categoria === cat)
     const preenchidas = itens.filter((p) => {
@@ -156,55 +215,79 @@ export function BioRedesCard({ redesIniciais }: { redesIniciais: RedeEditavel[] 
 
   return (
     <div className="flex flex-col gap-3">
-      {grupos.map(({ cat, itens, preenchidas }) => (
-      <div key={cat} className="flex flex-col gap-1.5">
-        <p className="flex items-center gap-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
-          {t(rotuloCategoria(cat))}
-          {preenchidas > 0 && (
-            <span className="rounded-full bg-primary/10 px-1.5 text-[10px] font-semibold text-primary">
-              {preenchidas}
-            </span>
-          )}
-        </p>
-      <div className="flex flex-wrap gap-2">
-        {itens.map((p) => {
-          const r = redes.find((x) => x.platform === p.id)
-          const preenchida = !!(r?.handle || r?.url)
+      {/* O que JÁ está na página, sempre à mão.
+          Sem isto, editar o Instagram que você acabou de pôr custaria lembrar
+          em qual gaveta ele mora — e as redes preenchidas são justamente as
+          que se mexe de novo. Elas aparecem aqui além de aparecerem na
+          gaveta delas; é repetição de propósito, porque as duas perguntas
+          ("o que já tem?" e "onde acho o X?") são diferentes. */}
+      {escolhidas.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {escolhidas.map((p) => (
+            <Bolinha key={p.id} def={p} preenchida aberta={aberta === p.id} aoClicar={abrir} />
+          ))}
+        </div>
+      )}
 
-          return (
+      {gaveta === null ? (
+        /* Nível 1: as gavetas. Sessenta bolinhas abertas de uma vez viram um
+           paredão em que achar o Spotify custa mais do que digitar o endereço
+           dele à mão — que é o oposto do que a fileira existe para fazer.
+           Aqui cabem sete linhas, e cada uma diz quantas redes tem dentro. */
+        <div className="flex flex-col gap-1">
+          {grupos.map(({ cat, itens, preenchidas }) => (
             <button
-              key={p.id}
+              key={cat}
               type="button"
-              onClick={() => abrir(p.id)}
-              aria-pressed={preenchida}
-              aria-expanded={aberta === p.id}
-              // O nome só no `title`/`aria-label`: o rótulo embaixo de cada
-              // bolinha dobrava a altura da fileira para repetir o que o
-              // desenho da marca já diz.
-              aria-label={p.label}
-              title={p.label}
-              className={cn(
-                'relative rounded-full transition-all duration-200',
-                preenchida
-                  ? 'opacity-100 hover:scale-105'
-                  : 'opacity-40 grayscale hover:opacity-100 hover:grayscale-0',
-                aberta === p.id && 'ring-2 ring-primary ring-offset-2 ring-offset-card'
-              )}
+              onClick={() => { setGaveta(cat); setAberta(null) }}
+              className="flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-left transition-colors hover:border-primary/40 hover:bg-muted"
             >
-              <PlatformIcon def={p} className="size-11 rounded-full" />
-              {preenchida && (
-                <span className="absolute -right-0.5 -bottom-0.5 rounded-full bg-card p-[2px]">
-                  <span className="flex size-4 items-center justify-center rounded-full bg-emerald-500 text-white">
-                    <Check className="size-2.5" />
-                  </span>
+              <span className="text-sm font-medium text-foreground">{t(rotuloCategoria(cat))}</span>
+              {preenchidas > 0 && (
+                <span className="rounded-full bg-primary/10 px-1.5 text-[10px] font-semibold text-primary">
+                  {preenchidas}
                 </span>
               )}
+              <span className="ml-auto flex items-center gap-1.5 text-xs text-muted-foreground">
+                {itens.length}
+                <ChevronRight className="size-3.5" />
+              </span>
             </button>
-          )
-        })}
-      </div>
-      </div>
-      ))}
+          ))}
+        </div>
+      ) : (
+        /* Nível 2: a gaveta aberta. O caminho no topo é clicável e devolve
+           para a lista — é a única saída, então ele não pode ser só enfeite. */
+        <div className="flex flex-col gap-1.5">
+          <p className="flex items-center gap-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+            <button
+              type="button"
+              onClick={() => { setGaveta(null); setAberta(null) }}
+              className="flex items-center gap-1 transition-colors hover:text-foreground"
+            >
+              <ChevronLeft className="size-3.5" />
+              {t('redesTodas')}
+            </button>
+            <ChevronRight className="size-3 opacity-50" aria-hidden />
+            <span className="text-foreground">{t(rotuloCategoria(gaveta))}</span>
+          </p>
+
+          <div className="flex flex-wrap gap-2">
+            {PLATFORMS.filter((p) => p.categoria === gaveta).map((p) => {
+              const r = redes.find((x) => x.platform === p.id)
+              return (
+                <Bolinha
+                  key={p.id}
+                  def={p}
+                  preenchida={!!(r?.handle || r?.url)}
+                  aberta={aberta === p.id}
+                  aoClicar={abrir}
+                />
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {def && (
         <div className="flex flex-col gap-2 rounded-xl border border-border bg-background p-3">
