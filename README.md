@@ -13,6 +13,7 @@ que você precisa para rodar e publicar.
 | Rota | O que resolve |
 |---|---|
 | `/` | Visão geral: o que exige ação hoje, depois o que mede o negócio |
+| `/crm` | **CRM de prospecção** — a fila de criadores antes de virarem clientes, com funil e follow-up |
 | `/ofertas` | **Bio de oferta** — página pronta para apresentar a um criador antes de ele ter conta |
 | `/pessoas`, `/pessoas/[id]` | Busca global e a visão 360, onde a maior parte do suporte acontece |
 | `/analise/*` | Assinaturas, aquisição, uso do produto e retenção |
@@ -88,6 +89,47 @@ Consequências, todas deliberadas:
   ele define a senha e assume a conta. **Nenhum dado migra** — página, links,
   cliques e histórico continuam de pé.
 
+## Como funciona o CRM
+
+Ele substitui a planilha de prospecção — Nome, Instagram, Fonte, o handle da
+bio e três colunas de SIM/FALSE: "Link criado?", "Enviado", "Aceito".
+
+**As três colunas não existem aqui.** Elas respondem sobre algo que o banco já
+sabe: uma linha em `bio_ofertas` é o link criado, `convite_enviado_em` é o
+enviado, `aceita_em` é o aceito. Marcadas à mão, divergem do produto no primeiro
+dia corrido — que é o motivo de a planilha ter parado de funcionar. O lead
+guarda só o que é dele (quem é, de onde veio, o combinado, quando falar de
+novo), aponta para a oferta, e o estágio dali em diante é LIDO dela a cada
+consulta:
+
+```
+novo → contatado → negociando   |   oferta criada → convite enviado → aceito
+        ↑ marcados à mão        |   ↑ lidos de public.bio_ofertas
+                    perdido  ← vence os dois, e é reversível
+```
+
+O que o painel faz com isso: o funil conta quem ALCANÇOU cada etapa (não quem
+está parado nela) e cruza com a fonte, respondendo de onde vem lead que aceita;
+o `proximo_contato` vencido sobe o lead na lista e vira o badge da barra
+lateral; e "Criar a oferta" na ficha leva para `/ofertas/nova` já preenchido,
+vinculando na volta.
+
+### O passo manual
+
+O dado mora no schema **`admin_crm`**, fora de `public` — pela regra abaixo, e
+porque lead de prospecção não é dado do produto. Rode uma vez, no SQL Editor do
+Supabase, com o papel `postgres`:
+
+```
+sql/admin_crm.sql
+```
+
+Sem ele o painel sobe inteiro e só `/crm` fica indisponível, dizendo isso na
+tela. Depois de rodar, a próxima navegação já enxerga — sem redeploy.
+
+Não há DELETE: lead errado se marca como perdido, com motivo. Toda escrita passa
+por `admin_audit.mutations` no mesmo commit, como o resto do painel.
+
 ## Regra do schema
 
 **Este repositório nunca cria nem altera nada em `public`.** Migrations vivem no
@@ -108,4 +150,5 @@ quando alguém esquecer.
 - [ ] Variáveis de ambiente marcadas como **Sensitive** na Vercel
 - [ ] Cadastrar o TOTP no primeiro acesso e guardar os códigos de recuperação
       **fora do computador**
+- [ ] Rodar `sql/admin_crm.sql` no Supabase para ligar o `/crm`
 - [ ] Virar `ADMIN_WRITES_ENABLED=true` quando tiver navegado e confiado no painel

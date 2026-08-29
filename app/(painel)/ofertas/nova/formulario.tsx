@@ -3,11 +3,12 @@
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Download, Loader2, Tag } from 'lucide-react'
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 
 import { BotaoSalvar } from '@/components/ui/campos'
 import { Secao } from '@/components/ui/secao'
 import type { PerfilLinkme } from '@/lib/importar-linkme'
+import { acaoVincularOferta } from '@/app/(painel)/crm/acoes'
 import { acaoCriarOferta, acaoImportarLinkme, verificarSlug } from '../acoes'
 
 /**
@@ -25,8 +26,19 @@ import { acaoCriarOferta, acaoImportarLinkme, verificarSlug } from '../acoes'
  * Importar continua trazendo TUDO de uma vez. O que a importação preenche não
  * aparece aqui — vai direto para a página criada, e você revisa no editor com a
  * prévia ao lado, que é onde dá para ver se ficou bom.
+ *
+ * Os valores iniciais vêm por PROP, de um Server Component que lê a URL. Quem
+ * chega do CRM traz o lead, o nome e o handle já anotados lá — e é o `leadId`
+ * que fecha o ciclo: criada a página, ela é vinculada ao lead antes do
+ * redirecionamento, e o estágio dele passa a ser lido da oferta sozinho.
  */
-export default function NovaOferta() {
+export function FormularioNovaOferta({
+  leadId, nomeInicial = '', slugInicial = '',
+}: {
+  leadId?: string
+  nomeInicial?: string
+  slugInicial?: string
+}) {
   const router = useRouter()
   const [pendente, startTransition] = useTransition()
   const [importando, setImportando] = useState(false)
@@ -34,9 +46,16 @@ export default function NovaOferta() {
 
   const [origem, setOrigem] = useState('')
   const [perfil, setPerfil] = useState<PerfilLinkme | null>(null)
-  const [slug, setSlug] = useState('')
+  const [slug, setSlug] = useState(slugInicial)
   const [slugStatus, setSlugStatus] = useState<{ livre: boolean; porque?: string } | null>(null)
-  const [nome, setNome] = useState('')
+  const [nome, setNome] = useState(nomeInicial)
+
+  // O handle que veio do lead é conferido sozinho: quem clicou "Criar a oferta"
+  // lá já escolheu esse endereço, e descobrir que ele está ocupado só depois de
+  // preencher o resto seria descobrir tarde demais.
+  useEffect(() => {
+    if (slugInicial) verificarSlug(slugInicial).then(setSlugStatus)
+  }, [slugInicial])
 
   function conferirSlug(valor: string) {
     const limpo = valor.trim().toLowerCase()
@@ -71,6 +90,12 @@ export default function NovaOferta() {
         setErro(r.erro)
         return
       }
+      // O vínculo com o lead vai ANTES da navegação e sem interromper o
+      // fluxo se falhar: a página já existe, e prender a pessoa numa tela de
+      // erro por causa de um ponteiro do CRM seria perder o passo importante
+      // por causa do acessório. A ficha do lead permite vincular à mão.
+      if (leadId) await acaoVincularOferta(leadId, r.pageId)
+
       // Direto para o editor, e não para a lista: a página acabou de nascer e
       // o que você quer agora é ver como ela ficou.
       router.push(`/ofertas/${r.pageId}`)

@@ -2,7 +2,7 @@
 
 import { useRouter, usePathname } from 'next/navigation'
 import {
-  Activity, BadgeCheck, Blocks, CreditCard, Database, FileWarning, Gauge,
+  Activity, BadgeCheck, Blocks, Contact, CreditCard, Database, FileWarning, Gauge,
   LayoutDashboard, LogOut, Mail, PanelLeftClose, PanelLeftOpen, ScrollText,
   Search, Send, ShieldCheck, Terminal, TrendingUp, UserRound, Users, X,
 } from 'lucide-react'
@@ -21,7 +21,12 @@ import { supabaseBrowser } from '@/lib/supabase-browser'
  * foi decidido lá: o e-mail de quem entrou e os dois contadores dos badges.
  */
 
-export type Contadores = { ofertasAbertas: number; emailsComFalha: number }
+export type Contadores = {
+  ofertasAbertas: number
+  emailsComFalha: number
+  /** Leads com follow-up vencido — a fila de hoje no CRM. */
+  crmParaHoje: number
+}
 
 function montarGrupos(c: Contadores): GrupoNav[] {
   return [
@@ -34,6 +39,7 @@ function montarGrupos(c: Contadores): GrupoNav[] {
     {
       titulo: 'Operação',
       itens: [
+        { href: '/crm', titulo: 'CRM', icone: Contact, badge: c.crmParaHoje },
         { href: '/ofertas', titulo: 'Ofertas de bio', icone: Send, badge: c.ofertasAbertas },
         { href: '/pessoas', titulo: 'Pessoas', icone: Users },
         { href: '/emails', titulo: 'E-mails', icone: Mail, badge: c.emailsComFalha },
@@ -80,6 +86,7 @@ const RODAPE: ItemNav[] = [{ titulo: 'Sair', icone: LogOut, acao: 'sair' }]
 /** Tudo que a paleta de comandos alcança, achatado. */
 const DESTINOS: { href: string; titulo: string; icone: typeof Search; contexto: string }[] = [
   { href: '/', titulo: 'Visão geral', icone: LayoutDashboard, contexto: '' },
+  { href: '/crm', titulo: 'CRM de prospecção', icone: Contact, contexto: 'Operação' },
   { href: '/ofertas', titulo: 'Ofertas de bio', icone: Send, contexto: 'Operação' },
   { href: '/ofertas/nova', titulo: 'Nova oferta de bio', icone: Send, contexto: 'Operação' },
   { href: '/pessoas', titulo: 'Pessoas', icone: Users, contexto: 'Operação' },
