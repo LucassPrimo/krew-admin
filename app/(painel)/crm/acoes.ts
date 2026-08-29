@@ -3,10 +3,11 @@
 import { headers } from 'next/headers'
 import { revalidatePath } from 'next/cache'
 
-import { autorizarEscritaSemStepUp } from '@/lib/auth'
+import { autorizarEscritaSemStepUp, exigirAtor } from '@/lib/auth'
 import {
-  adicionarNota, atualizarLead, criarLead, marcarPerdido, reabrirLead,
-  vincularOferta, type EdicaoLead, type EstagioManual, type NovoLead,
+  adicionarNota, atualizarLead, criarLead, importarLeads, marcarPerdido,
+  preverImportacao, reabrirLead, vincularOferta,
+  type EdicaoLead, type EstagioManual, type NovoLead,
 } from '@/lib/crm'
 
 /**
@@ -98,5 +99,27 @@ export async function acaoReabrirLead(id: string) {
     revalidatePath('/crm')
     revalidatePath(`/crm/${id}`)
   }
+  return r
+}
+
+/**
+ * A prévia da importação.
+ *
+ * `exigirAtor()` e não `autorizarEscrita…`: conferir não grava nada. Travá-la
+ * atrás do kill switch impediria você de preparar e revisar a planilha
+ * justamente enquanto o painel está em modo leitura — que é quando dá para
+ * fazer isso sem risco nenhum.
+ */
+export async function acaoPreverImportacao(texto: string) {
+  await exigirAtor()
+  return preverImportacao(texto)
+}
+
+export async function acaoImportarLeads(texto: string) {
+  const permissao = await autorizarEscritaSemStepUp()
+  if (!permissao.ok) return { ok: false as const, erro: permissao.texto }
+
+  const r = await importarLeads(texto, { atorId: permissao.ator.id, ...(await contexto()) })
+  if (r.ok) revalidatePath('/crm')
   return r
 }

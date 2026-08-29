@@ -114,6 +114,24 @@ o `proximo_contato` vencido sobe o lead na lista e vira o badge da barra
 lateral; e "Criar a oferta" na ficha leva para `/ofertas/nova` já preenchido,
 vinculando na volta.
 
+### Trazer a planilha
+
+`public/modelo-leads.csv` é o formato de entrada — nove colunas: Nome,
+Instagram, Fonte, Handle da bio, E-mail, WhatsApp, Estágio, Próximo contato,
+Notas. Ele já vem com os leads que estavam na planilha antiga. Baixe pelo botão
+em `/crm/importar`, preencha no Sheets e traga de volta colando (TAB) ou como
+CSV (vírgula ou ponto e vírgula, com aspas onde a nota tem vírgula dentro).
+
+O import confere ANTES de gravar: mostra linha a linha o que vai ser criado, o
+que já está no CRM (pelo @) e o que tem problema. Quem traz o handle de uma bio
+que já existe nasce vinculado a ela. As colunas "Link criado?", "Enviado" e
+"Aceito" são ignoradas de propósito — elas vêm da oferta, e reimportá-las
+recriaria a divergência que tirou a planilha de serviço.
+
+O parser é o mesmo dos dois lados (`lib/crm-importar.ts`, sem banco): a prévia
+que você confere é literalmente o que a gravação vai fazer. Teto de 500 linhas
+por leva, e tudo numa transação só.
+
 ### O passo manual
 
 O dado mora no schema **`admin_crm`**, fora de `public` — pela regra abaixo, e
@@ -151,4 +169,5 @@ quando alguém esquecer.
 - [ ] Cadastrar o TOTP no primeiro acesso e guardar os códigos de recuperação
       **fora do computador**
 - [ ] Rodar `sql/admin_crm.sql` no Supabase para ligar o `/crm`
+- [ ] Trazer a planilha de prospecção por `/crm/importar`
 - [ ] Virar `ADMIN_WRITES_ENABLED=true` quando tiver navegado e confiado no painel

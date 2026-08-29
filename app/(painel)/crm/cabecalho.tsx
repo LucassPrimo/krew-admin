@@ -1,6 +1,7 @@
 'use client'
 
-import { Loader2, Plus, X } from 'lucide-react'
+import { Loader2, Plus, Upload, X } from 'lucide-react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 
@@ -77,13 +78,25 @@ export function Cabecalho({
       <div className="mb-4 flex items-baseline justify-between gap-4">
         <h1 className="text-lg font-medium">CRM de prospecção</h1>
         {!aberto && (
-          <button
-            type="button" disabled={!podeCriar} onClick={() => setAberto(true)}
-            className="flex items-center gap-1.5 rounded-md bg-acento px-3 py-1.5 text-sm font-medium text-fundo disabled:opacity-40"
-          >
-            <Plus className="size-4" strokeWidth={2} />
-            Novo lead
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Importar vem ANTES na leitura e depois na ordem visual: é o que
+                você faz uma vez, na mudança da planilha, e o cadastro avulso é
+                o de todo dia. */}
+            <Link
+              href="/crm/importar"
+              className="flex items-center gap-1.5 rounded-md border border-borda px-3 py-1.5 text-sm text-texto-fraco transition-colors hover:border-borda-forte hover:text-texto"
+            >
+              <Upload className="size-4" strokeWidth={1.5} />
+              Importar planilha
+            </Link>
+            <button
+              type="button" disabled={!podeCriar} onClick={() => setAberto(true)}
+              className="flex items-center gap-1.5 rounded-md bg-acento px-3 py-1.5 text-sm font-medium text-fundo disabled:opacity-40"
+            >
+              <Plus className="size-4" strokeWidth={2} />
+              Novo lead
+            </button>
+          </div>
         )}
       </div>
 

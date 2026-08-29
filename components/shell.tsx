@@ -87,6 +87,7 @@ const RODAPE: ItemNav[] = [{ titulo: 'Sair', icone: LogOut, acao: 'sair' }]
 const DESTINOS: { href: string; titulo: string; icone: typeof Search; contexto: string }[] = [
   { href: '/', titulo: 'Visão geral', icone: LayoutDashboard, contexto: '' },
   { href: '/crm', titulo: 'CRM de prospecção', icone: Contact, contexto: 'Operação' },
+  { href: '/crm/importar', titulo: 'Importar planilha de leads', icone: Contact, contexto: 'Operação' },
   { href: '/ofertas', titulo: 'Ofertas de bio', icone: Send, contexto: 'Operação' },
   { href: '/ofertas/nova', titulo: 'Nova oferta de bio', icone: Send, contexto: 'Operação' },
   { href: '/pessoas', titulo: 'Pessoas', icone: Users, contexto: 'Operação' },
