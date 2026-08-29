@@ -54,17 +54,15 @@ export type Formato = (typeof FORMATOS)[number]['chave']
  *
  * `botao` não desenha imagem; fica de fora e o recorte cai no padrão.
  *
- * Nota honesta sobre `grande` e `metade`: os cards deles na página têm ALTURA
- * FIXA e largura fluida (`.imgbox` em `bio-perfil.module.css`), então a forma
- * real muda um pouco com a largura da tela, e a foto é re-enquadrada por
- * `object-fit: cover`. Os números abaixo são a forma que eles têm no desenho de
- * referência — o recorte acerta o enquadramento, e o ajuste fino continua por
- * conta do `cover`. `metade_alta` é o único com proporção DECLARADA na página
- * (`aspect-ratio: 4/5`), e nele o que se recorta é exatamente o que se vê.
+ * Os dois divididos têm a proporção DECLARADA na página (`.cardMetade` e
+ * `.cardMetadeAlta` em `bio-perfil.module.css`), então neles o que se recorta é
+ * exatamente o que se vê. `grande` ainda tem altura fixa e largura fluida, e
+ * por isso a forma real dele muda um pouco com a largura da tela — o número
+ * abaixo é a forma de referência, e o `object-fit: cover` reenquadra o resto.
  */
 export const PROPORCOES: Record<Exclude<Formato, 'botao'>, number> = {
   grande: 4 / 3,
-  metade: 4 / 3,
+  metade: 16 / 9,
   metade_alta: 4 / 5,
   // A faixa do card médio mostra a capa numa miniatura quadrada ao lado do
   // título — o resto do card é a mesma imagem desfocada, onde forma não conta.
