@@ -28,7 +28,8 @@ export type TipoItem = 'link' | 'divisor'
  * botão:
  *
  *   grande  largura inteira, capa alta, ícone grande no canto
- *   metade  meia largura, dois por linha
+ *   metade  meia largura, dois por linha, capa deitada
+ *   metade_alta  meia largura, dois por linha, capa em pé (4:5)
  *   meio    faixa com o fundo desfocado da própria capa e miniatura ao lado
  *   botao   bloco tingido, sem imagem — a linha de texto com o glifo da marca
  *
@@ -44,7 +45,7 @@ export type TipoItem = 'link' | 'divisor'
  * estilo. São dois caminhos para o mesmo desenho, e é de propósito — é o que
  * fez esta mudança não precisar converter uma linha do que já estava gravado.
  */
-export type EstiloItem = 'grande' | 'metade' | 'meio' | 'botao'
+export type EstiloItem = 'grande' | 'metade' | 'metade_alta' | 'meio' | 'botao'
 
 
 export interface BioLink {

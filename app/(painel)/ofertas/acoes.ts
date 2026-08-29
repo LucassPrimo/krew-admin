@@ -65,7 +65,7 @@ export async function acaoCriarOferta(form: FormData) {
   // Os quatro valores que o CHECK de `creator_links` aceita. A lista mora
   // aqui, e não num `'grande' | 'pequeno'` inventado: o campo é do banco, e
   // um nome próprio deste lado só reaparece como erro de constraint no insert.
-  const ESTILOS: EstiloItem[] = ['grande', 'metade', 'meio', 'botao']
+  const ESTILOS: EstiloItem[] = ['grande', 'metade', 'metade_alta', 'meio', 'botao']
 
   let links: {
     tipo: 'link' | 'divisor'

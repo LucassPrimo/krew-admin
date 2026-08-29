@@ -1,9 +1,16 @@
 'use client'
 
 import { useTranslations } from 'next-intl'
-import { AlertTriangle, RectangleHorizontal, Square, SquareDashed } from 'lucide-react'
+import {
+  AlertTriangle,
+  RectangleHorizontal,
+  RectangleVertical,
+  Square,
+  SquareDashed,
+} from 'lucide-react'
 
 import { GENERICO_ID, estiloSobreBranco, iconeDoLink } from '@/components/bio/icone-do-link'
+import { capaDoLink } from '@/lib/bio/youtube'
 import type { EstiloItem } from '@/lib/bio/tipos'
 import { cn } from '@/lib/utils'
 
@@ -29,23 +36,63 @@ import { cn } from '@/lib/utils'
 export const FORMATOS = [
   { chave: 'grande', rotulo: 'formatoGrande', icone: Square, precisaImagem: true },
   { chave: 'meio', rotulo: 'formatoMedio', icone: RectangleHorizontal, precisaImagem: true },
-  { chave: 'metade', rotulo: 'formatoPequeno', icone: SquareDashed, precisaImagem: true },
+  { chave: 'metade', rotulo: 'formatoDividido', icone: SquareDashed, precisaImagem: true },
+  { chave: 'metade_alta', rotulo: 'formatoDivididoAlto', icone: RectangleVertical, precisaImagem: true },
   { chave: 'botao', rotulo: 'formatoBotao', icone: RectangleHorizontal, precisaImagem: false },
 ] as const
 
 export type Formato = (typeof FORMATOS)[number]['chave']
 
 /**
+ * A proporção da imagem de cada formato — a tabela que a PRÉVIA desenha e o
+ * RECORTE usa.
+ *
+ * Um lugar só, e é o ponto todo: enquadrar a foto num quadro e desenhá-la em
+ * outro é a definição de recorte frustrado — a pessoa centraliza o rosto, salva
+ * e a página corta a cabeça. Com a tabela aqui, mudar a forma de um formato é
+ * mudar um número, e as duas telas mudam juntas.
+ *
+ * `botao` não desenha imagem; fica de fora e o recorte cai no padrão.
+ *
+ * Nota honesta sobre `grande` e `metade`: os cards deles na página têm ALTURA
+ * FIXA e largura fluida (`.imgbox` em `bio-perfil.module.css`), então a forma
+ * real muda um pouco com a largura da tela, e a foto é re-enquadrada por
+ * `object-fit: cover`. Os números abaixo são a forma que eles têm no desenho de
+ * referência — o recorte acerta o enquadramento, e o ajuste fino continua por
+ * conta do `cover`. `metade_alta` é o único com proporção DECLARADA na página
+ * (`aspect-ratio: 4/5`), e nele o que se recorta é exatamente o que se vê.
+ */
+export const PROPORCOES: Record<Exclude<Formato, 'botao'>, number> = {
+  grande: 4 / 3,
+  metade: 4 / 3,
+  metade_alta: 4 / 5,
+  // A faixa do card médio mostra a capa numa miniatura quadrada ao lado do
+  // título — o resto do card é a mesma imagem desfocada, onde forma não conta.
+  meio: 1,
+}
+
+/** A proporção do formato, com o padrão de quem não desenha imagem. */
+export function proporcaoDoFormato(formato: Formato): number {
+  return formato === 'botao' ? PROPORCOES.grande : PROPORCOES[formato]
+}
+
+/**
  * O formato escolhido a partir do que está gravado.
  *
- * A ordem importa e é a mesma da página pública (`bio-perfil.tsx`): o estilo
- * `botao` manda primeiro, mesmo havendo capa — é uma escolha explícita, e a
- * arte guardada não pode desfazê-la. Só depois vale a ausência de imagem, que
- * é o caminho antigo e cobre tudo que já estava no banco.
+ * Devolve o ESTILO, e nada além dele. Havia aqui um `if (!capa) return 'botao'`
+ * — a leitura de que sem imagem o item "é" um botão —, e ela transformava o
+ * seletor num controle morto: como o valor exibido era recalculado deste par,
+ * clicar em "Grande" sem ter capa devolvia 'botao' na volta e o clique parecia
+ * não ter acontecido. No formulário de criação isso era permanente, porque a
+ * capa automática do link só é buscada no servidor, depois de salvar.
+ *
+ * O que aquela linha dizia continua verdade e continua dito — só que no lugar
+ * certo: `PreviaItem` desenha o botão quando não há imagem, e o aviso embaixo
+ * do seletor explica. A diferença é que agora a ESCOLHA fica gravada, e passa a
+ * valer sozinha no instante em que a capa aparece.
  */
-export function formatoDoItem(estilo: EstiloItem | string, capa: string | null): Formato {
+export function formatoDoItem(estilo: EstiloItem | string, _capa?: string | null): Formato {
   if (estilo === 'botao') return 'botao'
-  if (!capa) return 'botao'
   return (FORMATOS.find((f) => f.chave === estilo)?.chave ?? 'grande') as Formato
 }
 
@@ -71,15 +118,23 @@ export function SeletorFormato({
 }) {
   const t = useTranslations('bioConfig')
   const escolhido = FORMATOS.find((f) => f.chave === formato)!
-  // O aviso é honesto: sem imagem a página desenha o bloco tingido, que é o
-  // botão — independente do estilo escolhido aqui.
-  const viraBotao = escolhido.precisaImagem && !capa
+  // A capa que vale: a escolhida, e na falta dela a que o próprio link fornece
+  // (hoje, o YouTube). Resolver isto aqui é o que faz a prévia e o aviso
+  // dizerem a verdade DURANTE a digitação — o servidor só vai buscar a capa
+  // automática ao salvar, e até lá a tela não teria como saber que ela existe.
+  const capaEfetiva = capa ?? capaDoLink(url)
+  // O aviso é honesto: sem imagem nenhuma a página desenha o bloco tingido, que
+  // é o botão — independente do estilo escolhido aqui.
+  const viraBotao = escolhido.precisaImagem && !capaEfetiva
 
   return (
     <div className="flex flex-col gap-2">
-      <PreviaItem formato={formato} titulo={titulo} capa={capa} url={url} />
+      <PreviaItem formato={formato} titulo={titulo} capa={capaEfetiva} url={url} />
 
-      <div className="grid grid-cols-4 gap-1.5">
+      {/* Cinco colunas desde que o dividido ganhou a versão em pé. Uma linha
+          só, e não duas de duas: os formatos são alternativas entre si, e uma
+          quebra de linha sugere agrupamento que não existe. */}
+      <div className="grid grid-cols-5 gap-1.5">
         {FORMATOS.map((f) => (
           <button
             key={f.chave}
@@ -186,11 +241,18 @@ export function PreviaItem({
     )
   }
 
-  // `grande` e `metade` dividem a mesma anatomia — imagem, selo no canto,
-  // título no pé. O que muda é a largura, e é exatamente o que se quer ver.
+  // `grande` e os dois divididos compartilham a anatomia — imagem, selo no
+  // canto, título no pé. O que muda é a largura e, no dividido em pé, também a
+  // proporção. É exatamente o que se quer ver antes de escolher.
+  const dividido = formato === 'metade' || formato === 'metade_alta'
   return (
-    <div className={cn('mx-auto', formato === 'metade' ? 'w-1/2' : 'w-full')}>
-      <div className="relative aspect-[4/3] overflow-hidden rounded-[20px] bg-muted">
+    <div className={cn('mx-auto', dividido ? 'w-1/2' : 'w-full')}>
+      {/* `style` e não classe: o scanner estático do Tailwind v4 não vê classe
+          montada em tempo de execução, e `aspect-[${n}]` sumiria no build. */}
+      <div
+        className="relative overflow-hidden rounded-[20px] bg-muted"
+        style={{ aspectRatio: proporcaoDoFormato(formato) }}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={capa!} alt="" className="absolute inset-0 h-full w-full object-cover" />
         <span className="absolute top-2 left-2">{selo}</span>

@@ -37,7 +37,13 @@ import {
 import type { EstiloItem } from '@/lib/bio/tipos'
 import { LIMITE_LINKS_FREE, LIMITE_SECOES_FREE } from '@/lib/plano'
 import { CapaPicker } from '@/components/bio/capa-picker'
-import { FORMATOS, SeletorFormato, formatoDoItem } from '@/components/bio/formato-item'
+import {
+  FORMATOS,
+  SeletorFormato,
+  formatoDoItem,
+  proporcaoDoFormato,
+} from '@/components/bio/formato-item'
+import { idDoVideoYoutube } from '@/lib/bio/youtube'
 import { Badge } from '@/components/ui/badge'
 
 interface ItemBio {
@@ -112,6 +118,21 @@ export function BioLinksCard({
   // ninguém escolheu. Escolher aqui é escolher uma vez.
   const [novoEstilo, setNovoEstilo] = useState<EstiloItem>('grande')
   const [erro, setErro] = useState<string | null>(null)
+
+  /**
+   * Colar um link do YouTube volta o formato para `grande`.
+   *
+   * Vídeo pede a linha inteira: `grande` é o único formato em que o card vira
+   * o player de verdade na página, e meia largura transformaria um vídeo em
+   * miniatura espremida ao lado de outro card.
+   *
+   * SUGESTÃO, não trava: os cinco formatos continuam clicáveis, e trocar
+   * depois de colar a URL vale — o ajuste só acontece quando a URL muda.
+   */
+  function trocarUrl(valor: string) {
+    setUrl(valor)
+    if (idDoVideoYoutube(valor.trim())) setNovoEstilo('grande')
+  }
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
@@ -246,7 +267,15 @@ export function BioLinksCard({
 
       <div className="flex flex-col gap-2 border-t border-border pt-3">
         <div className="flex items-start gap-2">
-          <CapaPicker userId={userId} capaUrl={capa} onChange={setCapa} />
+          {/* O recorte segue o FORMATO escolhido: enquadrar num quadro e
+              desenhar em outro é a definição de recorte frustrado — a pessoa
+              centraliza o rosto, salva, e o card corta a cabeça. */}
+          <CapaPicker
+            userId={userId}
+            capaUrl={capa}
+            proporcao={proporcaoDoFormato(formatoDoItem(novoEstilo))}
+            onChange={setCapa}
+          />
           <div className="flex flex-1 flex-col gap-2">
             <input
               value={titulo}
@@ -257,7 +286,7 @@ export function BioLinksCard({
             />
             <input
               value={url}
-              onChange={(e) => setUrl(e.target.value)}
+              onChange={(e) => trocarUrl(e.target.value)}
               inputMode="url"
               placeholder={t('urlPlaceholder')}
               className="h-9 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary"
@@ -275,7 +304,7 @@ export function BioLinksCard({
           <SeletorFormato
             // Pelo PAR (estilo, capa), igual às linhas da lista: sem capa o
             // desenho é botão, e o aviso do próprio seletor explica por quê.
-            formato={formatoDoItem(novoEstilo, capa)}
+            formato={formatoDoItem(novoEstilo)}
             titulo={titulo}
             capa={capa}
             url={url}
@@ -359,7 +388,7 @@ function ItemArrastavel({
   // O formato mostrado sai do PAR (estilo, capa), não só do estilo: um card
   // sem capa sai como botão na página, e dizer "Grande" aqui seria mentir
   // sobre o que está publicado.
-  const formatoAtual = formatoDoItem(item.estilo, item.capa_url ?? item.preview_url)
+  const formatoAtual = formatoDoItem(item.estilo)
   const formatoAtualDef = FORMATOS.find((f) => f.chave === formatoAtual)!
   const FormatoIcone = formatoAtualDef.icone
 
@@ -404,6 +433,7 @@ function ItemArrastavel({
             userId={userId}
             capaUrl={item.capa_url}
             previewUrl={item.preview_url}
+            proporcao={proporcaoDoFormato(formatoAtual)}
             onChange={onCapa}
           />
         )}
