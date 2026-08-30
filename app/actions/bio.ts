@@ -490,6 +490,52 @@ export async function atualizarLinkBio(
   // distinção não haveria como voltar um card para o bloco tingido.
   if (campos.capaUrl !== undefined) update.capa_url = campos.capaUrl || null
 
+  /**
+   * Escolheu um formato que desenha imagem, e não há imagem nenhuma: puxa a do
+   * próprio site.
+   *
+   * A prévia só era buscada ao CRIAR o link e ao trocar a URL. Quem criasse o
+   * item como botão — ou num minuto em que o site não respondeu — ficava sem
+   * ela para sempre: clicar em "Grande" depois gravava o estilo e a página
+   * continuava desenhando o bloco tingido, porque `coalesce(capa_url,
+   * preview_url)` não tinha o que devolver. O único jeito de sair disso era
+   * apagar o link e recriar, levando junto os cliques já medidos.
+   *
+   * A condição é o par que a página lê, não o campo que mudou: o que importa é
+   * como o item VAI FICAR depois deste update. Por isso vale tanto para quem
+   * troca o formato quanto para quem remove a capa própria de um card — as
+   * duas portas para o mesmo estado.
+   *
+   * `preview_url` já preenchido não é rebuscado: ele é exatamente esta imagem,
+   * e ir à rede de novo a cada clique no seletor gastaria 2,5s por nada.
+   */
+  if (
+    update.preview_url === undefined &&
+    (campos.estilo !== undefined || campos.capaUrl !== undefined)
+  ) {
+    const { data: linha } = await supabase
+      .from('creator_links')
+      .select('url, tipo, estilo, capa_url, preview_url')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    const estiloFinal = campos.estilo ?? (linha?.estilo as EstiloItem | undefined)
+    const capaFinal =
+      campos.capaUrl !== undefined ? campos.capaUrl || null : (linha?.capa_url ?? null)
+
+    if (
+      linha?.tipo === 'link' &&
+      linha.url &&
+      estiloFinal &&
+      estiloFinal !== 'botao' &&
+      !capaFinal &&
+      !linha.preview_url
+    ) {
+      update.preview_url = await guardarPrevia(user.id, linha.url)
+    }
+  }
+
   if (Object.keys(update).length === 0) return { success: true }
 
   const { error } = await supabase
@@ -502,7 +548,10 @@ export async function atualizarLinkBio(
 
   revalidatePath('/profile')
   await invalidarBioPublica(user.id)
-  return { success: true }
+  // A prévia volta junto porque a lista do card vive em estado local: sem ela,
+  // a imagem recém-buscada só apareceria num reload manual — e a pessoa veria
+  // o formato que acabou de escolher sem a foto que ele promete.
+  return { success: true, previewUrl: (update.preview_url as string | null) ?? null }
 }
 
 export async function removerLinkBio(id: string) {

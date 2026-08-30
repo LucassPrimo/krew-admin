@@ -120,6 +120,25 @@ export function BioLinksCard({
   const [erro, setErro] = useState<string | null>(null)
 
   /**
+   * Recolhe a prévia que o servidor foi buscar durante o salvamento.
+   *
+   * Trocar o formato de um card sem imagem faz a action puxar a `og:image` do
+   * site (ver `atualizarLinkBio`). A lista vive em estado local para o arrasto
+   * responder na hora, e `revalidatePath` não reinicializa `useState` — sem
+   * isto, a foto recém-guardada só apareceria num reload manual, e a pessoa
+   * ficaria olhando o formato que acabou de escolher sem a imagem que ele
+   * promete.
+   *
+   * Silencioso quando não vem nada: o site pode não publicar imagem, e isso não
+   * é erro — o card só continua sendo o bloco tingido.
+   */
+  function aplicarPrevia(id: string, r: Awaited<ReturnType<typeof atualizarLinkBio>>) {
+    const previa = r && 'previewUrl' in r ? r.previewUrl : null
+    if (!previa) return
+    setItens((atual) => atual.map((x) => (x.id === id ? { ...x, preview_url: previa } : x)))
+  }
+
+  /**
    * Colar um link do YouTube volta o formato para `grande`.
    *
    * Vídeo pede a linha inteira: `grande` é o único formato em que o card vira
@@ -223,7 +242,7 @@ export function BioLinksCard({
                         atual.map((x) => (x.id === item.id ? { ...x, estilo } : x))
                       )
                       startTransition(async () => {
-                        await atualizarLinkBio(item.id, { estilo })
+                        aplicarPrevia(item.id, await atualizarLinkBio(item.id, { estilo }))
                       })
                     }}
                     onCapa={(capaUrl) => {
@@ -231,7 +250,7 @@ export function BioLinksCard({
                         atual.map((x) => (x.id === item.id ? { ...x, capa_url: capaUrl } : x))
                       )
                       startTransition(async () => {
-                        await atualizarLinkBio(item.id, { capaUrl })
+                        aplicarPrevia(item.id, await atualizarLinkBio(item.id, { capaUrl }))
                       })
                     }}
                     onRemover={() => handleRemover(item.id)}
