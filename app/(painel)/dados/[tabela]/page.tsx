@@ -212,7 +212,9 @@ export default async function Tabela({
                       )}
                       {temDono && (
                         <td className="max-w-[14rem]">
-                          {dono.pessoa ? (
+                          {!dono.pessoa ? (
+                            <span className="text-texto-fraco">—</span>
+                          ) : dono.pessoa.temPerfil ? (
                             <Link
                               href={`/pessoas/${dono.pessoa.id}`}
                               className="block truncate hover:underline"
@@ -226,7 +228,13 @@ export default async function Tabela({
                               )}
                             </Link>
                           ) : (
-                            <span className="text-texto-fraco">—</span>
+                            <span
+                              className="block truncate"
+                              title="conta sem linha em profiles — a visão 360 não abre"
+                            >
+                              {nomeDe(dono.pessoa)}
+                              <span className="ml-1 text-[10px] text-texto-fraco">sem perfil</span>
+                            </span>
                           )}
                           {dono.org && (
                             <span className="block truncate text-[10px] text-texto-fraco">

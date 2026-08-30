@@ -57,7 +57,14 @@ export default async function Registro({
       // responde muito mais do que a linha da tabela.
       if (ehGente) {
         const pessoa = (await pessoasPorId([valor])).get(valor)
-        if (pessoa) rotulos[l.coluna] = { texto: nomeDe(pessoa), href: `/pessoas/${valor}` }
+        // Sem perfil não há visão 360 para abrir; o link vai para a linha em
+        // `profiles`, que é onde a ausência fica visível.
+        if (pessoa) {
+          rotulos[l.coluna] = {
+            texto: nomeDe(pessoa),
+            href: pessoa.temPerfil ? `/pessoas/${valor}` : `/dados/profiles/${valor}`,
+          }
+        }
         return
       }
 
@@ -97,9 +104,16 @@ export default async function Registro({
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
             {dono.pessoa && (
               <span>
-                <Link href={`/pessoas/${dono.pessoa.id}`} className="text-acento hover:underline">
-                  {nomeDe(dono.pessoa)}
-                </Link>
+                {dono.pessoa.temPerfil ? (
+                  <Link href={`/pessoas/${dono.pessoa.id}`} className="text-acento hover:underline">
+                    {nomeDe(dono.pessoa)}
+                  </Link>
+                ) : (
+                  <span title="conta sem linha em profiles">
+                    {nomeDe(dono.pessoa)}
+                    <span className="ml-1 text-xs text-texto-fraco">sem perfil</span>
+                  </span>
+                )}
                 {dono.pessoa.email && (
                   <span className="ml-2 text-texto-fraco">{mascarar('email', dono.pessoa.email)}</span>
                 )}

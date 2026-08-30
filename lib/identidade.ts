@@ -45,6 +45,16 @@ export type Pessoa = {
   email: string | null
   /** O @handle da bio, quando a pessoa tem página. É como o time chama todo mundo. */
   slug: string | null
+  /**
+   * Se existe linha em `profiles`.
+   *
+   * A visão 360 (`/pessoas/[id]`) parte de `profiles` e devolve 404 sem ela —
+   * então uma conta sem perfil precisa aparecer SEM link, e não com um link
+   * que quebra. Conta sem perfil é estado real (cadastro que parou no meio,
+   * conta de oferta recém-criada), e a tela dizer isso é melhor do que a
+   * pessoa descobrir batendo num 404 do painel.
+   */
+  temPerfil: boolean
 }
 
 export type Dono = {
@@ -113,7 +123,8 @@ export async function pessoasPorId(ids: string[]): Promise<Map<string, Pessoa>> 
     select u.id::text as id,
            nullif(trim(concat_ws(' ', p.full_name, p.sobrenome)), '') as nome,
            u.email,
-           pp.slug
+           pp.slug,
+           p.id is not null as "temPerfil"
     from public.admin_auth_users u
     left join public.profiles p on p.id = u.id
     left join public.proposal_pages pp on pp.user_id = u.id
