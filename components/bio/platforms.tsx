@@ -1,11 +1,18 @@
 import type { ReactNode } from 'react'
+import { assetUrl } from '@/lib/assets'
 
 /**
  * Registry de plataformas da página de bio — fonte única de verdade.
  *
- * Os logos de marca vêm de `public/logos/redes/`, que já existia no
- * projeto (é o mesmo conjunto usado no onboarding). São os logos oficiais, em
- * cores — bem melhores que glifo monocromático, e sem dependência nova.
+ * Os logos de marca vêm do repositório `krew-assets` (`assets.bekrew.com`), na
+ * pasta `logos/redes/`. São os logos oficiais, em cores — bem melhores que
+ * glifo monocromático, e sem dependência nova.
+ *
+ * Os caminhos abaixo seguem RELATIVOS de propósito (`/logos/redes/x.svg`), como
+ * eram quando o arquivo morava aqui: quem resolve o host é `assetUrl`, num
+ * ponto só, no `PlatformIcon`. Espalhar a URL absoluta por cinquenta linhas
+ * transformaria trocar de domínio em caçar strings — que é exatamente o que
+ * `lib/app-url.ts` foi escrito para não deixar acontecer de novo.
  *
  * Cobrem TODAS as plataformas da lista. Os glifos inline continuam aqui como
  * reserva: são o que aparece se um asset for removido da pasta, e o que uma
@@ -116,7 +123,7 @@ export interface PlatformDef {
   caminhosExtras?: string[]
   /** Cor de marca — fundo do ícone quando não há logo oficial. */
   cor: string
-  /** Logo oficial em `public/logos/redes/`. */
+  /** Logo oficial em `logos/redes/` no `krew-assets`. */
   logo?: string
   /**
    * A versão do logo SEM o quadrado da marca, para o estilo `branco`.
@@ -270,7 +277,7 @@ export function normalizarUrl(valor: string) {
  * sobre a cor da marca.
  *
  * Ele quase nunca aparece — todas as plataformas apontam para um arquivo em
- * `public/logos/redes/`, e o `PlatformIcon` só cai no glifo quando não
+ * `logos/redes/` no `krew-assets`, e o `PlatformIcon` só cai no glifo quando não
  * há `logo`. Existe para o caso de um asset sumir da pasta, e para uma
  * plataforma nova funcionar antes de alguém desenhá-la.
  *
@@ -1021,7 +1028,7 @@ export function PlatformIcon({
             camada extra sem ganho nenhum num SVG local. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={arquivo}
+          src={assetUrl(arquivo)}
           alt=""
           className="object-contain"
           style={{
