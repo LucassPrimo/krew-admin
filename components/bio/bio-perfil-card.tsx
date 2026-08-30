@@ -34,6 +34,7 @@ export function BioPerfilCard({
   nome,
   headline,
   texto,
+  verificado = false,
 }: {
   userId: string
   avatarUrl: string | null
@@ -41,6 +42,9 @@ export function BioPerfilCard({
   nome: string | null
   headline: string | null
   texto: string | null
+  /** Selo da Krew. É o que libera a capa em VÍDEO — e o padrão é `false` para
+   *  que uma tela que ainda não passe o campo ofereça imagem, nunca vídeo. */
+  verificado?: boolean
 }) {
   const t = useTranslations('bioConfig')
   const [pending, startTransition] = useTransition()
@@ -84,6 +88,7 @@ export function BioPerfilCard({
           previewUrl={avatarUrl}
           proporcao={PROPORCAO_CAPA_PERFIL}
           largura={80}
+          permiteVideo={verificado}
           onChange={trocarCapa}
         />
 
@@ -92,6 +97,10 @@ export function BioPerfilCard({
           <p className="text-xs text-muted-foreground">
             {capa ? t('capaPropriaDica') : t('capaDoPerfilDica')}
           </p>
+          {/* A dica do vídeo só aparece para quem pode usá-lo: anunciar um
+              recurso trancado a quem não tem o selo transforma a tela num
+              anúncio, e o selo não está à venda — é concedido. */}
+          {verificado && <p className="text-xs text-muted-foreground">{t('capaVideoDica')}</p>}
           <Link href="/config/editar" className="text-xs font-medium text-primary hover:underline w-fit">
             {t('editarPerfil')}
           </Link>

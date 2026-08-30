@@ -9,6 +9,8 @@ import { CapaRecorte, PROPORCAO_CAPA } from '@/components/bio/capa-recorte'
 import {
   BUCKET_CAPAS,
   TIPOS_CAPA,
+  TIPOS_CAPA_VIDEO,
+  ehVideoCapa,
   montarPathCapa,
   pathDaCapa,
   validarCapa,
@@ -34,6 +36,13 @@ import {
  *
  * O arquivo antigo é apagado DEPOIS de o novo subir. Ao contrário: uma falha no
  * upload deixaria o link sem capa nenhuma.
+ *
+ * `permiteVideo` abre a porta do clipe, e só a capa do PERFIL a usa — para
+ * conta verificada. Capa de link segue imagem: são vários cards por página, e
+ * uma lista que dispara seis vídeos ao abrir não é uma página, é conta de
+ * banda. Aqui é só o que a pessoa consegue escolher; quem barra de verdade é
+ * `subirImagemDaOferta`, porque o upload do painel usa a chave de serviço e
+ * passa por cima da policy do bucket.
  */
 export function CapaPicker({
   userId,
@@ -41,6 +50,7 @@ export function CapaPicker({
   previewUrl = null,
   proporcao = PROPORCAO_CAPA,
   largura = 96,
+  permiteVideo = false,
   onChange,
   className = '',
 }: {
@@ -56,6 +66,8 @@ export function CapaPicker({
   proporcao?: number
   /** Largura da miniatura em px. A altura sai da proporção. */
   largura?: number
+  /** Aceita MP4/WebM além de imagem. Só a capa do perfil, e só verificado. */
+  permiteVideo?: boolean
   onChange: (url: string | null) => void
   className?: string
 }) {
@@ -74,13 +86,24 @@ export function CapaPicker({
 
     // A validação de tamanho vale sobre o ORIGINAL: é o que o navegador vai
     // ter que ler na memória para recortar. O resultado do corte é sempre menor.
-    const invalido = validarCapa(file)
+    const invalido = validarCapa(file, permiteVideo)
     if (invalido) {
       setErro(invalido === 'muito_grande' ? t('capaGrande') : t('capaTipo'))
       return
     }
 
     setErro(null)
+
+    // Vídeo pula o recorte e sobe como veio. O recorte é um `drawImage` num
+    // canvas — ele sabe redesenhar UM quadro, e aplicá-lo a um clipe daria uma
+    // capa parada. Cortar vídeo de verdade é transcodificar, que é outro
+    // projeto; enquanto não existe, o enquadramento fica com o `object-fit:
+    // cover` da página, como era com a foto antes de haver recorte.
+    if (file.type.startsWith('video/')) {
+      void enviar(file)
+      return
+    }
+
     setParaRecortar(file)
   }
 
@@ -127,7 +150,7 @@ export function CapaPicker({
    */
   async function ajustar() {
     const alvo = capaUrl ?? previewUrl
-    if (!alvo) return
+    if (!alvo || ehVideoCapa(alvo)) return
 
     setErro(null)
     setEnviando(true)
@@ -151,6 +174,11 @@ export function CapaPicker({
     await removerCapaDaOferta(capaUrl)
   }
 
+  // O que a miniatura mostra: a capa própria, ou a reserva quando não há uma.
+  // Numa constante porque três lugares perguntam "isto é vídeo?" sobre ela, e
+  // repetir o `??` em cada um é onde nasce o caso em que dois discordam.
+  const alvoAtual = capaUrl ?? previewUrl
+
   return (
     <div className={`flex flex-col gap-1 ${className}`}>
       <div className="relative">
@@ -162,16 +190,29 @@ export function CapaPicker({
           style={{ width: largura, aspectRatio: proporcao }}
           className="relative flex shrink-0 items-center justify-center overflow-hidden rounded-lg border border-dashed border-border bg-muted/40 text-muted-foreground transition-colors hover:bg-muted disabled:opacity-60"
         >
-          {(capaUrl || previewUrl) && (
+          {(capaUrl || previewUrl) &&
             // A prévia automática entra esmaecida: mostra o que vai aparecer na
             // página sem se passar por escolha da pessoa.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={capaUrl ?? previewUrl ?? ''}
-              alt=""
-              className={`absolute inset-0 h-full w-full object-cover ${capaUrl ? '' : 'opacity-60'}`}
-            />
-          )}
+            (ehVideoCapa(alvoAtual) ? (
+              // Toca aqui, mudo e em laço, como toca na página: a miniatura
+              // existe para mostrar o que vai ao ar, e um quadro parado
+              // esconderia justamente o que a pessoa escolheu ao subir vídeo.
+              <video
+                src={alvoAtual ?? ''}
+                autoPlay
+                muted
+                loop
+                playsInline
+                className={`absolute inset-0 h-full w-full object-cover ${capaUrl ? '' : 'opacity-60'}`}
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={alvoAtual ?? ''}
+                alt=""
+                className={`absolute inset-0 h-full w-full object-cover ${capaUrl ? '' : 'opacity-60'}`}
+              />
+            ))}
           {enviando ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
@@ -195,7 +236,8 @@ export function CapaPicker({
             outra". Duas ações diferentes sobre a mesma foto precisam de dois
             alvos, senão a única saída para um corte errado é subir tudo de
             novo. */}
-        {(capaUrl || previewUrl) && !enviando && (
+        {/* Vídeo não entra aqui: o recorte é um canvas de um quadro só. */}
+        {(capaUrl || previewUrl) && !enviando && !ehVideoCapa(alvoAtual) && (
           <button
             type="button"
             onClick={ajustar}
@@ -211,7 +253,7 @@ export function CapaPicker({
       <input
         ref={inputRef}
         type="file"
-        accept={TIPOS_CAPA.join(',')}
+        accept={[...TIPOS_CAPA, ...(permiteVideo ? TIPOS_CAPA_VIDEO : [])].join(',')}
         onChange={selecionar}
         className="hidden"
       />

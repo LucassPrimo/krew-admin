@@ -38,13 +38,56 @@ export async function subirImagemDaOferta(
     return { ok: false, erro: 'Nenhum arquivo recebido.' }
   }
 
+  /**
+   * Capa em vídeo, e só para conta verificada — checado AQUI, e não só na
+   * policy do bucket.
+   *
+   * A policy `capas_insert` confere `bio_verificado` pela extensão do path
+   * (ver `20260830120000_capa_em_video`), e é o portão de verdade no app. Este
+   * upload não passa por ela: sobe com a chave de serviço, que ignora RLS por
+   * definição. Sem esta consulta, o painel seria justamente o caminho que
+   * contorna a regra que a migration escreveu.
+   *
+   * A pergunta é sobre o CRIADOR (`alvo.userId`), não sobre quem está logado:
+   * o selo é da página que vai exibir o vídeo.
+   */
+  const ehVideo = arquivo.type.startsWith('video/')
+  let podeVideo = false
+
+  if (ehVideo) {
+    if (tipo !== 'capa') return { ok: false, erro: 'Vídeo só vale como capa.' }
+
+    const { data: pagina } = await clienteAdmin()
+      .from('proposal_pages')
+      .select('bio_verificado')
+      .eq('user_id', alvo.userId)
+      .maybeSingle()
+
+    if (!pagina?.bio_verificado) {
+      return { ok: false, erro: 'Capa em vídeo é exclusiva de contas verificadas.' }
+    }
+    podeVideo = true
+  }
+
   // Mesma validação do app, pelos mesmos módulos: os limites do bucket e os do
   // código têm que andar juntos, e a única forma de garantir isso é ser o
   // mesmo arquivo de regras nos dois repositórios.
-  const problema = tipo === 'avatar' ? validarAvatar(arquivo) : validarCapa(arquivo)
-  if (problema === 'tipo_invalido') return { ok: false, erro: 'Use JPG, PNG ou WebP.' }
+  const problema = tipo === 'avatar' ? validarAvatar(arquivo) : validarCapa(arquivo, podeVideo)
+  if (problema === 'tipo_invalido') {
+    return {
+      ok: false,
+      erro: tipo === 'capa' ? 'Use JPG, PNG, WebP, MP4 ou WebM.' : 'Use JPG, PNG ou WebP.',
+    }
+  }
   if (problema === 'muito_grande') {
-    return { ok: false, erro: tipo === 'avatar' ? 'A foto passa de 2 MB.' : 'A imagem passa de 3 MB.' }
+    return {
+      ok: false,
+      erro: tipo === 'avatar'
+        ? 'A foto passa de 2 MB.'
+        : ehVideo
+          ? 'O vídeo passa de 15 MB.'
+          : 'A imagem passa de 3 MB.',
+    }
   }
 
   const bucket = tipo === 'avatar' ? BUCKET_AVATARES : BUCKET_CAPAS

@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath, updateTag } from 'next/cache'
 import { getCurrentOrgId } from '@/lib/org'
+import { ehVideoCapa } from '@/lib/capa-link'
 import { buscarPreviaDoSite } from '@/lib/link-preview'
 import { BUCKET_CAPAS } from '@/lib/capa-link'
 import { tagBio } from '@/lib/bio/consulta'
@@ -65,6 +66,9 @@ export interface ConfigBio {
   bio_mostrar_seguidores: boolean
   bio_mostrar_propostas: boolean
   bio_esconder_marca: boolean
+  /** Selo concedido pela Krew. Só de leitura aqui — é o que libera a capa em
+   *  vídeo, e ninguém o concede a si mesmo. */
+  bio_verificado: boolean
 }
 
 export async function getConfigBio() {
@@ -77,7 +81,7 @@ export async function getConfigBio() {
   const { data } = await supabase
     .from('proposal_pages')
     .select(
-      'slug, bio_ativo, bio_bg_color, bio_capa_url, bio_headline, bio_texto, bio_mostrar_seguidores, bio_mostrar_propostas, bio_esconder_marca'
+      'slug, bio_ativo, bio_bg_color, bio_capa_url, bio_headline, bio_texto, bio_mostrar_seguidores, bio_mostrar_propostas, bio_esconder_marca, bio_verificado'
     )
     .eq('user_id', user.id)
     .maybeSingle()
@@ -201,6 +205,34 @@ export async function atualizarConfigBio(campo: keyof ConfigBio, valor: boolean 
             ? 'Recurso pago: assine para ativar o botão de propostas.'
             : 'Recurso PRO: assine para ativar.',
       }
+    }
+  }
+
+  /**
+   * Capa em vídeo é privilégio de conta verificada — e a checagem é aqui porque
+   * é aqui que a capa vira PÚBLICA.
+   *
+   * A policy `capas_insert` já barra o arquivo (ver a migration
+   * `20260830120000_capa_em_video`). Esta segunda porta existe porque as duas
+   * guardam coisas diferentes: um MP4 esquecido no bucket que nenhuma página
+   * aponta é lixo; um MP4 no `bio_capa_url` é o que o mundo vê. Se um dia
+   * alguém entrar no bucket por outro caminho — um script com chave de serviço,
+   * um bug de policy —, a página continua sem tocar o vídeo.
+   *
+   * Pela EXTENSÃO da URL, e não pelo MIME: o que está guardado aqui é texto, e
+   * é a mesma leitura que a página faz para decidir entre `<img>` e `<video>`.
+   * As duas concordarem é o que impede a capa de ser recusada aqui e tocada lá,
+   * ou o contrário.
+   */
+  if (campo === 'bio_capa_url' && ehVideoCapa(valor as string)) {
+    const { data: pagina } = await supabase
+      .from('proposal_pages')
+      .select('bio_verificado')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (!pagina?.bio_verificado) {
+      return { error: 'Capa em vídeo é exclusiva de contas verificadas.' }
     }
   }
 

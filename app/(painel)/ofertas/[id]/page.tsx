@@ -123,6 +123,7 @@ export default async function EditorDaOferta({ params }: { params: Promise<{ id:
               nome={perfilRes.data?.full_name ?? null}
               headline={config?.bio_headline ?? null}
               texto={config?.bio_texto ?? null}
+              verificado={config?.bio_verificado ?? false}
             />
           </SecaoBio>
 
