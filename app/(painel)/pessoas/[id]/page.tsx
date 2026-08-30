@@ -4,7 +4,9 @@ import { notFound } from 'next/navigation'
 import { Badge, Card, Vazio } from '@/components/ui'
 import { dbRO } from '@/lib/db'
 import { data, dataHora, dinheiro, numero, relativo } from '@/lib/format'
+import { tabelasComPessoa } from '@/lib/identidade'
 import { mascarar } from '@/lib/pii'
+import { REGISTRY } from '@/lib/registry'
 
 import { Selo } from './selo'
 
@@ -71,6 +73,12 @@ export default async function Pessoa({ params }: { params: Promise<{ id: string 
 
   const a = assinatura[0]
   const bio = pagina[0]
+
+  // Onde mais o dado desta pessoa mora. Vem do grafo de FKs em memória (ver
+  // `lib/relacoes.ts`), então não custa consulta — e os atalhos abrem a
+  // listagem JÁ FILTRADA, que é a pergunta "o que é dele nesta tabela?"
+  // respondida sem copiar uuid para lugar nenhum.
+  const ondeMora = await tabelasComPessoa()
 
   return (
     <>
@@ -195,6 +203,28 @@ export default async function Pessoa({ params }: { params: Promise<{ id: string 
               </tbody>
             </table>
           )}
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <h2 className="mb-1 text-sm font-medium">Onde os dados desta pessoa estão</h2>
+          <p className="mb-3 text-xs text-texto-fraco">
+            Toda tabela de <code className="font-mono">public</code> que aponta para
+            esta conta, com o atalho para a listagem já filtrada. A lista vem das
+            chaves estrangeiras do banco: tabela nova entra aqui sozinha.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {ondeMora.map((t) => (
+              <Link
+                key={`${t.tabela}.${t.coluna}`}
+                href={`/dados/${t.tabela}?col=${t.coluna}&val=${id}`}
+                className="rounded-md border border-borda px-2 py-1 font-mono text-xs hover:border-acento hover:text-acento"
+              >
+                {t.tabela}
+                <span className="ml-1 text-texto-fraco">.{t.coluna}</span>
+                {Object.hasOwn(REGISTRY, t.tabela) && <Badge tom="ok">editável</Badge>}
+              </Link>
+            ))}
+          </div>
         </Card>
 
         <Card>

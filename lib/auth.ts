@@ -58,6 +58,23 @@ export async function exigirAtor(): Promise<Ator> {
   return { id: user.id, email: user.email ?? '', aal: nivel.currentLevel ?? 'aal1' }
 }
 
+/**
+ * Quando a janela de step-up desta sessão expira, em ms — ou `null` se o TOTP
+ * nunca foi verificado neste token.
+ *
+ * Existe para a CASCA avisar antes do erro. Enquanto isso não existia, o
+ * vencimento só aparecia depois de você preencher um formulário, clicar em
+ * gravar e receber "confirme o código do autenticador" — o pior momento
+ * possível, porque é quando o trabalho já foi feito. Saber que faltam dois
+ * minutos muda o que você faz agora.
+ */
+export async function expiracaoDoStepUp(): Promise<number | null> {
+  const supabase = await supabaseAuth()
+  const { data } = await supabase.auth.getSession()
+  const quando = momentoDoTotp(data.session?.access_token)
+  return quando ? quando + STEP_UP_MAX_MS : null
+}
+
 /** Motivo pelo qual uma escrita foi recusada, para a tela explicar direito. */
 export type RecusaDeEscrita =
   | { ok: true; ator: Ator }

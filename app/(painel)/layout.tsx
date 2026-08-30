@@ -1,5 +1,5 @@
 import { Shell, type Contadores } from '@/components/shell'
-import { exigirAtor } from '@/lib/auth'
+import { exigirAtor, expiracaoDoStepUp } from '@/lib/auth'
 import { dbRO } from '@/lib/db'
 import { leadsParaHoje } from '@/lib/crm'
 import { escritaLigada } from '@/lib/env'
@@ -25,13 +25,16 @@ export default async function LayoutPainel({ children }: { children: React.React
   // é uma consulta SEPARADA, e não mais uma coluna do `select` ao lado. Assim a
   // ausência do schema custa um zero no badge, e não o painel inteiro numa
   // tela de erro.
-  const [linha, crmParaHoje] = await Promise.all([
+  // O vencimento do step-up desce junto com os contadores: é a mesma classe de
+  // informação — estado que a casca precisa mostrar e que só o servidor sabe.
+  const [linha, crmParaHoje, stepUpExpiraEm] = await Promise.all([
     dbRO<Omit<Contadores, 'crmParaHoje'>[]>`
       select
         (select count(*) from public.bio_ofertas where aceita_em is null)::int as "ofertasAbertas",
         (select count(*) from public.email_logs where status = 'failed')::int as "emailsComFalha"
     `.then((r) => r[0]),
     leadsParaHoje(),
+    expiracaoDoStepUp(),
   ])
 
   return (
@@ -39,6 +42,7 @@ export default async function LayoutPainel({ children }: { children: React.React
       email={ator.email}
       escritaLigada={escritaLigada}
       contadores={{ ...linha, crmParaHoje }}
+      stepUpExpiraEm={stepUpExpiraEm}
     >
       {children}
     </Shell>

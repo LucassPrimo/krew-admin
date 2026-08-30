@@ -11,7 +11,13 @@ export async function salvarEdicao(
   alteracoes: Record<string, string>, motivo: string,
 ) {
   const permissao = await autorizarEscrita()
-  if (!permissao.ok) return { ok: false as const, erro: permissao.texto }
+  // `motivo` vai junto do texto: a tela precisa distinguir "o código venceu"
+  // (que se resolve em dez segundos, com link) de "a escrita está desligada"
+  // (que não se resolve daqui). Sem isso, as duas recusas viravam a mesma
+  // linha vermelha e a pessoa ficava sem saber o que fazer.
+  if (!permissao.ok) {
+    return { ok: false as const, erro: permissao.texto, motivo: permissao.motivo }
+  }
 
   const h = await headers()
   const resultado = await aplicarEdicao({

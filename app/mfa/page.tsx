@@ -17,6 +17,21 @@ export default function VerificarMFA() {
   const [fatorId, setFatorId] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
+  /**
+   * Para onde voltar depois de confirmar.
+   *
+   * Lido de `window.location` e não de `useSearchParams()` de propósito: o
+   * hook obriga a envolver a página numa fronteira de Suspense, e isto é uma
+   * tela de um campo só. Só caminho RELATIVO passa — `//host` e `https://…`
+   * caem no padrão. Redirecionamento aberto num painel que enxerga o banco
+   * inteiro é phishing com o domínio certo na barra.
+   */
+  const [voltar, setVoltar] = useState('/')
+
+  useEffect(() => {
+    const alvo = new URLSearchParams(window.location.search).get('voltar')
+    if (alvo && /^\/(?!\/)/.test(alvo)) setVoltar(alvo)
+  }, [])
 
   useEffect(() => {
     supabaseBrowser().auth.mfa.listFactors().then(({ data }) => {
@@ -55,7 +70,10 @@ export default function VerificarMFA() {
 
     // `refresh()` além do replace: o cookie de sessão mudou de nível (aal1 →
     // aal2) e o proxy precisa reler para deixar passar.
-    router.replace('/')
+    //
+    // E volta para a tela de onde o aviso de step-up chamou — quem estava
+    // editando uma linha em /dados volta para ELA, não para a visão geral.
+    router.replace(voltar)
     router.refresh()
   }
 
@@ -65,6 +83,7 @@ export default function VerificarMFA() {
         <h1 className="mb-1 text-xl font-medium">Código do autenticador</h1>
         <p className="mb-6 text-sm text-texto-fraco">
           Os 6 dígitos do app no seu celular.
+          {voltar !== '/' && ' Depois de confirmar, você volta para onde estava.'}
         </p>
 
         <input

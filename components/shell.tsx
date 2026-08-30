@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 
+import { AvisoStepUp } from '@/components/ui/aviso-step-up'
 import { KrewLogo } from '@/components/ui/krew-logo'
 import { SidebarNav, type GrupoNav, type ItemNav } from '@/components/ui/dashboard-sidebar'
 import { supabaseBrowser } from '@/lib/supabase-browser'
@@ -109,11 +110,16 @@ const TITULOS: Record<string, string> = Object.fromEntries(
 )
 
 export function Shell({
-  email, escritaLigada, contadores, children,
+  email, escritaLigada, contadores, stepUpExpiraEm, children,
 }: {
   email: string
   escritaLigada: boolean
   contadores: Contadores
+  /**
+   * Quando a janela de 15 minutos do TOTP vence, em ms. Vem do servidor a cada
+   * navegação; a contagem regressiva é do cliente (ver `AvisoStepUp`).
+   */
+  stepUpExpiraEm: number | null
   children: React.ReactNode
 }) {
   const router = useRouter()
@@ -215,6 +221,8 @@ export function Shell({
             </button>
           </div>
         </header>
+
+        <AvisoStepUp expiraEm={stepUpExpiraEm} />
 
         <main className="flex-1 overflow-y-auto p-6 md:p-8">{children}</main>
       </div>

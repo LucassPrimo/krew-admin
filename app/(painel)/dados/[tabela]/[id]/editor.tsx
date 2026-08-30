@@ -1,6 +1,7 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 
 import { Badge } from '@/components/ui'
@@ -21,10 +22,16 @@ import { salvarEdicao } from './acoes'
  *   nome do campo é o que separa "eu quis fazer isso" de "cliquei errado".
  */
 export function Editor({
-  tabela, registroId, mapa, linha,
+  tabela, registroId, mapa, linha, rotulos = {},
 }: {
   tabela: string; registroId: string; mapa: TabelaAdmin
   linha: Record<string, unknown>
+  /**
+   * Nome humano de cada coluna que é chave estrangeira, resolvido no servidor.
+   * O uuid continua sendo o valor editável — o rótulo existe para você saber o
+   * que está prestes a trocar antes de trocar.
+   */
+  rotulos?: Record<string, { texto: string; href: string }>
 }) {
   const router = useRouter()
   const [pendente, startTransition] = useTransition()
@@ -32,6 +39,8 @@ export function Editor({
   const [motivo, setMotivo] = useState('')
   const [confirmacao, setConfirmacao] = useState('')
   const [erro, setErro] = useState<string | null>(null)
+  const [venceu, setVenceu] = useState(false)
+  const pathname = usePathname()
 
   function original(coluna: string): string {
     const v = linha[coluna]
@@ -53,11 +62,15 @@ export function Editor({
       const r = await salvarEdicao(tabela, registroId, Object.fromEntries(mudancas), motivo)
       if (!r.ok) {
         setErro(r.erro)
+        // O rascunho fica INTACTO quando o que faltou foi o código: você
+        // confirma, volta para esta mesma linha e clica em gravar de novo.
+        setVenceu(r.motivo === 'sem_step_up')
         return
       }
       setRascunho({})
       setMotivo('')
       setConfirmacao('')
+      setVenceu(false)
       router.refresh()
     })
   }
@@ -120,6 +133,14 @@ export function Editor({
                         onChange={(e) => setRascunho({ ...rascunho, [coluna]: e.target.value })}
                       />
                     )}
+                    {rotulos[coluna] && !mudou && (
+                      <p className="mt-1 text-[11px] text-texto-fraco">
+                        →{' '}
+                        <Link href={rotulos[coluna].href} className="text-acento hover:underline">
+                          {rotulos[coluna].texto}
+                        </Link>
+                      </p>
+                    )}
                     {mudou && (
                       <p className="mt-1 text-[11px] text-acento">
                         era: <span className="font-mono">{valor || '(vazio)'}</span>
@@ -179,7 +200,19 @@ export function Editor({
           </>
         )}
 
-        {erro && <p className="mt-3 text-sm text-perigo">{erro}</p>}
+        {erro && (
+          <div className="mt-3 text-sm text-perigo">
+            <p>{erro}</p>
+            {venceu && (
+              <Link
+                href={`/mfa?voltar=${encodeURIComponent(pathname)}`}
+                className="mt-1 inline-block font-medium underline underline-offset-2"
+              >
+                confirmar o código e voltar para esta linha
+              </Link>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
