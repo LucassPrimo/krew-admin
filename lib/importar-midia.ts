@@ -39,10 +39,16 @@ import { clienteAdmin } from '@/lib/supabase-admin'
  * a URL ter vindo de um HTML "confiável" não muda nada: quem escreve o HTML é
  * o dono do perfil.
  *
- * Só link.me porque é o único lugar de onde importamos. Capa hospedada em
- * outro domínio não é baixada nem apontada — some, e o aviso diz isso.
+ * Só link.me e linktr.ee porque são os únicos lugares de onde importamos —
+ * um host por importador, e nada além. Capa hospedada em outro domínio não é
+ * baixada nem apontada — some, e o aviso diz isso.
+ *
+ * No Linktree a arte que interessa vem de `ugc.production.linktr.ee` (o
+ * bucket de upload do criador); os SVGs de ícone de `assets.` também casam
+ * com o padrão, mas morrem no filtro de `content-type` logo abaixo, que só
+ * aceita jpeg/png/webp.
  */
-const HOSTS_DE_MIDIA = /^([a-z0-9-]+\.)?link\.me$/i
+const HOSTS_DE_MIDIA = /^([a-z0-9-]+\.)*(link\.me|linktr\.ee)$/i
 
 const TIPOS_ACEITOS = ['image/jpeg', 'image/png', 'image/webp']
 

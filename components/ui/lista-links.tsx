@@ -55,7 +55,7 @@ export function ListaLinks({
     <div className="flex flex-col gap-2">
       {links.length === 0 && (
         <p className="text-xs text-muted-foreground">
-          Nenhum link ainda. Importe de um link.me ou adicione um abaixo.
+          Nenhum link ainda. Importe de um link.me ou Linktree, ou adicione um abaixo.
         </p>
       )}
 

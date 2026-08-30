@@ -9,7 +9,8 @@ import { autorizarEscritaSemStepUp, exigirAtor } from '@/lib/auth'
 import type { EstiloItem } from '@/lib/bio/tipos'
 import { dbRW } from '@/lib/db'
 import { registrarAcao } from '@/lib/mutate'
-import { buscarPerfil, type RedeImportada } from '@/lib/importar-linkme'
+import type { RedeImportada } from '@/lib/importar-linkme'
+import { buscarPerfil } from '@/lib/importar-perfil'
 import { criarOferta, enviarConvite, excluirOferta, marcarAceita, slugDisponivel } from '@/lib/oferta'
 
 /**
@@ -40,14 +41,17 @@ export async function verificarSlug(slug: string) {
 }
 
 /**
- * Importa um perfil do link.me para preencher o formulário.
+ * Importa um perfil do link.me ou do Linktree para preencher o formulário.
+ *
+ * Qual dos dois é decidido pelo endereço colado, em `importar-perfil.ts` — a
+ * ação não precisa saber, e a tela também não.
  *
  * Exige `exigirAtor()` e não `autorizarEscrita()`: importar não grava nada — é
  * uma leitura da web que devolve sugestão para a tela. Travar isso atrás do
  * kill switch de escrita impediria você de montar a oferta justamente enquanto
  * o painel está em modo leitura, que é quando dá para preparar sem risco.
  */
-export async function acaoImportarLinkme(entrada: string) {
+export async function acaoImportarPerfil(entrada: string) {
   await exigirAtor()
   return buscarPerfil(entrada)
 }

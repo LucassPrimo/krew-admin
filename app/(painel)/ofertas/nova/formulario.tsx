@@ -7,9 +7,9 @@ import { useEffect, useState, useTransition } from 'react'
 
 import { BotaoSalvar } from '@/components/ui/campos'
 import { Secao } from '@/components/ui/secao'
-import type { PerfilLinkme } from '@/lib/importar-linkme'
+import type { PerfilImportado } from '@/lib/importar-perfil'
 import { acaoVincularOferta } from '@/app/(painel)/crm/acoes'
-import { acaoCriarOferta, acaoImportarLinkme, verificarSlug } from '../acoes'
+import { acaoCriarOferta, acaoImportarPerfil, verificarSlug } from '../acoes'
 
 /**
  * Criar a página — passo 1 de 2.
@@ -45,7 +45,11 @@ export function FormularioNovaOferta({
   const [erro, setErro] = useState<string | null>(null)
 
   const [origem, setOrigem] = useState('')
-  const [perfil, setPerfil] = useState<PerfilLinkme | null>(null)
+  const [perfil, setPerfil] = useState<PerfilImportado | null>(null)
+  // A URL que a importação de fato leu, e não a que foi digitada: é ela que
+  // vira a nota da oferta, e é a única forma honesta de registrar a origem
+  // agora que ela pode ser link.me ou linktr.ee.
+  const [urlImportada, setUrlImportada] = useState<string | null>(null)
   const [slug, setSlug] = useState(slugInicial)
   const [slugStatus, setSlugStatus] = useState<{ livre: boolean; porque?: string } | null>(null)
   const [nome, setNome] = useState(nomeInicial)
@@ -67,13 +71,14 @@ export function FormularioNovaOferta({
     setErro(null)
     setImportando(true)
     startTransition(async () => {
-      const r = await acaoImportarLinkme(origem)
+      const r = await acaoImportarPerfil(origem)
       setImportando(false)
       if (!r.ok) {
         setErro(r.erro)
         return
       }
       setPerfil(r.perfil)
+      setUrlImportada(r.url)
       setNome(r.perfil.nome ?? '')
       if (r.perfil.handle) {
         setSlug(r.perfil.handle)
@@ -128,10 +133,13 @@ export function FormularioNovaOferta({
         <input type="hidden" name="links" value={JSON.stringify(perfil?.links ?? [])} />
         <input type="hidden" name="headline" value={perfil?.bio ?? ''} />
         <input type="hidden" name="avatar_url" value={perfil?.avatarUrl ?? ''} />
-        <input type="hidden" name="notas" value={perfil ? `Importado de link.me/${perfil.handle}` : ''} />
+        <input
+          type="hidden" name="notas"
+          value={urlImportada ? `Importado de ${urlImportada.replace(/^https?:\/\//, '')}` : ''}
+        />
 
         <section className="rounded-lg border border-primary/40 bg-primary/5 p-4">
-          <p className="text-sm font-medium text-foreground">Importar de um link.me</p>
+          <p className="text-sm font-medium text-foreground">Importar de um link.me ou Linktree</p>
           <p className="mb-3 text-xs text-muted-foreground">
             Traz nome, foto, bio, redes e todos os links — com a arte e o
             formato de cada card.
@@ -140,7 +148,7 @@ export function FormularioNovaOferta({
             <input
               value={origem} onChange={(e) => setOrigem(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); importar() } }}
-              placeholder="jasonderulo  ou  https://link.me/jasonderulo"
+              placeholder="jasonderulo  ou  linktr.ee/manualdomundo"
               className={campo}
             />
             <button
