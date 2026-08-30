@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 
 import { Badge, Card } from '@/components/ui'
 import { dbRO } from '@/lib/db'
-import { donosDasLinhas, nomeDe } from '@/lib/identidade'
+import { donosDasLinhas, nomeDe, pessoasPorId } from '@/lib/identidade'
 import { mascarar } from '@/lib/pii'
 import { dependentesDe, idCurto, ligacoesDe, rotularIds } from '@/lib/relacoes'
 import { REGISTRY, tabelaDoRegistry } from '@/lib/registry'
@@ -51,6 +51,16 @@ export default async function Registro({
       const valor = linha[l.coluna]
       if (typeof valor !== 'string' || !valor) return
       const alvo = l.alvo.replace(/^public\./, '')
+      const ehGente = l.alvo === 'auth.users' || alvo === 'profiles'
+
+      // Pessoa vai para a visão 360, não para a grade: a ficha de /pessoas
+      // responde muito mais do que a linha da tabela.
+      if (ehGente) {
+        const pessoa = (await pessoasPorId([valor])).get(valor)
+        if (pessoa) rotulos[l.coluna] = { texto: nomeDe(pessoa), href: `/pessoas/${valor}` }
+        return
+      }
+
       const mapaRotulos = await rotularIds(l.alvo, l.colunaAlvo, [valor])
       const texto = mapaRotulos.get(valor)
       if (!texto) return

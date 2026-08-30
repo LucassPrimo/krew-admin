@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 
 import { Badge, Card, Vazio } from '@/components/ui'
 import { dbRO } from '@/lib/db'
-import { donosDasLinhas, nomeDe, caminhosDeDono } from '@/lib/identidade'
+import { donosDasLinhas, nomeDe, caminhosDeDono, pessoasPorId } from '@/lib/identidade'
 import { colunasDe, tabelaExiste } from '@/lib/introspect'
 import { ehPII, mascarar } from '@/lib/pii'
 import { idCurto, ligacoesDe, rotularIds } from '@/lib/relacoes'
@@ -99,7 +99,15 @@ export default async function Tabela({
   )
   const mostrar = colunas.filter((c) => !resolvidas.has(c.nome)).slice(0, 8)
 
-  // Um lote por tabela-alvo, para as FKs que sobraram na grade.
+  /**
+   * Um lote por tabela-alvo, para as FKs que sobraram na grade.
+   *
+   * As colunas de GENTE que não são a do dono (`org_invites.invited_by`,
+   * `documents.created_by`) passam por `pessoasPorId`, e não por `rotularIds`:
+   * o nome de uma pessoa é perfil + e-mail + handle, e não uma coluna só. Sem
+   * isso, "quem convidou" continuaria sendo um uuid — que é exatamente a
+   * pergunta que essas colunas existem para responder.
+   */
   const rotulos = new Map<string, Map<string, string>>()
   await Promise.all(
     ligacoes
@@ -108,7 +116,12 @@ export default async function Tabela({
         const ids = linhas
           .map((linha) => linha[l.coluna])
           .filter((v): v is string => typeof v === 'string' && v.length > 0)
-        const mapaRotulos = await rotularIds(l.alvo, l.colunaAlvo, ids)
+        if (ids.length === 0) return
+
+        const ehGente = l.alvo === 'auth.users' || l.alvo.replace(/^public\./, '') === 'profiles'
+        const mapaRotulos = ehGente
+          ? new Map([...(await pessoasPorId(ids))].map(([id, p]) => [id, nomeDe(p)]))
+          : await rotularIds(l.alvo, l.colunaAlvo, ids)
         if (mapaRotulos.size) rotulos.set(l.coluna, mapaRotulos)
       }),
   )
