@@ -6,6 +6,8 @@ import { dbRO } from '@/lib/db'
 import { data, dataHora, dinheiro, numero, relativo } from '@/lib/format'
 import { mascarar } from '@/lib/pii'
 
+import { Selo } from './selo'
+
 export const dynamic = 'force-dynamic'
 
 /**
@@ -156,7 +158,7 @@ export default async function Pessoa({ params }: { params: Promise<{ id: string 
               <dt className="text-texto-fraco">No ar</dt>
               <dd>{bio.bio_ativo ? <Badge tom="ok">sim</Badge> : <Badge tom="perigo">não</Badge>}</dd>
               <dt className="text-texto-fraco">Verificado</dt>
-              <dd>{bio.bio_verificado ? <Badge tom="ok">sim</Badge> : 'não'}</dd>
+              <dd><Selo slug={bio.slug} verificado={bio.bio_verificado} /></dd>
               <dt className="text-texto-fraco">Cliques</dt>
               <dd className="tabular-nums">{numero(bio.cliques)}</dd>
             </dl>

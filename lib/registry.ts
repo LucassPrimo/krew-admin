@@ -126,7 +126,7 @@ export const REGISTRY: Record<string, TabelaAdmin> = {
       bio_ativo: { tipo: 'booleano', editavel: true, nota: 'Desligar tira a /@handle do ar e some da busca.' },
       bio_verificado: {
         tipo: 'booleano', editavel: true, perigoso: true,
-        nota: 'Selo de verificado. Concedido pela Krew — o dono não consegue ligar sozinho.',
+        nota: 'Selo de verificado. Concedido pela Krew — o dono não consegue ligar sozinho. O caminho do dia a dia é /verificados, que dispensa o código do autenticador; aqui continua valendo para correção pontual.',
       },
       bio_headline: { tipo: 'text', editavel: true },
       bio_texto: { tipo: 'textarea', editavel: true },
