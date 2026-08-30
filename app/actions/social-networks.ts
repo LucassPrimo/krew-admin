@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getCurrentOrgId } from '@/lib/org'
+import { invalidarBioPublica } from '@/lib/bio/invalidar'
 
 export interface RedeSocial {
   platform: string
@@ -68,5 +69,11 @@ export async function saveSocialNetworks(redes: RedeSocial[]) {
 
   revalidatePath('/config')
   revalidatePath('/profile')
+  // A fileira de redes é a terceira coisa que se vê na `/@handle`, e esta era a
+  // única action que a mudava sem derrubar o cache dela: trocar um @ aqui
+  // levava até um minuto para aparecer na página, sem nada na tela explicando a
+  // espera. Os `revalidatePath` acima cuidam das telas de EDIÇÃO; a página
+  // pública tem cache próprio, por tag.
+  await invalidarBioPublica({ userId: user.id })
   return { success: true }
 }

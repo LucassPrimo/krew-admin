@@ -108,10 +108,30 @@ export interface PlatformDef {
   prefix: string
   /** Monta a URL pública a partir do handle. `null` = a rede guarda URL crua. */
   href: ((handle: string) => string) | null
+  /**
+   * Caminhos que a plataforma ACEITA mas não publica — o `href` já dá o
+   * canônico. Serve para `normalizarHandle` reconhecer o endereço que a pessoa
+   * copiou quando ele não é o mesmo que a rede exibe.
+   */
+  caminhosExtras?: string[]
   /** Cor de marca — fundo do ícone quando não há logo oficial. */
   cor: string
   /** Logo oficial em `public/logos/redes/`. */
   logo?: string
+  /**
+   * A versão do logo SEM o quadrado da marca, para o estilo `branco`.
+   *
+   * Existe só para as marcas cujo desenho é policromático: o TikTok é a nota
+   * preta com os deslocamentos ciano e magenta, o Instagram é a câmera no
+   * degradê. Nas duas, o glifo monocromático do react-icons pintado com uma cor
+   * só (`cor`) devolvia um TikTok todo preto e um Instagram rosa chapado — a
+   * marca, mas não o logo dela.
+   *
+   * Quem é monocromático de verdade (YouTube vermelho, X preto, Reddit
+   * laranja, Twitch roxo) não precisa disto: a cor única JÁ é o logo, e um
+   * arquivo a mais só daria outro lugar para as duas versões divergirem.
+   */
+  logoGlifo?: string
   /** O asset já traz o próprio quadrado colorido (vai de borda a borda). */
   logoTemTile?: boolean
   /**
@@ -151,20 +171,91 @@ export const PLATAFORMAS_COM_METRICAS: PlatformId[] = [
   'twitch',
 ]
 
+/** Escapa para uso dentro de `RegExp` — os caminhos têm `.` e o Cash App tem `$`. */
+function escaparRegex(t: string): string {
+  return t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/**
+ * O que vem DEPOIS do domínio na URL de perfil da plataforma: `in/` no
+ * LinkedIn, `user/` no Reddit, `add/` no Snapchat, `@` no TikTok, `$` no Cash
+ * App, nada no Instagram.
+ *
+ * Sai do próprio `href`, e é isso que faz esta função não ser mais uma tabela
+ * para alguém esquecer de atualizar: `href('')` devolve a URL do perfil vazio
+ * (`https://linkedin.com/in/`), e o que sobra depois do domínio é exatamente o
+ * caminho a descartar. Plataforma nova acerta sozinha no dia em que ganha um
+ * `href`.
+ */
+function caminhoDoPerfil(def: Pick<PlatformDef, 'href'>): { dominio: string; caminho: string } | null {
+  if (!def.href) return null
+  const semProtocolo = def.href('').replace(/^https?:\/\//i, '')
+  const barra = semProtocolo.indexOf('/')
+  return barra === -1
+    ? { dominio: semProtocolo, caminho: '' }
+    : { dominio: semProtocolo.slice(0, barra), caminho: semProtocolo.slice(barra + 1) }
+}
+
 /**
  * Normaliza o que o criador digita. As pessoas colam o perfil inteiro
  * (`https://instagram.com/fulano/`) tanto quanto digitam `@fulano` — as duas
  * coisas têm que virar `fulano`. Sem isso a URL final fica dupla e quebra.
+ *
+ * ---------------------------------------------------------------------------
+ * Por que a plataforma precisa ser dita
+ * ---------------------------------------------------------------------------
+ * A versão anterior cortava só o domínio, e por isso acertava o Instagram e
+ * errava todo mundo cujo perfil mora um nível abaixo: colar
+ * `linkedin.com/in/lucas-sprimo` guardava `in/lucas-sprimo` como handle, e o
+ * link publicado virava `linkedin.com/in/in/lucas-sprimo`. O mesmo valia para
+ * Reddit (`user/`), Snapchat (`add/`), Rumble (`c/`), Steam (`id/`) e Cash App
+ * (`$`) — cinco redes quebradas pela mesma linha.
+ *
+ * Sem `def` a função continua fazendo o que fazia: corta domínio e `@`. É o
+ * suficiente para as redes cujo perfil está na raiz, e mantém a chamada honesta
+ * para quem só tem o texto.
+ *
+ * `caminhosExtras` cobre o endereço que a plataforma aceita mas não publica —
+ * hoje só o `/u/` do Reddit, que é o atalho que todo mundo copia enquanto o
+ * canônico é `/user/`.
+ *
+ * O subdomínio é tolerado (`br.linkedin.com`, `m.youtube.com`, `www.`): quem
+ * copia da barra do navegador copia o que estiver lá.
+ *
+ * No fim fica o PRIMEIRO segmento, e só ele. É o que dá conta da barra no fim,
+ * do `?utm_source=` que o LinkedIn cola em tudo e do `/details/experience` de
+ * quem copiou de uma aba interna. Nenhum handle do catálogo contém `/`.
  */
-export function normalizarHandle(valor: string) {
-  return valor
-    .trim()
-    .replace(/^https?:\/\//i, '')
-    .replace(/^www\./i, '')
-    .replace(/^[a-z0-9.]+\.[a-z]{2,}\/(@)?/i, '')
-    .replace(/^@/, '')
-    .replace(/\/+$/, '')
-    .replace(/\s/g, '')
+export function normalizarHandle(
+  valor: string,
+  def?: Pick<PlatformDef, 'href' | 'caminhosExtras'>
+): string {
+  let s = valor.trim().replace(/\s/g, '')
+  if (!s) return ''
+
+  s = s.replace(/^https?:\/\//i, '')
+
+  const perfil = def ? caminhoDoPerfil(def) : null
+  const doDominio = perfil
+    ? new RegExp(`^(?:[a-z0-9-]+\\.)*${escaparRegex(perfil.dominio)}/`, 'i')
+    : null
+
+  if (doDominio?.test(s)) {
+    s = s.replace(doDominio, '')
+    // O caminho canônico primeiro, os aceitos depois — o Reddit publica
+    // `user/` e aceita `u/`, e testar na ordem errada deixaria `ser/`.
+    for (const caminho of [perfil!.caminho, ...(def?.caminhosExtras ?? [])]) {
+      if (caminho && s.toLowerCase().startsWith(caminho.toLowerCase())) {
+        s = s.slice(caminho.length)
+        break
+      }
+    }
+  } else {
+    // Domínio de outra gente (ou nenhum `def`): corta o que parecer host.
+    s = s.replace(/^www\./i, '').replace(/^[a-z0-9.-]+\.[a-z]{2,}\/(@)?/i, '')
+  }
+
+  return s.replace(/^[@$]/, '').split(/[/?#]/)[0] ?? ''
 }
 
 /** URL crua (site, Spotify): garante protocolo, senão o href vira relativo. */
@@ -217,6 +308,7 @@ export const PLATFORMS: PlatformDef[] = [
     href: (h) => `https://instagram.com/${h}`,
     cor: '#E1306C',
     logo: '/logos/redes/instagram.svg',
+    logoGlifo: '/logos/redes/glifo/instagram.svg',
     logoTemTile: true,
     icone: svg(
       <path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.8 3.8 0 0 1-1.38-.9 3.8 3.8 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07Zm0 6.18a3.66 3.66 0 1 0 0 7.32 3.66 3.66 0 0 0 0-7.32Zm0 6.04a2.38 2.38 0 1 1 0-4.76 2.38 2.38 0 0 1 0 4.76Zm4.66-6.18a.86.86 0 1 1-1.71 0 .86.86 0 0 1 1.71 0Z" />
@@ -230,6 +322,7 @@ export const PLATFORMS: PlatformDef[] = [
     href: (h) => `https://tiktok.com/@${h}`,
     cor: '#010101',
     logo: '/logos/redes/tiktok.svg',
+    logoGlifo: '/logos/redes/glifo/tiktok.svg',
     logoTemTile: true,
     icone: svg(
       <path d="M16.6 5.82A4.28 4.28 0 0 1 15.54 3h-3.09v12.4a2.59 2.59 0 1 1-1.79-2.46V9.8a5.67 5.67 0 1 0 4.88 5.61V9.01a7.35 7.35 0 0 0 4.29 1.38V7.3a4.28 4.28 0 0 1-3.23-1.48Z" />
@@ -353,6 +446,9 @@ export const PLATFORMS: PlatformDef[] = [
     label: 'Reddit',
     prefix: 'reddit.com/u/',
     href: (h) => `https://reddit.com/user/${h}`,
+    // O canônico é `/user/`, mas o botão de compartilhar do Reddit dá `/u/` —
+    // e é esse que as pessoas colam.
+    caminhosExtras: ['u/'],
     cor: '#FF4500',
     logo: '/logos/redes/reddit.svg',
     logoTemTile: true,
@@ -905,8 +1001,12 @@ export function PlatformIcon({
   // Vai de borda a borda só quando o arquivo traz o próprio tile E ninguém já
   // pintou um por fora.
   const deBordaABorda = def.logoTemTile && !sobreTileBranco
+  // Sobre o tile branco entra a versão sem o quadrado da marca, quando ela
+  // existe: o arquivo `logo` do Instagram e do TikTok É o quadrado colorido, e
+  // encolhê-lo dentro do tile branco daria um quadradinho dentro de um quadrado.
+  const arquivo = (sobreTileBranco && def.logoGlifo) || def.logo
 
-  if (def.logo) {
+  if (arquivo) {
     return (
       <span
         aria-hidden
@@ -921,7 +1021,7 @@ export function PlatformIcon({
             camada extra sem ganho nenhum num SVG local. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={def.logo}
+          src={arquivo}
           alt=""
           className="object-contain"
           style={{

@@ -7,6 +7,7 @@ import { ehVideoCapa } from '@/lib/capa-link'
 import { buscarPreviaDoSite } from '@/lib/link-preview'
 import { BUCKET_CAPAS } from '@/lib/capa-link'
 import { tagBio } from '@/lib/bio/consulta'
+import { invalidarBioPublica } from '@/lib/bio/invalidar'
 import { getAssinatura } from '@/lib/assinatura-server'
 import { estadoAssinatura, temAcesso } from '@/lib/assinatura'
 import { ehPro, LIMITE_LINKS_FREE, LIMITE_SECOES_FREE } from '@/lib/plano'
@@ -110,33 +111,6 @@ function normalizarCorFundo(valor: boolean | string | null): string | null {
  * switches disputarem o mesmo `update` e o último a responder venceria,
  * desfazendo o outro. Campo a campo, cada toggle escreve só o que mexeu.
  */
-/**
- * Derruba o cache da bio pública deste creator.
- *
- * Complemento do `revalidatePath('/profile')`, não substituto: aquele atualiza a
- * TELA DE EDIÇÃO no dashboard; este, a página pública `/@slug`, que tem cache
- * próprio. Esquecer este faz o creator salvar, abrir o link e ver a versão
- * velha — o que ele lê como "não salvou", nunca como cache.
- *
- * `updateTag` e não `revalidateTag`: no Next 16 é ele que dá
- * read-your-own-writes. `revalidateTag` apenas marca a entrada como vencida, e
- * a primeira leitura seguinte ainda serve o valor antigo — que seria
- * exatamente a conferida do creator. Só pode ser chamado de Server Action.
- *
- * A consulta do slug existe porque as actions trabalham por `user.id`. Ela só
- * roda quando alguém EDITA; o caminho do visitante não passa por aqui.
- */
-async function invalidarBioPublica(userId: string) {
-  const supabase = await createClient()
-  const { data } = await supabase
-    .from('proposal_pages')
-    .select('slug')
-    .eq('user_id', userId)
-    .maybeSingle()
-
-  if (data?.slug) updateTag(tagBio(data.slug))
-}
-
 /** Os campos que só o plano pago liga. Ver a checagem em `atualizarConfigBio`. */
 const CAMPOS_PAGOS: (keyof ConfigBio)[] = [
   'bio_mostrar_seguidores',
@@ -474,7 +448,7 @@ export async function criarLinkBio(
   if (error) return { error: error.message }
 
   revalidatePath('/profile')
-  await invalidarBioPublica(user.id)
+  await invalidarBioPublica({ userId: user.id })
   return { success: true, link: criado }
 }
 
@@ -579,7 +553,7 @@ export async function atualizarLinkBio(
   if (error) return { error: error.message }
 
   revalidatePath('/profile')
-  await invalidarBioPublica(user.id)
+  await invalidarBioPublica({ userId: user.id })
   // A prévia volta junto porque a lista do card vive em estado local: sem ela,
   // a imagem recém-buscada só apareceria num reload manual — e a pessoa veria
   // o formato que acabou de escolher sem a foto que ele promete.
@@ -602,7 +576,7 @@ export async function removerLinkBio(id: string) {
   if (error) return { error: error.message }
 
   revalidatePath('/profile')
-  await invalidarBioPublica(user.id)
+  await invalidarBioPublica({ userId: user.id })
   return { success: true }
 }
 
@@ -627,6 +601,6 @@ export async function reordenarLinksBio(ids: string[]) {
   }
 
   revalidatePath('/profile')
-  await invalidarBioPublica(user.id)
+  await invalidarBioPublica({ userId: user.id })
   return { success: true }
 }

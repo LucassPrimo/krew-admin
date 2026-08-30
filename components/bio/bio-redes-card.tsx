@@ -160,7 +160,10 @@ export function BioRedesCard({ redesIniciais }: { redesIniciais: RedeEditavel[] 
   function comRede(lista: RedeEditavel[], id: PlatformId, bruto: string) {
     const defDaRede = PLATFORMS.find((p) => p.id === id)
     const ehHandle = !!defDaRede?.href
-    const limpo = ehHandle ? normalizarHandle(bruto) : normalizarUrl(bruto)
+    // A plataforma vai junto: sem ela `normalizarHandle` só sabe cortar o
+    // domínio, e o perfil que mora um nível abaixo (LinkedIn `/in/`, Reddit
+    // `/user/`, Snapchat `/add/`) entrava com o caminho grudado no handle.
+    const limpo = ehHandle ? normalizarHandle(bruto, defDaRede) : normalizarUrl(bruto)
 
     if (!limpo) return lista.filter((r) => r.platform !== id)
 
