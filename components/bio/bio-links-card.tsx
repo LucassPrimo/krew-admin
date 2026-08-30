@@ -461,7 +461,16 @@ function ItemArrastavel({
           {/* Os dois campos não têm moldura em repouso — uma lista de caixas
             brigaria com os cards que ela representa —, mas acendem no hover e
             no foco. Sem isso, texto sem borda lê como rótulo, e ninguém
-            descobre que dá para clicar: foi exatamente o que aconteceu. */}
+            descobre que dá para clicar: foi exatamente o que aconteceu.
+
+            O campo do divisor JÁ FOI `uppercase`, e era uma mentira de uma
+            classe só: `text-transform` muda o que se vê, nunca o que se
+            digita. O valor gravado sempre foi o texto cru (a action só apara
+            com `trim`), e a página pública nunca transformou nada — quem
+            escrevia "Meus Links" via "MEUS LINKS" aqui e "Meus Links" no ar.
+            Pior que a divergência: a caixa alta parecia uma REGRA, então
+            ninguém tentava escolher. Agora o editor mostra o que vai publicar,
+            e a escolha das maiúsculas é de quem escreve. */}
           <input
             value={item.titulo}
             onChange={(e) => onRenomear(e.target.value)}
@@ -469,7 +478,7 @@ function ItemArrastavel({
             maxLength={80}
             title={t('editarCampoDica')}
             className={`${ESTILO_CAMPO} text-sm ${
-              ehDivisor ? 'font-bold tracking-wide uppercase' : 'font-medium'
+              ehDivisor ? 'font-bold tracking-wide' : 'font-medium'
             }`}
           />
           {/* Era um `<span>` só de leitura: dava para trocar o título, a capa e o
