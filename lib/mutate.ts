@@ -152,5 +152,44 @@ export async function registrarAcao(
   `
 }
 
+/**
+ * As mesmas ações, em lote — UMA linha de log por registro, num insert só.
+ *
+ * A granularidade é o ponto: uma operação em massa que gravasse "moveu 40
+ * leads" numa linha só responderia "o que essa pessoa fez", mas não "o que
+ * aconteceu com o lead do fulano" — que é a pergunta que a auditoria recebe de
+ * verdade, meses depois, sobre UM registro. Por isso cada registro ganha a sua
+ * linha, com o mesmo formato das ações unitárias; o que muda é só que elas
+ * viajam num `insert` de várias linhas em vez de quarenta idas ao banco.
+ */
+export async function registrarAcoes(
+  tx: TransactionSql,
+  itens: {
+    atorId: string
+    tabela: string
+    registroId: string
+    detalhe: Record<string, unknown>
+    motivo: string
+    ip: string | null
+    userAgent: string | null
+  }[],
+): Promise<void> {
+  if (itens.length === 0) return
+
+  const linhas = itens.map((a) => ({
+    ator_id: a.atorId,
+    tabela: a.tabela,
+    registro_id: a.registroId,
+    acao: 'operacional',
+    antes: null,
+    depois: tx.json(mascararObjeto(a.detalhe) as never),
+    motivo: a.motivo.trim(),
+    ip: a.ip,
+    user_agent: a.userAgent,
+  }))
+
+  await tx`insert into admin_audit.mutations ${tx(linhas)}`
+}
+
 /** Tabelas do registry, para o menu de /dados. */
 export const TABELAS_EDITAVEIS = Object.keys(REGISTRY)

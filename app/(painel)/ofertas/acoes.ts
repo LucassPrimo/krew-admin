@@ -72,7 +72,7 @@ export async function acaoCriarOferta(form: FormData) {
   const ESTILOS: EstiloItem[] = ['grande', 'metade', 'metade_alta', 'meio', 'botao']
 
   let links: {
-    tipo: 'link' | 'divisor'
+    tipo: 'link' | 'divisor' | 'marca'
     titulo: string; url: string | null; capa_url?: string | null; estilo?: EstiloItem
   }[] = []
   try {
@@ -84,27 +84,31 @@ export async function acaoCriarOferta(form: FormData) {
       }[])
         .map((l) => {
           const divisor = l.tipo === 'divisor'
+          const marca = l.tipo === 'marca'
           const url = String(l.url ?? '').trim()
           return {
-            // `tipo` normalizado aqui e não confiado do JSON: qualquer valor
-            // que não seja exatamente 'divisor' é link, e o CHECK da tabela
-            // só aceita os dois.
-            tipo: divisor ? ('divisor' as const) : ('link' as const),
+            // `tipo` normalizado aqui e não confiado do JSON: só os três
+            // valores que o CHECK de `creator_links` aceita passam, e
+            // qualquer outra coisa vira link.
+            tipo: divisor ? ('divisor' as const) : marca ? ('marca' as const) : ('link' as const),
             titulo: String(l.titulo ?? '').trim(),
             // Divisor sem endereço, sempre — mesmo que venha um no JSON. É o
             // que `creator_links_url_por_tipo` espera, e guardar uma URL num
             // título de seção só criaria dado que nada lê.
             url: divisor ? null : url,
             capa_url: divisor ? null : (l.capaUrl ?? null),
-            // Só os quatro valores do CHECK passam. Qualquer outra coisa que
+            // Só os cinco valores do CHECK passam. Qualquer outra coisa que
             // chegue no JSON vira 'grande' — o campo é do banco, não do form.
             estilo: ESTILOS.includes(l.estilo as EstiloItem) ? (l.estilo as EstiloItem) : 'grande',
           }
         })
-        // Link precisa de título E endereço; divisor é só o título. Antes o
-        // filtro exigia URL dos dois, e era ele que jogava fora toda seção
-        // importada — em silêncio, porque uma seção a menos não parece erro.
-        .filter((l) => l.titulo && (l.tipo === 'divisor' || l.url))
+        // Link precisa de título E endereço; divisor é só o título; a marca
+        // precisa dos dois MAIS a logo — sem imagem ela nasceria gravada e
+        // invisível, porque a consulta da página filtra `capa_url is not
+        // null`. Antes o filtro exigia URL de todos, e era ele que jogava fora
+        // toda seção importada — em silêncio, porque uma seção a menos não
+        // parece erro.
+        .filter((l) => l.titulo && (l.tipo === 'divisor' || l.url) && (l.tipo !== 'marca' || l.capa_url))
     }
   } catch {
     return { ok: false as const, erro: 'A lista de links veio malformada.' }

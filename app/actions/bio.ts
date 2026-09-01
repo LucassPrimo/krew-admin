@@ -341,6 +341,11 @@ export async function getLinksBio() {
     .from('creator_links')
     .select('id, titulo, url, capa_url, preview_url, tipo, estilo, ordem, ativo')
     .eq('user_id', user.id)
+    // As marcas parceiras moram na mesma tabela (`tipo = 'marca'`) mas são
+    // outro bloco da página: o carrossel acima da lista. Sem este `neq` elas
+    // apareceriam aqui como links, arrastáveis para um lugar onde a página
+    // nunca as desenha. Mesmo filtro do app (`app/actions/bio.ts` de lá).
+    .neq('tipo', 'marca')
     .order('ordem')
     .order('created_at')
 

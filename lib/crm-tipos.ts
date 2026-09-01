@@ -70,6 +70,24 @@ export type LinhaLead = {
 export type Lead = LinhaLead & { estagioEfetivo: Estagio }
 
 /**
+ * O follow-up venceu?
+ *
+ * Mora aqui, e não na página, porque a lista virou Client Component quando
+ * ganhou seleção em lote — e a mesma regra é usada pelo servidor (para contar
+ * "falar hoje") e pelo cliente (para pintar a linha). Duas cópias divergiriam
+ * no primeiro ajuste, e o número do badge deixaria de bater com o que a tela
+ * mostra.
+ *
+ * Aceito e perdido nunca vencem: não há próximo toque a dar.
+ */
+export function vencido(l: Lead): boolean {
+  if (!l.proximo_contato || l.estagioEfetivo === 'aceito' || l.estagioEfetivo === 'perdido') {
+    return false
+  }
+  return new Date(l.proximo_contato) <= new Date(new Date().toDateString())
+}
+
+/**
  * O estágio efetivo de um lead.
  *
  * A ordem das perguntas é a regra de negócio inteira: perdido vence tudo (dá

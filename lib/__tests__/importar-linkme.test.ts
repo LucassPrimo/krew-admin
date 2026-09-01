@@ -53,6 +53,35 @@ ${ld('beltrana', ['https://www.linkedin.com/in/beltrana'])}
 <a style="background-color:#111111ff" href="https://www.exemplo.org/sem-rotulo" class="singlealbum singlebigitem socialmedialink cursor-pointer" target="_blank"><div class="pointer-events-none imgbox bgColor-1"><img src="https://media.link.me/c.png" alt="LinkMe"/></div><div class="pointer-events-none albumtextbox"><div class="first colorWhite"></div></div></a>
 </body></html>`
 
+/**
+ * Perfil C: o carrossel BRAND AFFILIATES, no esqueleto do markup real de
+ * `link.me/coringa`.
+ *
+ * Os quatro slides são os quatro casos que existem em produção:
+ *
+ *   1. marca com rótulo próprio ("LOUD");
+ *   2. marca cujo rótulo é o nome da PLATAFORMA ("Instagram") — o link.me
+ *      deixa o padrão quando quem montou o card não trocou, e guardar isso
+ *      daria um carrossel com três marcas chamadas Instagram;
+ *   3. slide sem imagem, que não pode virar marca (a página filtra
+ *      `capa_url is not null` e o item nasceria invisível);
+ *   4. marca cujo endereço JÁ é um botão da página — não pode entrar duas
+ *      vezes.
+ */
+const PERFIL_C = `<!DOCTYPE html><html><head>
+<meta property="og:title" content="Check out Coringa (@coringa) on Linkme"/>
+<meta property="og:description" content="Discover Coringa on LinkMe: Streamer"/>
+${ld('coringa', ['https://www.twitch.tv/coringa'])}
+</head><body>
+<a style="background-color:#000000ff" href="https://loja.exemplo.com/colecao" class="singlealbum singlebigitem socialmedialink cursor-pointer" target="_blank"><div class="pointer-events-none imgbox bgColor-1"><img src="https://media.link.me/loja.png" alt="LinkMe"/></div><div class="pointer-events-none albumtextbox"><div class="first colorWhite"><p>Coleção nova</p></div></div></a>
+<div class="listofalbum profile-featured-links mt-2"><div class="relative w-full mb-3" role="region" aria-roledescription="carousel"><div class="flex items-center gap-2 mb-2 px-1"><h3 class="text-sm font-semibold opacity-80">BRAND AFFILIATES</h3></div><div class="relative"><div class="overflow-hidden"><div class="flex -ml-2">
+<div role="group" aria-roledescription="slide" class="min-w-0 shrink-0 basis-[45%]"><a href="https://www.instagram.com/loudgg/" target="_blank" rel="noreferrer" class="block relative h-full overflow-hidden rounded-xl"><div class="relative w-full h-full overflow-hidden"><img src="https://media.link.me/loud.jpeg" alt="LOUD" title="LOUD" class="w-full h-full object-cover"/><div class="absolute inset-0"></div></div><div class="absolute bottom-0 p-3"><p class="text-white text-xs" style="color:#ffffffff">LOUD</p></div></a></div>
+<div role="group" aria-roledescription="slide" class="min-w-0 shrink-0 basis-[45%]"><a href="https://www.instagram.com/werneckcompany/" target="_blank" rel="noreferrer" class="block relative h-full overflow-hidden rounded-xl"><div class="relative w-full h-full overflow-hidden"><img src="https://media.link.me/werneck.jpeg" alt="Instagram" title="Instagram" class="w-full h-full object-cover"/></div><div class="absolute bottom-0 p-3"><p class="text-white text-xs">Instagram</p></div></a></div>
+<div role="group" aria-roledescription="slide" class="min-w-0 shrink-0 basis-[45%]"><a href="https://www.instagram.com/semarte/" target="_blank" rel="noreferrer" class="block relative h-full overflow-hidden rounded-xl"><div class="relative w-full h-full overflow-hidden"></div><div class="absolute bottom-0 p-3"><p class="text-white text-xs">Sem arte</p></div></a></div>
+<div role="group" aria-roledescription="slide" class="min-w-0 shrink-0 basis-[45%]"><a href="https://loja.exemplo.com/colecao" target="_blank" rel="noreferrer" class="block relative h-full overflow-hidden rounded-xl"><div class="relative w-full h-full overflow-hidden"><img src="https://media.link.me/repetida.jpeg" alt="Loja" title="Loja" class="w-full h-full object-cover"/></div><div class="absolute bottom-0 p-3"><p class="text-white text-xs">Loja</p></div></a></div>
+</div></div></div></div></div>
+</body></html>`
+
 describe('extrairDeHtml', () => {
   it('lê nome, handle, avatar e bio quando a descrição traz o sufixo de marketing', () => {
     const p = extrairDeHtml(PERFIL_A)
@@ -156,6 +185,50 @@ describe('extrairDeHtml', () => {
       ['instagram', 'tidal', 'tiktok', 'youtube-music'].sort(),
     )
     expect(p.redes.find((r) => r.plataforma === 'tiktok')?.handle).toBe('fulano')
+  })
+
+  it('importa o carrossel BRAND AFFILIATES como marcas parceiras', () => {
+    const marcas = extrairDeHtml(PERFIL_C).links.filter((l) => l.tipo === 'marca')
+    expect(marcas).toContainEqual({
+      tipo: 'marca',
+      titulo: 'LOUD',
+      url: 'https://www.instagram.com/loudgg/',
+      capaUrl: 'https://media.link.me/loud.jpeg',
+      estilo: 'grande',
+    })
+  })
+
+  it('usa o handle quando o rótulo da marca é só o nome da plataforma', () => {
+    // Visto em produção: o card da @werneckcompany chega com alt, title e
+    // rótulo iguais a "Instagram". O nome vira o `alt` da logo na página
+    // publicada — ou seja, é o que o leitor de tela anuncia.
+    const marcas = extrairDeHtml(PERFIL_C).links.filter((l) => l.tipo === 'marca')
+    expect(marcas.find((m) => m.url?.includes('werneckcompany'))?.titulo).toBe('werneckcompany')
+  })
+
+  it('slide sem imagem não vira marca', () => {
+    // A consulta da página filtra `capa_url is not null`: sem logo, a linha
+    // nasceria gravada no editor e ausente do carrossel.
+    const marcas = extrairDeHtml(PERFIL_C).links.filter((l) => l.tipo === 'marca')
+    expect(marcas.some((m) => m.url?.includes('semarte'))).toBe(false)
+  })
+
+  it('endereço que já é botão não entra também como marca', () => {
+    const p = extrairDeHtml(PERFIL_C)
+    const daLoja = p.links.filter((l) => l.url === 'https://loja.exemplo.com/colecao')
+    expect(daLoja).toHaveLength(1)
+    expect(daLoja[0].tipo).toBe('link')
+  })
+
+  it('perfil sem carrossel não ganha marca nenhuma nem aviso de marca', () => {
+    const p = extrairDeHtml(PERFIL_B)
+    expect(p.links.some((l) => l.tipo === 'marca')).toBe(false)
+    expect(p.avisos.join(' ')).not.toMatch(/carrossel/i)
+  })
+
+  it('avisa quando há carrossel mas nenhuma logo saiu', () => {
+    const doc = PERFIL_C.replace(/<img[^>]*>/g, '')
+    expect(extrairDeHtml(doc).avisos.join(' ')).toMatch(/carrossel de marcas/i)
   })
 
   it('avisa quando nenhum botão foi reconhecido, em vez de fingir perfil vazio', () => {

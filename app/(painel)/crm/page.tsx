@@ -1,12 +1,14 @@
 import Link from 'next/link'
-import { ChevronRight, Search } from 'lucide-react'
+import { Search } from 'lucide-react'
 
 import { Aviso, Card, Metrica, Vazio } from '@/components/ui'
 import { escritaLigada } from '@/lib/env'
-import { data, numero, relativo } from '@/lib/format'
-import { ROTULO, crmInstalado, listarLeads, montarFunil, type Estagio, type Lead } from '@/lib/crm'
+import { numero } from '@/lib/format'
+import {
+  ROTULO, crmInstalado, exclusaoLiberada, listarLeads, montarFunil, vencido,
+} from '@/lib/crm'
 import { Cabecalho } from './cabecalho'
-import { Etapa } from './etapa'
+import { TabelaLeads } from './tabela'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,13 +34,6 @@ function comFiltro(atual: Filtro, mudanca: Filtro): string {
   }
   const busca = p.toString()
   return busca ? `/crm?${busca}` : '/crm'
-}
-
-function vencido(l: Lead): boolean {
-  if (!l.proximo_contato || l.estagioEfetivo === 'aceito' || l.estagioEfetivo === 'perdido') {
-    return false
-  }
-  return new Date(l.proximo_contato) <= new Date(new Date().toDateString())
 }
 
 /** Uma aba do filtro. Link e não botão: o estado do filtro mora na URL. */
@@ -67,7 +62,9 @@ function Aba({
 
 export default async function CRM({ searchParams }: { searchParams: Promise<Filtro> }) {
   const filtro = await searchParams
-  const [instalado, todos] = await Promise.all([crmInstalado(), listarLeads()])
+  const [instalado, todos, podeExcluir] = await Promise.all([
+    crmInstalado(), listarLeads(), exclusaoLiberada(),
+  ])
   const funil = montarFunil(todos)
 
   const paraHoje = todos.filter(vencido)
@@ -321,6 +318,9 @@ export default async function CRM({ searchParams }: { searchParams: Promise<Filt
           </p>
         )}
 
+        {/* A seleção em lote mora na tabela, que é Client Component por isso —
+            ver a nota em `tabela.tsx`. A barra de ações só aparece com algo
+            marcado, então a tela em repouso continua a mesma de antes. */}
         {ordenados.length === 0 ? (
           <Vazio>
             {todos.length === 0
@@ -328,82 +328,11 @@ export default async function CRM({ searchParams }: { searchParams: Promise<Filt
               : 'Nenhum lead com esse filtro.'}
           </Vazio>
         ) : (
-          <table className="densa">
-            <thead>
-              <tr>
-                <th>Lead</th><th>Fonte</th><th>Bio</th><th>Estágio</th>
-                <th>Próximo contato</th><th className="text-right">Notas</th><th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {ordenados.map((l) => (
-                <tr key={l.id}>
-                  {/* Nome e @ na MESMA célula: são a mesma pergunta ("quem é
-                      essa pessoa?"), e duas colunas separadas obrigavam o olho
-                      a atravessar a tabela para juntá-las. */}
-                  <td>
-                    <Link href={`/crm/${l.id}`} className="font-medium hover:underline">
-                      {l.nome}
-                    </Link>
-                    {l.instagram && (
-                      <a
-                        href={`https://instagram.com/${l.instagram}`}
-                        target="_blank" rel="noreferrer"
-                        className="block font-mono text-[11px] text-texto-fraco hover:text-texto"
-                      >
-                        @{l.instagram}
-                      </a>
-                    )}
-                  </td>
-                  <td className="text-texto-fraco">{l.fonte ?? '—'}</td>
-                  <td className="font-mono text-xs">
-                    {l.slug ? (
-                      <a
-                        href={`https://bekrew.com/@${l.slug}`}
-                        target="_blank" rel="noreferrer"
-                        className="text-acento hover:underline"
-                      >
-                        @{l.slug}
-                      </a>
-                    ) : l.handle_pretendido ? (
-                      <span
-                        className="text-texto-fraco"
-                        title="Handle pretendido — a oferta ainda não existe"
-                      >
-                        @{l.handle_pretendido}
-                      </span>
-                    ) : (
-                      <span className="text-texto-fraco">—</span>
-                    )}
-                  </td>
-                  <td><Etapa estagio={l.estagioEfetivo} /></td>
-                  <td className="whitespace-nowrap">
-                    {l.proximo_contato ? (
-                      <span
-                        title={data(l.proximo_contato)}
-                        className={vencido(l) ? 'text-aviso' : 'text-texto-fraco'}
-                      >
-                        {vencido(l) && <span className="mr-1.5 inline-block size-1.5 rounded-full bg-aviso align-middle" />}
-                        {relativo(l.proximo_contato)}
-                      </span>
-                    ) : (
-                      <span className="text-texto-fraco">—</span>
-                    )}
-                  </td>
-                  <td className="text-right tabular-nums text-texto-fraco">{l.notas || '—'}</td>
-                  <td className="w-6">
-                    <Link
-                      href={`/crm/${l.id}`}
-                      aria-label={`Abrir ${l.nome}`}
-                      className="text-texto-fraco hover:text-texto"
-                    >
-                      <ChevronRight className="size-4" strokeWidth={1.5} />
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <TabelaLeads
+            leads={ordenados}
+            podeAgir={escritaLigada}
+            podeExcluir={podeExcluir}
+          />
         )}
       </Card>
     </>

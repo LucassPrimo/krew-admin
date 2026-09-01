@@ -33,10 +33,15 @@ import { clienteAdmin } from './supabase-admin'
  */
 
 export type LinkDaOferta = {
-  /** `divisor` é o título de seção da página. Ver `LinkImportado`. */
-  tipo?: 'link' | 'divisor'
+  /**
+   * `divisor` é o título de seção da página; `marca` é a logo do carrossel de
+   * marcas parceiras. Ver `LinkImportado`.
+   */
+  tipo?: 'link' | 'divisor' | 'marca'
   titulo: string
-  /** Nulo no divisor — exigência do CHECK `creator_links_url_por_tipo`. */
+  /** Nulo SÓ no divisor — é o que o CHECK `creator_links_url_por_tipo` exige
+   *  desde `20260901120000`, quando a marca entrou e a regra passou a ser
+   *  "todo mundo tem URL, menos o divisor". */
   url: string | null
   capa_url?: string | null
   estilo?: EstiloItem

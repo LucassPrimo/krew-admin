@@ -58,8 +58,22 @@ export type LinkImportado = {
    * `estilo` fica inerte. Ele mora na MESMA lista dos links porque é a posição
    * dele entre eles que diz onde a seção começa — separar em dois arrays
    * perderia exatamente essa informação.
+   *
+   * `marca` é o carrossel que o link.me chama de BRAND AFFILIATES: a fileira
+   * de logos das marcas com quem o criador trabalha. No produto ela é o
+   * carrossel de marcas parceiras da `/@handle` (`creator_links.tipo =
+   * 'marca'`, ver a migration `20260901120000` no repo do app), desenhado
+   * entre o botão de proposta e a lista.
+   *
+   * Vem na MESMA lista pelo motivo oposto ao do divisor — não pela posição,
+   * mas pelo caminho: título, URL, arte e ordem são os mesmos quatro campos, e
+   * o insert da oferta já sabe gravar `tipo`. Um segundo array obrigaria a
+   * duplicar o download das imagens, a normalização e o insert para não mudar
+   * mais nada. Ao contrário do divisor, a marca EXIGE url e capaUrl: sem logo
+   * ela não aparece no carrossel (a consulta da página filtra), e sem destino
+   * é enfeite que rouba o toque de quem tentou.
    */
-  tipo: 'link' | 'divisor'
+  tipo: 'link' | 'divisor' | 'marca'
   titulo: string
   /** Nulo no divisor — é o que o CHECK `creator_links_url_por_tipo` exige. */
   url: string | null
@@ -208,6 +222,27 @@ export function handleDaUrl(url: string): string {
   }
 }
 
+/**
+ * O rótulo é o nome da PLATAFORMA e não o da marca?
+ *
+ * Acontece quando quem montou o card do link.me deixou o rótulo padrão: o
+ * cartão da @werneckcompany chega com alt/title/rótulo "Instagram". Guardar
+ * isso daria um carrossel com três marcas chamadas "Instagram", e o nome é o
+ * `alt` da logo na página publicada — ou seja, é o que o leitor de tela
+ * anuncia. Comparado com o host sem `www.` e sem TLD, que é como a plataforma
+ * costuma se escrever.
+ */
+function ehNomeDePlataforma(rotulo: string, url: string): boolean {
+  if (!rotulo) return true
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, '')
+    const nome = host.split('.')[0]
+    return rotulo.trim().toLowerCase() === nome.toLowerCase()
+  } catch {
+    return false
+  }
+}
+
 function semTags(s: string): string {
   return s.replace(/<[^>]+>/g, '')
 }
@@ -336,6 +371,82 @@ export function extrairDeHtml(doc: string): PerfilLinkme {
       pos: a.index ?? 0,
       item: { tipo: 'link', titulo: tituloLink, url, capaUrl: capa, estilo },
     })
+  }
+
+  /**
+   * O carrossel de marcas — "BRAND AFFILIATES" na página de origem.
+   *
+   * DEPOIS do laço dos botões, e isso é ordem de precedência, não acaso: as
+   * duas varreduras dividem o `vistos`, então uma URL que já virou botão não
+   * vira também logo. O contrário faria um link legítimo sumir da lista para
+   * reaparecer como imagem num carrossel.
+   *
+   * A âncora é reconhecida pelo `aria-roledescription="slide"` do slide que a
+   * embrulha, e NÃO pelas classes (`block relative h-full overflow-hidden
+   * rounded-xl`) nem pelo texto do título da seção. Os dois seriam piores por
+   * razões diferentes: classe do link.me é pilha de utilitário do Tailwind e
+   * muda a cada ajuste de espaçamento (é o que o comentário do topo deste
+   * arquivo já dizia sobre os botões), e o título é texto que o CRIADOR
+   * escreve — "BRAND AFFILIATES" hoje, "PARCEIROS" no perfil brasileiro do
+   * lado. ARIA é o que existe para ser lido por máquina e o que menos muda.
+   *
+   * O `{0,4000}?` não é superstição: um slide sem âncora dentro faria o
+   * `[\s\S]*?` correr até o próximo `</a>` do documento e engolir meia
+   * página numa "marca" só. O teto transforma esse caso em nenhuma marca, que
+   * é o defeito certo.
+   */
+  let slidesVistos = 0
+  for (const slide of doc.matchAll(
+    /aria-roledescription="slide"([\s\S]{0,4000}?)<\/a>/gi,
+  )) {
+    slidesVistos++
+    const bloco = slide[1]
+
+    const ancora = bloco.match(/<a\s([^>]*)>([\s\S]*)$/i)
+    if (!ancora) continue
+
+    const url = ancora[1].match(/href="([^"]*)"/i)?.[1]
+    if (!url || vistos.has(url)) continue
+
+    const img = ancora[2].match(/<img[^>]*>/i)?.[0] ?? ''
+    const capa = img.match(/src="([^"]+)"/i)?.[1] ?? null
+    // Sem logo não há marca. O carrossel do produto ignora a linha sem imagem
+    // (é o filtro da própria consulta), então importá-la criaria um item que
+    // existe no editor e não existe na página — o pior dos dois mundos.
+    if (!capa) continue
+
+    vistos.add(url)
+
+    // O nome vem do rótulo sob a arte; `alt`/`title` repetem-no e servem de
+    // reserva. Os três podem trazer o nome da PLATAFORMA em vez do da marca
+    // (visto em produção: um card do Instagram com alt="Instagram"), e aí o
+    // handle da URL é o que mais se parece com o nome — `instagram.com/ng.cash`
+    // vira "ng.cash", não "Instagram".
+    const rotulo =
+      ancora[2].match(/<p[^>]*>([\s\S]*?)<\/p>/i)?.[1] ??
+      img.match(/alt="([^"]*)"/i)?.[1] ??
+      ''
+    const nomeDaMarca = decodificar(semTags(rotulo)).trim()
+
+    achados.push({
+      pos: slide.index ?? 0,
+      item: {
+        tipo: 'marca',
+        titulo: ehNomeDePlataforma(nomeDaMarca, url) ? handleDaUrl(url) : nomeDaMarca,
+        url,
+        capaUrl: capa,
+        // Inerte para a marca: o carrossel desenha todas as logos do mesmo
+        // tamanho. Vai 'grande' porque é o default da coluna.
+        estilo: 'grande',
+      },
+    })
+  }
+
+  if (slidesVistos > 0 && !achados.some((a) => a.item.tipo === 'marca')) {
+    avisos.push(
+      'A página tem um carrossel de marcas, mas nenhuma logo foi reconhecida — ' +
+        'o layout do link.me pode ter mudado.',
+    )
   }
 
   const links: LinkImportado[] = achados

@@ -21,7 +21,14 @@ export interface BioRede {
 }
 
 /** Link clicável ou título de seção. O divisor não tem URL. */
-export type TipoItem = 'link' | 'divisor'
+/**
+ * `marca` é a logo do carrossel de marcas parceiras (ver a migration
+ * `20260901120000` no repo do app). Está aqui porque o CHECK de
+ * `creator_links.tipo` é o mesmo banco — um valor a menos deste lado vira erro
+ * de constraint no insert da oferta, que é exatamente o que aconteceu com o
+ * `'pequeno'` inventado no importador.
+ */
+export type TipoItem = 'link' | 'divisor' | 'marca'
 
 /**
  * Como o card é desenhado. Os três formatos da página de referência, mais o

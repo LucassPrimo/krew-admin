@@ -5,7 +5,7 @@ import {
   ESTAGIOS_MANUAIS, estagioDe, limparInstagram, type EstagioManual, type Lead, type LinhaLead,
 } from './crm-tipos'
 import { dbRO, dbRW } from './db'
-import { registrarAcao } from './mutate'
+import { registrarAcao, registrarAcoes } from './mutate'
 
 export * from './crm-tipos'
 export * from './crm-importar'
@@ -461,6 +461,241 @@ export async function reabrirLead(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Operações em lote
+// ---------------------------------------------------------------------------
+
+/**
+ * Quantos leads uma operação em lote aceita de uma vez.
+ *
+ * Mesmo raciocínio de `LIMITE_IMPORTACAO`: não é limite de banco, é o tamanho
+ * a partir do qual uma transação começa a segurar conexão de escrita em
+ * produção por tempo que ninguém está olhando. Selecionar "todos" com 900
+ * leads na tela e mandar de uma vez é justamente o clique que faria isso.
+ */
+export const LIMITE_LOTE = 200
+
+function conferirLote(ids: string[]): { ok: true; ids: string[] } | { ok: false; erro: string } {
+  const unicos = [...new Set(ids.filter((id) => typeof id === 'string' && id.trim()))]
+  if (unicos.length === 0) return { ok: false, erro: 'Nenhum lead selecionado.' }
+  if (unicos.length > LIMITE_LOTE) {
+    return { ok: false, erro: `São ${unicos.length} leads de uma vez; o limite é ${LIMITE_LOTE}. Filtre e faça em duas levas.` }
+  }
+  return { ok: true, ids: unicos }
+}
+
+/**
+ * Move vários leads para o mesmo estágio manual.
+ *
+ * Só os estágios ANTERIORES à oferta existem como campo (ver o `check` da
+ * tabela): depois que a oferta existe, o estágio é derivado dela. Por isso o
+ * lote PULA quem já tem oferta em vez de gravar um valor invisível — e o
+ * retorno separa `alterados` de `ignorados`, porque dizer "40 movidos" quando
+ * 12 continuam exibindo "convite enviado" seria mentira, e a pessoa passaria a
+ * desconfiar da tela inteira.
+ */
+export async function moverEstagioEmLote(
+  ids: string[],
+  estagio: EstagioManual,
+  ctx: Contexto,
+): Promise<{ ok: true; alterados: number; ignorados: number } | { ok: false; erro: string }> {
+  if (!(await crmInstalado())) return { ok: false, erro: ERRO_NAO_INSTALADO }
+  if (!ESTAGIOS_MANUAIS.includes(estagio)) {
+    return { ok: false, erro: `Estágio inválido: ${estagio}` }
+  }
+
+  const lote = conferirLote(ids)
+  if (!lote.ok) return lote
+
+  try {
+    return await dbRW.begin(async (tx: TransactionSql) => {
+      // `for update` na leitura e o update logo em seguida, na mesma
+      // transação: sem o lock, duas abas mexendo na mesma seleção gravariam
+      // por cima uma da outra e a auditoria registraria um "antes" que já não
+      // era verdade quando o update rodou.
+      const antes = await tx<{
+        id: string; estagio: EstagioManual; perdido_em: string | null; page_id: string | null
+      }[]>`
+        select id, estagio, perdido_em, page_id from admin_crm.leads
+        where id = any(${lote.ids}) order by id for update
+      `
+
+      // Dois grupos ficam de fora, e por motivos diferentes:
+      //
+      // - **Perdido** não volta por mudança de estágio: reabrir é uma decisão
+      //   própria, com a sua própria ação (`reabrirLead`). Um lote que
+      //   ressuscitasse leads perdidos em silêncio é o tipo de efeito colateral
+      //   que ninguém procura no dia seguinte.
+      // - **Com oferta** o estágio exibido é DERIVADO de `bio_ofertas`, então
+      //   gravar aqui mudaria uma coluna que a tela não mostra. Seria a pior
+      //   combinação possível: a operação diz que funcionou e a lista continua
+      //   igual.
+      const alvos = antes.filter(
+        (l) => !l.perdido_em && !l.page_id && l.estagio !== estagio,
+      )
+      const ignorados = lote.ids.length - alvos.length
+
+      if (alvos.length > 0) {
+        await tx`
+          update admin_crm.leads set estagio = ${estagio}, atualizado_em = now()
+          where id = any(${alvos.map((l) => l.id)})
+        `
+
+        await registrarAcoes(
+          tx,
+          alvos.map((l) => ({
+            atorId: ctx.atorId,
+            tabela: 'crm_leads',
+            registroId: l.id,
+            detalhe: { acao: 'lead_editado', antes: { estagio: l.estagio }, depois: { estagio } },
+            motivo: `Estágio movido em lote para ${estagio} no CRM do painel`,
+            ip: ctx.ip,
+            userAgent: ctx.userAgent,
+          })),
+        )
+      }
+
+      return { ok: true as const, alterados: alvos.length, ignorados }
+    })
+  } catch (e) {
+    return { ok: false, erro: traduzir(e as Error) }
+  }
+}
+
+/** Marca vários como perdidos, com o mesmo motivo. Já perdidos são ignorados. */
+export async function marcarPerdidosEmLote(
+  ids: string[],
+  motivo: string,
+  ctx: Contexto,
+): Promise<{ ok: true; alterados: number; ignorados: number } | { ok: false; erro: string }> {
+  if (!(await crmInstalado())) return { ok: false, erro: ERRO_NAO_INSTALADO }
+
+  const porque = motivo.trim()
+  if (!porque) return { ok: false, erro: 'Diga o motivo da perda — é o que o funil por fonte lê.' }
+
+  const lote = conferirLote(ids)
+  if (!lote.ok) return lote
+
+  try {
+    return await dbRW.begin(async (tx: TransactionSql) => {
+      const alvos = await tx<{ id: string }[]>`
+        update admin_crm.leads
+        set perdido_em = now(), motivo_perda = ${porque},
+            proximo_contato = null, atualizado_em = now()
+        where id = any(${lote.ids}) and perdido_em is null
+        returning id
+      `
+
+      await registrarAcoes(
+        tx,
+        alvos.map((l) => ({
+          atorId: ctx.atorId,
+          tabela: 'crm_leads',
+          registroId: l.id,
+          detalhe: { acao: 'lead_perdido', motivo: porque },
+          motivo: `Lead marcado como perdido em lote no CRM: ${porque}`,
+          ip: ctx.ip,
+          userAgent: ctx.userAgent,
+        })),
+      )
+
+      return { ok: true as const, alterados: alvos.length, ignorados: lote.ids.length - alvos.length }
+    })
+  } catch (e) {
+    return { ok: false, erro: traduzir(e as Error) }
+  }
+}
+
+/**
+ * A exclusão está liberada no banco?
+ *
+ * O schema do CRM nasceu SEM `grant delete` — de propósito, e a nota está lá
+ * em `sql/admin_crm.sql`: "lead errado se marca como perdido, não some". A
+ * exclusão de verdade existe hoje porque a operação pediu (lista importada
+ * errada, teste, lead duplicado que nem deveria ter entrado), e ela vem com a
+ * contrapartida que responde à objeção original: a linha inteira é copiada
+ * para `admin_audit.mutations` ANTES de sumir, no mesmo commit. O que foi
+ * apagado continua investigável; o que não dá é para desapagar.
+ *
+ * Perguntado ao banco com `current_user` e não com o nome do papel escrito
+ * aqui: quem responde "posso apagar?" é a permissão real da conexão, não uma
+ * suposição sobre como o SQL foi rodado.
+ */
+let exclusaoOk = false
+export async function exclusaoLiberada(): Promise<boolean> {
+  if (exclusaoOk) return true
+  if (!(await crmInstalado())) return false
+  try {
+    const [linha] = await dbRW<{ pode: boolean }[]>`
+      select has_table_privilege(current_user, 'admin_crm.leads', 'delete') as pode
+    `
+    exclusaoOk = Boolean(linha?.pode)
+  } catch {
+    // Papel sem acesso ao catálogo, schema recém-criado, o que for: o lado
+    // seguro do erro aqui é "não pode", que só esconde um botão.
+    exclusaoOk = false
+  }
+  return exclusaoOk
+}
+
+export const ERRO_SEM_GRANT_DELETE =
+  'Este banco ainda não permite excluir leads. Rode sql/admin_crm_exclusao.sql no SQL Editor ' +
+  'do Supabase — é um grant, e o painel passa a enxergar na navegação seguinte.'
+
+/**
+ * Apaga leads de vez — e grava o que apagou.
+ *
+ * A linha inteira vai para a auditoria antes do `delete`, na mesma transação:
+ * se o log falhar, nada some. É o que separa "apagar" de "sumir sem rastro", e
+ * era a objeção que mantinha o schema sem `grant delete`.
+ *
+ * As notas vão junto por `on delete cascade` — e é por isso que a contagem
+ * delas entra no detalhe da auditoria: depois do commit não há como saber
+ * quantas eram.
+ */
+export async function excluirLeads(
+  ids: string[],
+  ctx: Contexto,
+): Promise<{ ok: true; excluidos: number } | { ok: false; erro: string }> {
+  if (!(await crmInstalado())) return { ok: false, erro: ERRO_NAO_INSTALADO }
+  if (!(await exclusaoLiberada())) return { ok: false, erro: ERRO_SEM_GRANT_DELETE }
+
+  const lote = conferirLote(ids)
+  if (!lote.ok) return lote
+
+  try {
+    return await dbRW.begin(async (tx: TransactionSql) => {
+      const linhas = await tx<Record<string, unknown>[]>`
+        select l.*, (select count(*) from admin_crm.lead_notas n where n.lead_id = l.id)::int as notas
+        from admin_crm.leads l
+        where l.id = any(${lote.ids}) order by l.id for update
+      `
+      if (linhas.length === 0) throw new Error('Nenhum dos leads selecionados existe mais.')
+
+      await registrarAcoes(
+        tx,
+        linhas.map((l) => ({
+          atorId: ctx.atorId,
+          tabela: 'crm_leads',
+          registroId: String(l.id),
+          // A linha inteira, e não só o id: depois do commit não existe mais
+          // lugar de onde tirar o nome, o @ e a fonte do que foi apagado.
+          detalhe: { acao: 'lead_excluido', lead: l },
+          motivo: `Lead excluído em lote do CRM do painel: ${String(l.nome ?? '')}`,
+          ip: ctx.ip,
+          userAgent: ctx.userAgent,
+        })),
+      )
+
+      await tx`delete from admin_crm.leads where id = any(${linhas.map((l) => String(l.id))})`
+
+      return { ok: true as const, excluidos: linhas.length }
+    })
+  } catch (e) {
+    return { ok: false, erro: traduzir(e as Error) }
+  }
+}
+
 export const ERRO_NAO_INSTALADO =
   'O schema admin_crm ainda não existe neste banco. Rode sql/admin_crm.sql no SQL Editor do Supabase.'
 
@@ -474,6 +709,12 @@ export const ERRO_NAO_INSTALADO =
 function traduzir(e: Error): string {
   if (e.message.includes('leads_instagram_unico')) {
     return 'Já existe um lead com esse Instagram. Abra o que já está lá em vez de criar outro.'
+  }
+  // `permission denied for table leads` é o banco dizendo que o grant de
+  // exclusão nunca foi rodado. Sem esta tradução, a tela mostraria a frase do
+  // Postgres — que é verdadeira e não diz o que fazer.
+  if (/permission denied/i.test(e.message) && /leads/.test(e.message)) {
+    return ERRO_SEM_GRANT_DELETE
   }
   return e.message
 }

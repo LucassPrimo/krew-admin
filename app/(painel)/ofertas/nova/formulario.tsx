@@ -163,7 +163,13 @@ export function FormularioNovaOferta({
           </div>
           {perfil && (
             <p className="mt-2 text-xs text-muted-foreground">
-              {perfil.redes.length} rede(s) e {perfil.links.length} link(s) prontos para entrar.
+              {/* As marcas contam à parte: elas vêm na mesma lista (ver
+                  `LinkImportado`), mas vão para outro bloco da página — somá-las
+                  aos links faria o número não bater com o que se vê na prévia. */}
+              {perfil.redes.length} rede(s),{' '}
+              {perfil.links.filter((l) => l.tipo !== 'marca').length} link(s) e{' '}
+              {perfil.links.filter((l) => l.tipo === 'marca').length} marca(s) parceira(s)
+              prontos para entrar.
               {perfil.avisos.map((a) => (
                 <span key={a} className="mt-1 block text-aviso">{a}</span>
               ))}
