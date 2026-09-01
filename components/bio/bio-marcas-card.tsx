@@ -26,6 +26,7 @@ import {
   reordenarLinksBio,
 } from '@/app/actions/bio'
 import { CapaPicker } from '@/components/bio/capa-picker'
+import { ToggleBio } from '@/components/bio/toggle-bio'
 
 /**
  * Proporção do recorte da logo: a mesma do card do carrossel.
@@ -37,7 +38,7 @@ import { CapaPicker } from '@/components/bio/capa-picker'
  * proporção é cortado na página. Recortando neste mesmo formato, quem sobe a
  * arte vê no editor exatamente o pedaço que vai ao ar.
  */
-const PROPORCAO_LOGO = 104 / 56
+const PROPORCAO_LOGO = 125 / 67
 
 interface MarcaBio {
   id: string
@@ -73,12 +74,15 @@ export function BioMarcasCard({
   userId,
   marcasIniciais,
   cliques,
+  mostrarNomeInicial,
 }: {
   userId: string
   marcasIniciais: MarcaBio[]
   /** Cliques por logo, medidos em `link_bio_events` — o mesmo `button_id` dos
    *  links, que é justamente o que a marca ganha por morar naquela tabela. */
   cliques: Record<string, number>
+  /** `bio_marcas_nome`: desenhar o nome sobre a logo no carrossel. */
+  mostrarNomeInicial: boolean
 }) {
   const t = useTranslations('bioConfig')
   const [pending, startTransition] = useTransition()
@@ -141,6 +145,24 @@ export function BioMarcasCard({
 
   return (
     <div className="flex flex-col gap-3">
+      {/* O interruptor mora DENTRO do cartão, e não na barra da seção como os
+          outros: esta seção é recolhível (`<details>`), e um switch no
+          cabeçalho abriria e fecharia o bloco a cada clique. É também a mesma
+          regra do estilo dos logos, que vive dentro do bloco de redes: é o
+          desenho DESTA fileira, e quem vem mexer nas marcas é quem repara
+          nele. */}
+      <div className="flex items-center justify-between gap-3 rounded-lg bg-secondary/50 px-3 py-2">
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-foreground">{t('marcasNome')}</p>
+          <p className="text-[11px] text-muted-foreground">{t('marcasNomeDesc')}</p>
+        </div>
+        <ToggleBio
+          campo="bio_marcas_nome"
+          inicial={mostrarNomeInicial}
+          rotulo={t('marcasNome')}
+        />
+      </div>
+
       {itens.length === 0 ? (
         <p className="text-xs text-muted-foreground">{t('marcasVazio')}</p>
       ) : (

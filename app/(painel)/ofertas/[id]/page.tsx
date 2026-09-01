@@ -174,9 +174,19 @@ export default async function EditorDaOferta({ params }: { params: Promise<{ id:
             indice={5}
             icone={Store}
             titulo={t('secaoMarcas')}
-            resumo={t('secaoMarcasDesc')}
+            resumo={
+              marcas.length > 0
+                ? t('marcasContagem', { n: marcas.length })
+                : t('secaoMarcasDesc')
+            }
+            recolhivel
           >
-            <BioMarcasCard userId={alvo.userId} marcasIniciais={marcas} cliques={cliques} />
+            <BioMarcasCard
+              userId={alvo.userId}
+              marcasIniciais={marcas}
+              cliques={cliques}
+              mostrarNomeInicial={config?.bio_marcas_nome ?? false}
+            />
           </SecaoBio>
 
           <SecaoBio indice={6} icone={Link2} titulo={t('secaoLinks')} resumo={t('secaoLinksDesc')}>

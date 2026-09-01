@@ -67,6 +67,8 @@ export interface ConfigBio {
   bio_mostrar_seguidores: boolean
   bio_mostrar_propostas: boolean
   bio_esconder_marca: boolean
+  /** Nome da marca sobre a logo, no carrossel de parcerias. */
+  bio_marcas_nome: boolean
   /** Selo concedido pela Krew. Só de leitura aqui — é o que libera a capa em
    *  vídeo, e ninguém o concede a si mesmo. */
   bio_verificado: boolean
@@ -82,7 +84,7 @@ export async function getConfigBio() {
   const { data } = await supabase
     .from('proposal_pages')
     .select(
-      'slug, bio_ativo, bio_bg_color, bio_capa_url, bio_headline, bio_texto, bio_mostrar_seguidores, bio_mostrar_propostas, bio_esconder_marca, bio_verificado'
+      'slug, bio_ativo, bio_bg_color, bio_capa_url, bio_headline, bio_texto, bio_mostrar_seguidores, bio_mostrar_propostas, bio_esconder_marca, bio_marcas_nome, bio_verificado'
     )
     .eq('user_id', user.id)
     .maybeSingle()
@@ -134,6 +136,8 @@ export async function atualizarConfigBio(campo: keyof ConfigBio, valor: boolean 
     'bio_mostrar_seguidores',
     'bio_mostrar_propostas',
     'bio_esconder_marca',
+    // Fora de `CAMPOS_PAGOS`: o carrossel de parcerias inteiro é gratuito.
+    'bio_marcas_nome',
   ]
   if (!CAMPOS.includes(campo)) return { error: 'Campo inválido.' }
 

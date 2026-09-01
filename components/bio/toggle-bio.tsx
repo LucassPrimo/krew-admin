@@ -8,7 +8,11 @@ import { atualizarConfigBio, type ConfigBio } from '@/app/actions/bio'
 
 type CampoBooleano = Extract<
   keyof ConfigBio,
-  'bio_ativo' | 'bio_mostrar_seguidores' | 'bio_mostrar_propostas' | 'bio_esconder_marca'
+  | 'bio_ativo'
+  | 'bio_mostrar_seguidores'
+  | 'bio_mostrar_propostas'
+  | 'bio_esconder_marca'
+  | 'bio_marcas_nome'
 >
 
 /**

@@ -1667,7 +1667,10 @@
     "marcaUrlPlaceholder": "https://site-da-marca.com",
     "marcaLogo": "Logo",
     "logoObrigatoria": "Escolha a logo da marca.",
-    "editarMarcaDica": "Clique no nome ou no link para editar. Arraste pela alça para reordenar."
+    "editarMarcaDica": "Clique no nome ou no link para editar. Arraste pela alça para reordenar.",
+    "marcasNome": "Mostrar o nome da marca",
+    "marcasNomeDesc": "Escreve o nome sobre a logo. Útil quando a arte é só um ícone.",
+    "marcasContagem": "{n} marca(s) no carrossel"
   },
   "aparencia": {
     "title": "Aparência",
