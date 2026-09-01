@@ -240,29 +240,29 @@ export function PreviaItem({
   }
 
   // `grande` e os dois divididos compartilham a anatomia — imagem, selo no
-  // canto, título na faixa embaixo. O que muda é a largura e, no dividido em
+  // canto, título no pé sobre a foto. O que muda é a largura e, no dividido em
   // pé, também a proporção. É exatamente o que se quer ver antes de escolher.
   const dividido = formato === 'metade' || formato === 'metade_alta'
   return (
     <div className={cn('mx-auto', dividido ? 'w-1/2' : 'w-full')}>
-      {/* A faixa do título fica FORA da moldura proporcional e o card inteiro
-          leva a cor sólida — é o que a página faz desde que o degradê saiu (ver
-          "Sem degradê" em `bio-perfil.module.css`). A `aspectRatio` continua
-          valendo só para a imagem, que é o que o recorte entrega. */}
-      <div className="overflow-hidden rounded-[20px] bg-card">
-        {/* `style` e não classe: o scanner estático do Tailwind v4 não vê classe
-            montada em tempo de execução, e `aspect-[${n}]` sumiria no build. */}
-        <div
-          className="relative overflow-hidden bg-muted"
-          style={{ aspectRatio: proporcaoDoFormato(formato) }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={capa!} alt="" className="absolute inset-0 h-full w-full object-cover" />
-          <span className="absolute top-2 left-2">{selo}</span>
-        </div>
-
-        <span className="block px-3 py-2.5">
-          <span className="block truncate text-center text-base font-bold text-foreground">
+      {/* `style` e não classe: o scanner estático do Tailwind v4 não vê classe
+          montada em tempo de execução, e `aspect-[${n}]` sumiria no build. */}
+      <div
+        className="relative overflow-hidden rounded-[20px] bg-muted"
+        style={{ aspectRatio: proporcaoDoFormato(formato) }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={capa!} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        {/* O véu chapado de 10%, igual em todos os formatos — o mesmo
+            `.card::after` da página. Prévia que desenha um contraste e página
+            que entrega outro é pior do que não ter prévia. */}
+        <span aria-hidden className="absolute inset-0 bg-black/10" />
+        <span className="absolute top-2 left-2">{selo}</span>
+        <span className="absolute inset-x-0 bottom-0 px-3 pb-3">
+          <span
+            className="block truncate text-center text-base font-bold text-white"
+            style={{ textShadow: '0 1px 3px rgb(0 0 0 / 0.45)' }}
+          >
             {titulo}
           </span>
         </span>
