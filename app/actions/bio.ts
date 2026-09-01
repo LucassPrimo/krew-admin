@@ -24,7 +24,7 @@ import type { TipoItem, EstiloItem } from '@/lib/bio/tipos'
  * `'use server'` só pode exportar funções async. Exportar um array derruba o
  * build com "can only export async functions, found object".
  */
-const TIPOS_ITEM: TipoItem[] = ['link', 'divisor']
+const TIPOS_ITEM: TipoItem[] = ['link', 'divisor', 'marca']
 const ESTILOS_ITEM: EstiloItem[] = ['grande', 'metade', 'metade_alta', 'meio', 'botao']
 
 /**
@@ -353,6 +353,31 @@ export async function getLinksBio() {
 }
 
 /**
+ * As marcas parceiras, na ordem — o outro lado do `neq` acima.
+ *
+ * Consulta própria e não um filtro no cliente: são duas listas com dois
+ * arrastes independentes, e trazer as duas juntas só para separá-las depois
+ * faria a tela de links recarregar a cada logo adicionada.
+ */
+export async function getMarcasBio() {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return []
+
+  const { data } = await supabase
+    .from('creator_links')
+    .select('id, titulo, url, capa_url, preview_url, tipo, estilo, ordem, ativo')
+    .eq('user_id', user.id)
+    .eq('tipo', 'marca')
+    .order('ordem')
+    .order('created_at')
+
+  return data ?? []
+}
+
+/**
  * Cria um link ou um divisor.
  *
  * Uma função para os dois porque a diferença é uma coluna: divisor é um item
@@ -384,8 +409,15 @@ export async function criarLinkBio(
   // Divisor não tem URL, e por isso também não tem capa nem busca de prévia:
   // ele é uma linha de texto entre dois blocos.
   const ehDivisor = tipo === 'divisor'
+  const ehMarca = tipo === 'marca'
   const urlValida = ehDivisor ? null : validarUrl(url)
   if (!ehDivisor && !urlValida) return { error: 'url_invalida' as const }
+
+  // Marca sem logo não é recusada pelo banco — é o SELECT da página que a
+  // ignora (ver a migration `20260901120000`). Barrar aqui é o que impede a
+  // linha invisível: gravada, contando no editor, e ausente do carrossel sem
+  // que nada na tela explique por quê.
+  if (ehMarca && !capaUrl) return { error: 'logo_obrigatoria' as const }
 
   // Free trava em 1 seção e 3 links — Pro é ilimitado. Checado no servidor e
   // não só na UI porque a action é o único portão real; o botão desabilitado
@@ -403,7 +435,11 @@ export async function criarLinkBio(
   })
 
   const { assinatura } = await getAssinatura(user.id)
-  if (ehOfertaAberta !== true && !ehPro(assinatura)) {
+  // As marcas parceiras não têm teto no Free — mesma decisão do app (ver o
+  // comentário em `criarLinkBio` de lá). Na oferta isso é inerte de qualquer
+  // forma, porque `ehOfertaAberta` já derruba os tetos; a linha existe para as
+  // duas cópias continuarem sendo a mesma função.
+  if (!ehMarca && ehOfertaAberta !== true && !ehPro(assinatura)) {
     const { count } = await supabase
       .from('creator_links')
       .select('id', { count: 'exact', head: true })
@@ -432,7 +468,10 @@ export async function criarLinkBio(
   // depois de um reload manual.
   // Só busca prévia quando não há capa própria: quem já escolheu a imagem não
   // precisa esperar por um palpite que não vai ser usado.
-  const previa = capaUrl || ehDivisor ? null : await guardarPrevia(user.id, urlValida!)
+  // Marca fica de fora da busca de prévia junto com o divisor: a `og:image` do
+  // site da marca é peça de campanha, não logotipo — usá-la como reserva
+  // desenharia a foto errada com a confiança de quem acertou.
+  const previa = capaUrl || ehDivisor || ehMarca ? null : await guardarPrevia(user.id, urlValida!)
 
   const { data: criado, error } = await supabase
     .from('creator_links')
@@ -500,6 +539,21 @@ export async function atualizarLinkBio(
   // `null` explícito remove a capa; `undefined` deixa como está. Sem essa
   // distinção não haveria como voltar um card para o bloco tingido.
   if (campos.capaUrl !== undefined) update.capa_url = campos.capaUrl || null
+
+  // A mesma trava de `criarLinkBio`, do lado da edição: tirar a logo de uma
+  // marca a apagaria da página sem apagá-la do editor. Quem quer a marca fora
+  // do carrossel a remove ou a desliga — as duas saídas são visíveis; esta
+  // não era.
+  if (campos.capaUrl !== undefined && !campos.capaUrl) {
+    const { data: alvo } = await supabase
+      .from('creator_links')
+      .select('tipo')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (alvo?.tipo === 'marca') return { error: 'logo_obrigatoria' as const }
+  }
 
   /**
    * Escolheu um formato que desenha imagem, e não há imagem nenhuma: puxa a do

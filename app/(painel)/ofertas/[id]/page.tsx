@@ -2,14 +2,15 @@ import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 import {
-  AtSign, Handshake, Image as ImageIcon, Link2, Palette, Power, Send, Sparkles, Users,
+  AtSign, Handshake, Image as ImageIcon, Link2, Palette, Power, Send, Sparkles, Store, Users,
 } from 'lucide-react'
 
-import { getConfigBio, getLinksBio } from '@/app/actions/bio'
+import { getConfigBio, getLinksBio, getMarcasBio } from '@/app/actions/bio'
 import { getCliquesPorLink } from '@/app/actions/bio-analytics'
 import { BioPerfilCard } from '@/components/bio/bio-perfil-card'
 import { BioRedesCard } from '@/components/bio/bio-redes-card'
 import { BioLinksCard } from '@/components/bio/bio-links-card'
+import { BioMarcasCard } from '@/components/bio/bio-marcas-card'
 import { BioCorFundo } from '@/components/bio/bio-cor-fundo'
 import { SecaoBio } from '@/components/bio/secao-bio'
 import { ToggleBio } from '@/components/bio/toggle-bio'
@@ -50,9 +51,10 @@ export default async function EditorDaOferta({ params }: { params: Promise<{ id:
 
   const supabase = await createClient()
 
-  const [config, links, cliques, perfilRes, redesRes, ofertaRes] = await Promise.all([
+  const [config, links, marcas, cliques, perfilRes, redesRes, ofertaRes] = await Promise.all([
     getConfigBio(),
     getLinksBio(),
+    getMarcasBio(),
     getCliquesPorLink(alvo.userId),
     supabase.from('profiles').select('full_name, avatar_url').eq('id', alvo.userId).maybeSingle(),
     supabase
@@ -163,12 +165,26 @@ export default async function EditorDaOferta({ params }: { params: Promise<{ id:
             }
           />
 
-          <SecaoBio indice={5} icone={Link2} titulo={t('secaoLinks')} resumo={t('secaoLinksDesc')}>
+          {/* As marcas parceiras entram entre o botão de proposta e a lista —
+              a mesma ordem da página pública e da tela `/profile` do app. Numa
+              oferta é a seção que mais chega preenchida sozinha: o importador
+              do link.me traz o carrossel BRAND AFFILIATES pronto, e é aqui que
+              você confere logo por logo antes de mandar. */}
+          <SecaoBio
+            indice={5}
+            icone={Store}
+            titulo={t('secaoMarcas')}
+            resumo={t('secaoMarcasDesc')}
+          >
+            <BioMarcasCard userId={alvo.userId} marcasIniciais={marcas} cliques={cliques} />
+          </SecaoBio>
+
+          <SecaoBio indice={6} icone={Link2} titulo={t('secaoLinks')} resumo={t('secaoLinksDesc')}>
             <BioLinksCard userId={alvo.userId} linksIniciais={links} cliques={cliques} pro />
           </SecaoBio>
 
           <SecaoBio
-            indice={6}
+            indice={7}
             icone={Sparkles}
             titulo={t('secaoRodape')}
             resumo={t('esconderMarcaDesc')}

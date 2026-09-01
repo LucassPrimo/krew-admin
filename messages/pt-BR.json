@@ -1658,7 +1658,16 @@
     "categoriaEstilo": "Estilo de vida",
     "categoriaOutros": "Outros",
     "redesAnterior": "Categoria anterior",
-    "redesProxima": "Próxima categoria"
+    "redesProxima": "Próxima categoria",
+    "secaoMarcas": "Marcas parceiras",
+    "secaoMarcasDesc": "O carrossel de logos acima da lista de links",
+    "marcasVazio": "Nenhuma marca ainda.",
+    "adicionarMarca": "Adicionar marca",
+    "marcaNomePlaceholder": "Nome da marca",
+    "marcaUrlPlaceholder": "https://site-da-marca.com",
+    "marcaLogo": "Logo",
+    "logoObrigatoria": "Escolha a logo da marca.",
+    "editarMarcaDica": "Clique no nome ou no link para editar. Arraste pela alça para reordenar."
   },
   "aparencia": {
     "title": "Aparência",
