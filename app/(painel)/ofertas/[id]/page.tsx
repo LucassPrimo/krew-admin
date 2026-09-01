@@ -149,29 +149,13 @@ export default async function EditorDaOferta({ params }: { params: Promise<{ id:
             }
           />
 
+          {/* A ordem desta coluna é a da página pública, igual à tela
+              `/profile` do app. Numa oferta as marcas são a seção que mais
+              chega preenchida sozinha: o importador do link.me traz o
+              carrossel BRAND AFFILIATES pronto, e é aqui que você confere logo
+              por logo antes de mandar. */}
           <SecaoBio
             indice={4}
-            icone={Send}
-            titulo={t('secaoPropostas')}
-            resumo={t('mostrarPropostasDesc')}
-            acao={
-              <ToggleBio
-                campo="bio_mostrar_propostas"
-                inicial={config?.bio_mostrar_propostas ?? true}
-                pro
-                temPro
-                rotulo={t('mostrarPropostas')}
-              />
-            }
-          />
-
-          {/* As marcas parceiras entram entre o botão de proposta e a lista —
-              a mesma ordem da página pública e da tela `/profile` do app. Numa
-              oferta é a seção que mais chega preenchida sozinha: o importador
-              do link.me traz o carrossel BRAND AFFILIATES pronto, e é aqui que
-              você confere logo por logo antes de mandar. */}
-          <SecaoBio
-            indice={5}
             icone={Store}
             titulo={t('secaoMarcas')}
             resumo={
@@ -189,9 +173,33 @@ export default async function EditorDaOferta({ params }: { params: Promise<{ id:
             />
           </SecaoBio>
 
-          <SecaoBio indice={6} icone={Link2} titulo={t('secaoLinks')} resumo={t('secaoLinksDesc')}>
+          <SecaoBio
+            indice={5}
+            icone={Link2}
+            titulo={t('secaoLinks')}
+            resumo={
+              links.length > 0 ? t('linksContagem', { n: links.length }) : t('secaoLinksDesc')
+            }
+            recolhivel
+          >
             <BioLinksCard userId={alvo.userId} linksIniciais={links} cliques={cliques} pro />
           </SecaoBio>
+
+          <SecaoBio
+            indice={6}
+            icone={Send}
+            titulo={t('secaoPropostas')}
+            resumo={t('mostrarPropostasDesc')}
+            acao={
+              <ToggleBio
+                campo="bio_mostrar_propostas"
+                inicial={config?.bio_mostrar_propostas ?? true}
+                pro
+                temPro
+                rotulo={t('mostrarPropostas')}
+              />
+            }
+          />
 
           <SecaoBio
             indice={7}

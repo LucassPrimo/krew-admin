@@ -253,10 +253,19 @@ export function PreviaItem({
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={capa!} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        {/* O véu chapado de 10%, igual em todos os formatos — o mesmo
-            `.card::after` da página. Prévia que desenha um contraste e página
-            que entrega outro é pior do que não ter prévia. */}
-        <span aria-hidden className="absolute inset-0 bg-black/10" />
+        {/* O MESMO véu da página (`.card::after`): 10% chapado na foto inteira
+            e uma rampa de 45% a 25% no pé, onde o título mora. Escrito à mão
+            porque o degradê de quatro paradas não cabe numa classe do Tailwind
+            — e prévia que desenha um contraste e página que entrega outro é
+            pior do que não ter prévia. */}
+        <span
+          aria-hidden
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(to top, rgb(0 0 0 / 0.45) 0%, rgb(0 0 0 / 0.25) 32%, rgb(0 0 0 / 0.1) 55%, rgb(0 0 0 / 0.1) 100%)',
+          }}
+        />
         <span className="absolute top-2 left-2">{selo}</span>
         <span className="absolute inset-x-0 bottom-0 px-3 pb-3">
           <span

@@ -1670,7 +1670,8 @@
     "editarMarcaDica": "Clique no nome ou no link para editar. Arraste pela alça para reordenar.",
     "marcasNome": "Mostrar o nome da marca",
     "marcasNomeDesc": "Escreve o nome sobre a logo. Útil quando a arte é só um ícone.",
-    "marcasContagem": "{n} marca(s) no carrossel"
+    "marcasContagem": "{n} marca(s) no carrossel",
+    "linksContagem": "{n} item(ns) na lista"
   },
   "aparencia": {
     "title": "Aparência",
