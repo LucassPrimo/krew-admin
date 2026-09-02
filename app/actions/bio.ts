@@ -25,7 +25,7 @@ import type { TipoItem, EstiloItem } from '@/lib/bio/tipos'
  * `'use server'` só pode exportar funções async. Exportar um array derruba o
  * build com "can only export async functions, found object".
  */
-const TIPOS_ITEM: TipoItem[] = ['link', 'divisor', 'marca']
+const TIPOS_ITEM: TipoItem[] = ['link', 'divisor', 'marca', 'spotify']
 const ESTILOS_ITEM: EstiloItem[] = ['grande', 'metade', 'metade_alta', 'meio', 'botao']
 
 /**
@@ -70,10 +70,6 @@ export interface ConfigBio {
   bio_esconder_marca: boolean
   /** Nome da marca sobre a logo, no carrossel de parcerias. */
   bio_marcas_nome: boolean
-  /** Link do Spotify exibido como player. Null = sem player. */
-  bio_spotify_url: string | null
-  /** Linha acima do player ("Escute agora"). Opcional. */
-  bio_spotify_titulo: string | null
   /** Selo concedido pela Krew. Só de leitura aqui — é o que libera a capa em
    *  vídeo, e ninguém o concede a si mesmo. */
   bio_verificado: boolean
@@ -89,7 +85,7 @@ export async function getConfigBio() {
   const { data } = await supabase
     .from('proposal_pages')
     .select(
-      'slug, bio_ativo, bio_bg_color, bio_capa_url, bio_headline, bio_texto, bio_mostrar_seguidores, bio_mostrar_propostas, bio_esconder_marca, bio_marcas_nome, bio_spotify_url, bio_spotify_titulo, bio_verificado'
+      'slug, bio_ativo, bio_bg_color, bio_capa_url, bio_headline, bio_texto, bio_mostrar_seguidores, bio_mostrar_propostas, bio_esconder_marca, bio_marcas_nome, bio_verificado'
     )
     .eq('user_id', user.id)
     .maybeSingle()
@@ -143,8 +139,6 @@ export async function atualizarConfigBio(campo: keyof ConfigBio, valor: boolean 
     'bio_esconder_marca',
     // Fora de `CAMPOS_PAGOS`: o carrossel de parcerias inteiro é gratuito.
     'bio_marcas_nome',
-    'bio_spotify_url',
-    'bio_spotify_titulo',
   ]
   if (!CAMPOS.includes(campo)) return { error: 'Campo inválido.' }
 
@@ -225,13 +219,6 @@ export async function atualizarConfigBio(campo: keyof ConfigBio, valor: boolean 
   // um formato, e um valor fora dele seria recusado pelo CHECK da coluna com
   // uma mensagem de Postgres na cara da pessoa. Hex inválido vira null — que
   // é "volta ao padrão", o mesmo efeito do botão de limpar.
-  // O link do Spotify é conferido ANTES de gravar: guardar um que não vira
-  // player publicaria um quadro cinza escrito "content not available" na
-  // página. Ver o comentário completo no arquivo do krew-app.
-  if (campo === 'bio_spotify_url' && typeof valor === 'string' && valor.trim()) {
-    if (!embedDoSpotify(valor)) return { error: 'spotify_invalido' as const }
-  }
-
   const limpo =
     campo === 'bio_bg_color'
       ? normalizarCorFundo(valor)
@@ -428,8 +415,20 @@ export async function criarLinkBio(
   // ele é uma linha de texto entre dois blocos.
   const ehDivisor = tipo === 'divisor'
   const ehMarca = tipo === 'marca'
+  const ehSpotify = tipo === 'spotify'
   const urlValida = ehDivisor ? null : validarUrl(url)
   if (!ehDivisor && !urlValida) return { error: 'url_invalida' as const }
+
+  /**
+   * O link do player é conferido ANTES de gravar, e recusado quando não vira
+   * embed.
+   *
+   * Um link qualquer passaria pelo `validarUrl` (é http, é URL) e viraria um
+   * item que a página não desenha — gravado no editor, invisível na bio. A
+   * mesma armadilha da marca sem logo, e a mesma saída: barrar aqui, com
+   * mensagem, em vez de deixar o defeito aparecer só na página publicada.
+   */
+  if (ehSpotify && !embedDoSpotify(urlValida)) return { error: 'spotify_invalido' as const }
 
   // Marca sem logo não é recusada pelo banco — é o SELECT da página que a
   // ignora (ver a migration `20260901120000`). Barrar aqui é o que impede a
@@ -458,11 +457,15 @@ export async function criarLinkBio(
   // forma, porque `ehOfertaAberta` já derruba os tetos; a linha existe para as
   // duas cópias continuarem sendo a mesma função.
   if (!ehMarca && ehOfertaAberta !== true && !ehPro(assinatura)) {
+    // Player conta junto com link, não numa cota própria: os dois ocupam uma
+    // linha da lista e é isso que o teto do Free mede. Cotas separadas dariam
+    // 3 links MAIS 3 players de graça, que não é o limite que a tela promete.
+    const tiposDaCota = ehDivisor ? ['divisor'] : ['link', 'spotify']
     const { count } = await supabase
       .from('creator_links')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', user.id)
-      .eq('tipo', tipo)
+      .in('tipo', tiposDaCota)
 
     const limite = ehDivisor ? LIMITE_SECOES_FREE : LIMITE_LINKS_FREE
     if ((count ?? 0) >= limite) {
@@ -489,7 +492,8 @@ export async function criarLinkBio(
   // Marca fica de fora da busca de prévia junto com o divisor: a `og:image` do
   // site da marca é peça de campanha, não logotipo — usá-la como reserva
   // desenharia a foto errada com a confiança de quem acertou.
-  const previa = capaUrl || ehDivisor || ehMarca ? null : await guardarPrevia(user.id, urlValida!)
+  const previa =
+    capaUrl || ehDivisor || ehMarca || ehSpotify ? null : await guardarPrevia(user.id, urlValida!)
 
   const { data: criado, error } = await supabase
     .from('creator_links')
@@ -541,6 +545,21 @@ export async function atualizarLinkBio(
   if (campos.url !== undefined) {
     const urlValida = validarUrl(campos.url)
     if (!urlValida) return { error: 'url_invalida' as const }
+
+    // Trocar o link de um player por algo que não é Spotify apagaria o item da
+    // página sem apagá-lo do editor — a mesma trava da criação, do lado da
+    // edição.
+    const { data: alvoUrl } = await supabase
+      .from('creator_links')
+      .select('tipo')
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (alvoUrl?.tipo === 'spotify' && !embedDoSpotify(urlValida)) {
+      return { error: 'spotify_invalido' as const }
+    }
+
     update.url = urlValida
     // URL nova, prévia nova: a antiga é de outra página. `null` quando não se
     // acha nada, senão o card ficaria com a imagem do site anterior.

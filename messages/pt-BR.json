@@ -1672,14 +1672,10 @@
     "marcasNomeDesc": "Escreve o nome sobre a logo. Útil quando a arte é só um ícone.",
     "marcasContagem": "{n} marca(s) no carrossel",
     "linksContagem": "{n} item(ns) na lista",
-    "secaoSpotify": "Player do Spotify",
-    "secaoSpotifyDesc": "Uma faixa, álbum ou playlist com play na própria página",
-    "spotifyUrl": "Link do Spotify",
     "spotifyUrlPlaceholder": "https://open.spotify.com/playlist/...",
-    "spotifyTitulo": "Título acima do player",
-    "spotifyTituloPlaceholder": "Escute agora",
     "spotifyDica": "Copie o link no app ou no site. Links encurtados (spotify.link) não funcionam.",
-    "spotifyInvalido": "Esse link não abre um player do Spotify. Cole o link completo da faixa, álbum ou playlist."
+    "spotifyInvalido": "Esse link não abre um player do Spotify. Cole o link completo da faixa, álbum ou playlist.",
+    "adicionarSpotify": "Adicionar player"
   },
   "aparencia": {
     "title": "Aparência",

@@ -22,13 +22,13 @@ export interface BioRede {
 
 /** Link clicável ou título de seção. O divisor não tem URL. */
 /**
- * `marca` é a logo do carrossel de marcas parceiras (ver a migration
- * `20260901120000` no repo do app). Está aqui porque o CHECK de
- * `creator_links.tipo` é o mesmo banco — um valor a menos deste lado vira erro
- * de constraint no insert da oferta, que é exatamente o que aconteceu com o
- * `'pequeno'` inventado no importador.
+ * `spotify` é o player embutido, que mora na lista para poder ser arrastado
+ * entre os links (migration `20260902120000` no repo do app). `marca` é a logo
+ * do carrossel de parcerias. Os quatro valores são os do CHECK de
+ * `creator_links.tipo`: um a menos deste lado vira erro de constraint no
+ * insert da oferta.
  */
-export type TipoItem = 'link' | 'divisor' | 'marca'
+export type TipoItem = 'link' | 'divisor' | 'marca' | 'spotify'
 
 /**
  * Como o card é desenhado. Os três formatos da página de referência, mais o

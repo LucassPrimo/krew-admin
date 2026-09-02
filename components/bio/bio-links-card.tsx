@@ -6,6 +6,7 @@ import {
   GripVertical,
   Heading,
   Loader2,
+  Music,
   Plus,
   Rows3,
   Square,
@@ -53,7 +54,7 @@ interface ItemBio {
   capa_url: string | null
   /** Capa automática (og:image do site). Só vale quando não há capa própria. */
   preview_url: string | null
-  tipo: 'link' | 'divisor'
+  tipo: 'link' | 'divisor' | 'spotify'
   estilo: EstiloItem
   ordem: number
   ativo: boolean
@@ -142,11 +143,12 @@ export function BioLinksCard({
    * Colar um link do YouTube volta o formato para `grande`.
    *
    * Vídeo pede a linha inteira: `grande` é o único formato em que o card vira
-   * o player de verdade na página, e meia largura transformaria um vídeo em
-   * miniatura espremida ao lado de outro card.
+   * o player de verdade (ver `CardCapa` em `bio-perfil.tsx`), e meia largura
+   * transformaria um vídeo em miniatura espremida ao lado de outro card.
    *
-   * SUGESTÃO, não trava: os cinco formatos continuam clicáveis, e trocar
-   * depois de colar a URL vale — o ajuste só acontece quando a URL muda.
+   * SUGESTÃO, não trava: os quatro formatos continuam clicáveis, e trocar
+   * depois de colar a URL vale — o ajuste só acontece quando a URL muda, e
+   * nunca por cima de uma escolha feita em seguida.
    */
   function trocarUrl(valor: string) {
     setUrl(valor)
@@ -155,17 +157,26 @@ export function BioLinksCard({
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
-  const totalLinks = itens.filter((i) => i.tipo === 'link').length
+  // Player conta junto com link: os dois ocupam uma linha da lista, e é isso
+  // que o teto do Free mede (a action faz a mesma conta — ver `criarLinkBio`).
+  const totalLinks = itens.filter((i) => i.tipo === 'link' || i.tipo === 'spotify').length
   const totalSecoes = itens.filter((i) => i.tipo === 'divisor').length
   const linkBloqueado = !pro && totalLinks >= LIMITE_LINKS_FREE
   const secaoBloqueada = !pro && totalSecoes >= LIMITE_SECOES_FREE
 
-  function criar(tipo: 'link' | 'divisor') {
+  function criar(tipo: 'link' | 'divisor' | 'spotify') {
     setErro(null)
     startTransition(async () => {
-      // O divisor não tem card, então o formato não o alcança — vai 'grande'
-      // como sempre foi, e o campo fica inerte no banco.
-      const r = await criarLinkBio(titulo, url, capa, tipo, tipo === 'link' ? novoEstilo : 'grande')
+      // Divisor e player não têm card, então o formato não os alcança — vai
+      // 'grande' como sempre foi, e o campo fica inerte no banco. O player
+      // também não leva capa: quem desenha a arte é o próprio Spotify.
+      const r = await criarLinkBio(
+        titulo,
+        url,
+        tipo === 'spotify' ? null : capa,
+        tipo,
+        tipo === 'link' ? novoEstilo : 'grande'
+      )
       if (r?.error) {
         setErro(
           r.error === 'url_invalida'
@@ -176,7 +187,9 @@ export function BioLinksCard({
                 ? t('limiteLinks')
                 : r.error === 'limite_secoes'
                   ? t('limiteSecoes')
-                  : r.error
+                  : r.error === 'spotify_invalido'
+                    ? t('spotifyInvalido')
+                    : r.error
         )
         return
       }
@@ -321,8 +334,6 @@ export function BioLinksCard({
             card que vai ser criado, não um ícone representando-o. */}
         {(titulo.trim() || url.trim() || capa) && (
           <SeletorFormato
-            // Pelo PAR (estilo, capa), igual às linhas da lista: sem capa o
-            // desenho é botão, e o aviso do próprio seletor explica por quê.
             formato={formatoDoItem(novoEstilo)}
             titulo={titulo}
             capa={capa}
@@ -362,6 +373,21 @@ export function BioLinksCard({
             {t('adicionarDivisor')}
           </button>
           {secaoBloqueada && <Badge className="h-4 px-1.5 text-[10px]">{t('pro')}</Badge>}
+
+          {/* O player usa os MESMOS dois campos: a URL é o link do Spotify e o
+              título é a linha acima do quadro ("Escute agora"). Um terceiro
+              formulário só para ele repetiria tudo para mudar uma validação —
+              que é justamente o que o `tipo` já resolve na action. O título
+              aqui é opcional: sem ele, a página desenha só o player. */}
+          <button
+            onClick={() => criar('spotify')}
+            disabled={pending || !url.trim() || linkBloqueado}
+            title={linkBloqueado ? t('limiteLinks') : t('spotifyDica')}
+            className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground disabled:opacity-50"
+          >
+            <Music className="h-3.5 w-3.5" />
+            {t('adicionarSpotify')}
+          </button>
         </div>
       </div>
     </div>
@@ -396,6 +422,11 @@ function ItemArrastavel({
     id: item.id,
   })
   const ehDivisor = item.tipo === 'divisor'
+  // O player não tem capa nem formato: a arte e a forma são do quadro que o
+  // Spotify desenha. O que sobra dele na linha é o mesmo do link — título,
+  // endereço e a lixeira.
+  const ehSpotify = item.tipo === 'spotify'
+  const ehCard = !ehDivisor && !ehSpotify
 
   // A URL tem estado PRÓPRIO, ao contrário do título: ela pode ser recusada
   // (`url_invalida`), e o campo precisa de um valor para onde voltar quando
@@ -404,9 +435,11 @@ function ItemArrastavel({
   const [erroUrl, setErroUrl] = useState<string | null>(null)
   const [formatoAberto, setFormatoAberto] = useState(false)
 
-  // O formato mostrado sai do PAR (estilo, capa), não só do estilo: um card
-  // sem capa sai como botão na página, e dizer "Grande" aqui seria mentir
-  // sobre o que está publicado.
+  // O formato mostrado é o ESTILO gravado. Já foi o par (estilo, capa) — a
+  // ideia era não dizer "Grande" para um card que a página desenha como botão
+  // —, mas o preço era o seletor não obedecer ao clique enquanto não houvesse
+  // imagem. Quem conta essa verdade agora é a prévia dentro do seletor, que
+  // desenha o botão e explica o porquê, sem sequestrar a escolha.
   const formatoAtual = formatoDoItem(item.estilo)
   const formatoAtualDef = FORMATOS.find((f) => f.chave === formatoAtual)!
   const FormatoIcone = formatoAtualDef.icone
@@ -447,7 +480,7 @@ function ItemArrastavel({
           <GripVertical className="h-4 w-4" />
         </button>
 
-        {!ehDivisor && (
+        {ehCard && (
           <CapaPicker
             userId={userId}
             capaUrl={item.capa_url}
@@ -455,6 +488,15 @@ function ItemArrastavel({
             proporcao={proporcaoDoFormato(formatoAtual)}
             onChange={onCapa}
           />
+        )}
+
+        {/* No lugar da capa, o sinal de que aquela linha é um player — sem
+            ele, um item do Spotify e um link sem arte ficam idênticos na
+            lista. */}
+        {ehSpotify && (
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
+            <Music className="h-4 w-4" />
+          </span>
         )}
 
         <div className="flex min-w-0 flex-1 flex-col">
@@ -501,7 +543,7 @@ function ItemArrastavel({
                 }
               }}
               inputMode="url"
-              placeholder={t('urlPlaceholder')}
+              placeholder={ehSpotify ? t('spotifyUrlPlaceholder') : t('urlPlaceholder')}
               aria-label={t('urlLink')}
               aria-invalid={!!erroUrl}
               title={t('editarCampoDica')}
@@ -513,7 +555,7 @@ function ItemArrastavel({
           {erroUrl && <span className="text-[11px] text-destructive">{erroUrl}</span>}
         </div>
 
-        {!ehDivisor && cliquesDoLink > 0 && (
+        {ehCard && cliquesDoLink > 0 && (
           <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
             {cliquesDoLink}
           </span>
@@ -523,7 +565,7 @@ function ItemArrastavel({
           embaixo, dentro do próprio item. Os três ícones de 16px que moravam
           aqui pediam para adivinhar a diferença entre "grande" e "médio" por
           um desenho de retângulo; o seletor de baixo mostra o card. */}
-        {!ehDivisor && (
+        {ehCard && (
           <button
             type="button"
             onClick={() => setFormatoAberto((v) => !v)}
@@ -550,7 +592,7 @@ function ItemArrastavel({
         </button>
       </div>
 
-      {formatoAberto && !ehDivisor && (
+      {formatoAberto && ehCard && (
         <div className="border-t border-border pt-2">
           <SeletorFormato
             formato={formatoAtual}
