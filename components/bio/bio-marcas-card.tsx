@@ -27,6 +27,7 @@ import {
 } from '@/app/actions/bio'
 import { CapaPicker } from '@/components/bio/capa-picker'
 import { ToggleBio } from '@/components/bio/toggle-bio'
+import { Modal, ModalRodape } from '@/components/ui/modal'
 
 /**
  * Proporção do recorte da logo: a mesma do card do carrossel.
@@ -91,6 +92,7 @@ export function BioMarcasCard({
   const [url, setUrl] = useState('')
   const [logo, setLogo] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
+  const [aberto, setAberto] = useState(false)
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
@@ -116,7 +118,24 @@ export function BioMarcasCard({
       setNome('')
       setUrl('')
       setLogo(null)
+      setAberto(false)
     })
+  }
+
+  /**
+   * Abre o modal com os campos em branco.
+   *
+   * Limpar na ABERTURA, e não ao fechar: quem cancela no meio pode ter fechado
+   * sem querer, e reabrir devolvendo o formulário vazio seria perder o que já
+   * tinha sido digitado por um clique fora. Aqui o vazio é escolha de quem
+   * pediu uma marca nova.
+   */
+  function abrirNovo() {
+    setNome('')
+    setUrl('')
+    setLogo(null)
+    setErro(null)
+    setAberto(true)
   }
 
   function handleRemover(id: string) {
@@ -232,7 +251,28 @@ export function BioMarcasCard({
         </>
       )}
 
-      <div className="flex flex-col gap-2 border-t border-border pt-3">
+      {/* O formulário mora num modal, e não aberto embaixo da lista. Dois
+          campos vazios e um seletor de logo permanentes eram ruído fixo para
+          uma ação ocasional — e, com a lista crescendo acima deles, o que se
+          via ao rolar até o fim era sempre um formulário em branco. O botão
+          anuncia a ação; o formulário só existe enquanto ela dura. */}
+      <div className="border-t border-border pt-3">
+        <button
+          type="button"
+          onClick={abrirNovo}
+          className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          {t('adicionarMarca')}
+        </button>
+      </div>
+
+      <Modal
+        aberto={aberto}
+        aoFechar={() => setAberto(false)}
+        titulo={t('adicionarMarca')}
+        rotuloFechar={t('cancelar')}
+      >
         <div className="flex items-start gap-2">
           <CapaPicker
             userId={userId}
@@ -246,6 +286,7 @@ export function BioMarcasCard({
               value={nome}
               onChange={(e) => setNome(e.target.value)}
               maxLength={80}
+              autoFocus
               placeholder={t('marcaNomePlaceholder')}
               className="h-9 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary"
             />
@@ -261,12 +302,20 @@ export function BioMarcasCard({
 
         {erro && <p className="text-xs text-destructive">{erro}</p>}
 
-        <div>
+        <ModalRodape>
           <button
+            type="button"
+            onClick={() => setAberto(false)}
+            className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground"
+          >
+            {t('cancelar')}
+          </button>
+          <button
+            type="button"
             onClick={criar}
             disabled={pending || !nome.trim() || !url.trim() || !logo}
             title={!logo ? t('logoObrigatoria') : undefined}
-            className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+            className="flex items-center justify-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
           >
             {pending ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -275,8 +324,8 @@ export function BioMarcasCard({
             )}
             {t('adicionarMarca')}
           </button>
-        </div>
-      </div>
+        </ModalRodape>
+      </Modal>
     </div>
   )
 }

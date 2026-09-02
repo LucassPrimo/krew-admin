@@ -38,6 +38,7 @@ import {
 import type { EstiloItem } from '@/lib/bio/tipos'
 import { LIMITE_LINKS_FREE, LIMITE_SECOES_FREE } from '@/lib/plano'
 import { CapaPicker } from '@/components/bio/capa-picker'
+import { Modal, ModalRodape } from '@/components/ui/modal'
 import {
   FORMATOS,
   SeletorFormato,
@@ -119,6 +120,15 @@ export function BioLinksCard({
   // ninguém escolheu. Escolher aqui é escolher uma vez.
   const [novoEstilo, setNovoEstilo] = useState<EstiloItem>('grande')
   const [erro, setErro] = useState<string | null>(null)
+  /**
+   * Qual formulário está aberto no modal — e `null` quando nenhum está.
+   *
+   * Um estado só para os três verbos, e não um booleano por botão: eles são
+   * mutuamente exclusivos por definição (um item nasce link OU divisor OU
+   * player), e é o mesmo valor que decide o título, os campos e o `tipo` que
+   * vai para a action.
+   */
+  const [modal, setModal] = useState<'link' | 'divisor' | 'spotify' | null>(null)
 
   /**
    * Recolhe a prévia que o servidor foi buscar durante o salvamento.
@@ -198,7 +208,24 @@ export function BioLinksCard({
       setUrl('')
       setCapa(null)
       setNovoEstilo('grande')
+      setModal(null)
     })
+  }
+
+  /**
+   * Abre o modal daquele verbo com os campos em branco.
+   *
+   * Limpa na ABERTURA, e não ao fechar: quem some com o modal sem querer (um
+   * clique fora, um Esc) reabre e encontra o que já tinha escrito. O vazio é
+   * de quem pediu um item novo.
+   */
+  function abrirNovo(tipo: 'link' | 'divisor' | 'spotify') {
+    setTitulo('')
+    setUrl('')
+    setCapa(null)
+    setNovoEstilo('grande')
+    setErro(null)
+    setModal(tipo)
   }
 
   function handleRemover(id: string) {
@@ -297,42 +324,107 @@ export function BioLinksCard({
         </>
       )}
 
-      <div className="flex flex-col gap-2 border-t border-border pt-3">
+      {/* Os três verbos, e nada mais. O formulário que morava aberto aqui
+          embaixo — capa, dois campos e o seletor de formato — ficava sempre no
+          fim da lista, em branco, para uma ação que acontece de vez em quando:
+          quem rolava até o fim para conferir os links via um formulário vazio.
+          Agora cada botão diz o que cria, e os campos aparecem no modal, já
+          recortados no que aquele tipo usa. */}
+      <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
+        <button
+          type="button"
+          onClick={() => abrirNovo('link')}
+          disabled={linkBloqueado}
+          title={linkBloqueado ? t('limiteLinks') : undefined}
+          className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          {t('adicionarLink')}
+        </button>
+        {linkBloqueado && <Badge className="h-4 px-1.5 text-[10px]">{t('pro')}</Badge>}
+
+        <button
+          type="button"
+          onClick={() => abrirNovo('divisor')}
+          disabled={secaoBloqueada}
+          title={secaoBloqueada ? t('limiteSecoes') : t('adicionarDivisorDica')}
+          className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground disabled:opacity-50"
+        >
+          <Heading className="h-3.5 w-3.5" />
+          {t('adicionarDivisor')}
+        </button>
+        {secaoBloqueada && <Badge className="h-4 px-1.5 text-[10px]">{t('pro')}</Badge>}
+
+        <button
+          type="button"
+          onClick={() => abrirNovo('spotify')}
+          disabled={linkBloqueado}
+          title={linkBloqueado ? t('limiteLinks') : t('spotifyDica')}
+          className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground disabled:opacity-50"
+        >
+          <Music className="h-3.5 w-3.5" />
+          {t('adicionarSpotify')}
+        </button>
+      </div>
+
+      <Modal
+        aberto={modal !== null}
+        aoFechar={() => setModal(null)}
+        titulo={
+          modal === 'divisor'
+            ? t('adicionarDivisor')
+            : modal === 'spotify'
+              ? t('adicionarSpotify')
+              : t('adicionarLink')
+        }
+        rotuloFechar={t('cancelar')}
+      >
         <div className="flex items-start gap-2">
-          {/* O recorte segue o FORMATO escolhido: enquadrar num quadro e
-              desenhar em outro é a definição de recorte frustrado — a pessoa
-              centraliza o rosto, salva, e o card corta a cabeça. */}
-          <CapaPicker
-            userId={userId}
-            capaUrl={capa}
-            proporcao={proporcaoDoFormato(formatoDoItem(novoEstilo))}
-            onChange={setCapa}
-          />
+          {/* Só o link tem capa: o divisor é texto, e a arte do player é
+              desenhada pelo próprio Spotify. O recorte segue o FORMATO
+              escolhido — enquadrar num quadro e desenhar em outro é a
+              definição de recorte frustrado. */}
+          {modal === 'link' && (
+            <CapaPicker
+              userId={userId}
+              capaUrl={capa}
+              proporcao={proporcaoDoFormato(formatoDoItem(novoEstilo))}
+              onChange={setCapa}
+            />
+          )}
           <div className="flex flex-1 flex-col gap-2">
             <input
               value={titulo}
               onChange={(e) => setTitulo(e.target.value)}
               maxLength={80}
+              autoFocus
               placeholder={t('tituloPlaceholder')}
               className="h-9 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary"
             />
-            <input
-              value={url}
-              onChange={(e) => trocarUrl(e.target.value)}
-              inputMode="url"
-              placeholder={t('urlPlaceholder')}
-              className="h-9 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary"
-            />
+            {/* O divisor ignora a URL: ele é só o título que separa blocos. */}
+            {modal !== 'divisor' && (
+              <input
+                value={url}
+                onChange={(e) => trocarUrl(e.target.value)}
+                inputMode="url"
+                placeholder={modal === 'spotify' ? t('spotifyUrlPlaceholder') : t('urlPlaceholder')}
+                className="h-9 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+              />
+            )}
           </div>
         </div>
 
-        {/* O seletor só aparece quando já há o que desenhar. Em repouso o
-            formulário são dois campos e dois botões; mostrar uma prévia vazia
-            e quatro formatos antes de existir link seria encher a tela com uma
-            escolha que ainda não tem sobre o quê incidir. Assim que se digita
-            um título ou se escolhe uma capa, ele entra — e o que aparece é o
-            card que vai ser criado, não um ícone representando-o. */}
-        {(titulo.trim() || url.trim() || capa) && (
+        {modal === 'spotify' && <p className="text-xs text-muted-foreground">{t('spotifyDica')}</p>}
+        {modal === 'divisor' && (
+          <p className="text-xs text-muted-foreground">{t('adicionarDivisorDica')}</p>
+        )}
+
+        {/* O seletor só aparece quando já há o que desenhar: uma prévia vazia e
+            quatro formatos antes de existir link seria uma escolha sem sobre o
+            quê incidir. Assim que se digita um título ou se escolhe uma capa,
+            ele entra — e o que aparece é o card que vai ser criado, não um
+            ícone representando-o. */}
+        {modal === 'link' && (titulo.trim() || url.trim() || capa) && (
           <SeletorFormato
             formato={formatoDoItem(novoEstilo)}
             titulo={titulo}
@@ -344,52 +436,36 @@ export function BioLinksCard({
 
         {erro && <p className="text-xs text-destructive">{erro}</p>}
 
-        {/* Dois botões, um campo. O divisor ignora a URL e a capa — é só o
-            título — e por isso não precisa de um formulário próprio: precisa de
-            um segundo verbo sobre o mesmo campo. */}
-        <div className="flex flex-wrap items-center gap-2">
+        <ModalRodape>
           <button
-            onClick={() => criar('link')}
-            disabled={pending || !titulo.trim() || !url.trim() || linkBloqueado}
-            title={linkBloqueado ? t('limiteLinks') : undefined}
-            className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+            type="button"
+            onClick={() => setModal(null)}
+            className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground"
+          >
+            {t('cancelar')}
+          </button>
+          <button
+            type="button"
+            onClick={() => modal && criar(modal)}
+            disabled={
+              pending ||
+              // O player dispensa título (sem ele a página desenha só o quadro)
+              // e o divisor dispensa URL — a mesma regra que a action aplica do
+              // outro lado.
+              (modal !== 'spotify' && !titulo.trim()) ||
+              (modal !== 'divisor' && !url.trim())
+            }
+            className="flex items-center justify-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-50"
           >
             {pending ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
               <Plus className="h-3.5 w-3.5" />
             )}
-            {t('adicionarLink')}
+            {t('adicionar')}
           </button>
-          {linkBloqueado && <Badge className="h-4 px-1.5 text-[10px]">{t('pro')}</Badge>}
-
-          <button
-            onClick={() => criar('divisor')}
-            disabled={pending || !titulo.trim() || secaoBloqueada}
-            title={secaoBloqueada ? t('limiteSecoes') : t('adicionarDivisorDica')}
-            className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground disabled:opacity-50"
-          >
-            <Heading className="h-3.5 w-3.5" />
-            {t('adicionarDivisor')}
-          </button>
-          {secaoBloqueada && <Badge className="h-4 px-1.5 text-[10px]">{t('pro')}</Badge>}
-
-          {/* O player usa os MESMOS dois campos: a URL é o link do Spotify e o
-              título é a linha acima do quadro ("Escute agora"). Um terceiro
-              formulário só para ele repetiria tudo para mudar uma validação —
-              que é justamente o que o `tipo` já resolve na action. O título
-              aqui é opcional: sem ele, a página desenha só o player. */}
-          <button
-            onClick={() => criar('spotify')}
-            disabled={pending || !url.trim() || linkBloqueado}
-            title={linkBloqueado ? t('limiteLinks') : t('spotifyDica')}
-            className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-foreground disabled:opacity-50"
-          >
-            <Music className="h-3.5 w-3.5" />
-            {t('adicionarSpotify')}
-          </button>
-        </div>
-      </div>
+        </ModalRodape>
+      </Modal>
     </div>
   )
 }
