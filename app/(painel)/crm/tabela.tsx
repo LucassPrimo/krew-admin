@@ -69,17 +69,19 @@ export function TabelaLeads({
     }
   }, [selecionados.length, visiveis.length])
 
-  // O filtro mudou por baixo (a lista é recarregada pelo servidor): o que saiu
-  // da tela sai da seleção. Sem isto, agir depois de trocar de aba mexeria em
-  // linhas que você não está mais vendo.
-  useEffect(() => {
-    setMarcados((atual) => {
-      const naTela = new Set(visiveis)
-      const sobrou = [...atual].filter((id) => naTela.has(id))
-      return sobrou.length === atual.size ? atual : new Set(sobrou)
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [leads])
+  /**
+   * Marcado fora da tela não some da seleção — mas também não é tocado.
+   *
+   * As duas metades importam. A seleção SOBREVIVE ao filtro porque a busca
+   * agora recorta a cada tecla: uma letra digitada sem querer apagaria uma
+   * seleção de quarenta linhas se ela fosse limpa a cada mudança de lista. E
+   * as ações agem só sobre `selecionados`, que é a interseção com o que está à
+   * vista — então nada acontece com o que você não está vendo.
+   *
+   * A barra diz o número escondido em vez de deixar a diferença calada: "12
+   * selecionados · 3 fora do filtro" explica por que o botão vai mexer em 12.
+   */
+  const escondidos = marcados.size - selecionados.length
 
   function alternar(id: string) {
     setMarcados((atual) => {
@@ -161,6 +163,11 @@ export function TabelaLeads({
             <strong className="tabular-nums">{selecionados.length}</strong>
             <span className="text-texto-fraco">
               selecionado(s) de {visiveis.length} na tela
+              {escondidos > 0 && (
+                <span title="Marcados que o filtro atual escondeu. As ações não os alcançam.">
+                  {' '}· {escondidos} fora do filtro
+                </span>
+              )}
             </span>
             <button type="button" onClick={limpar} className="text-xs text-acento hover:underline">
               limpar

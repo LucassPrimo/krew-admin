@@ -35,6 +35,26 @@ export const ROTULO: Record<Estagio, string> = {
   perdido: 'Perdido',
 }
 
+/**
+ * A busca da lista: um termo, os campos por onde uma pessoa procura alguém.
+ *
+ * Mora aqui porque a caixa de busca passou a filtrar ENQUANTO você digita, do
+ * lado do cliente — e a regra do que conta como "casou" não pode virar uma
+ * linha solta dentro de um componente. É a mesma lista de campos que a versão
+ * com Enter usava; o que mudou foi só quem a executa e quando.
+ *
+ * Sem acento nem normalização de propósito: os campos são @, nome de fonte e
+ * handle, que na prática já vêm sem acento. Normalizar aqui daria a impressão
+ * de uma busca esperta que o resto (nome próprio digitado de dois jeitos) não
+ * cumpriria.
+ */
+export function casaBusca(l: Lead, termo: string): boolean {
+  const t = termo.trim().toLowerCase()
+  if (!t) return true
+  return [l.nome, l.instagram, l.fonte, l.slug, l.handle_pretendido, l.email]
+    .some((v) => v?.toLowerCase().includes(t))
+}
+
 /** `@fulano`, `instagram.com/fulano/` ou `fulano` viram `fulano`. */
 export function limparInstagram(bruto: string | null | undefined): string | null {
   const texto = (bruto ?? '').trim()

@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { Search } from 'lucide-react'
 
 import { Aviso, Card, Metrica, Vazio } from '@/components/ui'
 import { escritaLigada } from '@/lib/env'
@@ -8,7 +7,7 @@ import {
   ROTULO, crmInstalado, exclusaoLiberada, listarLeads, montarFunil, vencido,
 } from '@/lib/crm'
 import { Cabecalho } from './cabecalho'
-import { TabelaLeads } from './tabela'
+import { ListaLeads } from './lista'
 
 export const dynamic = 'force-dynamic'
 
@@ -71,20 +70,20 @@ export default async function CRM({ searchParams }: { searchParams: Promise<Filt
   const abertos = todos.filter((l) => l.estagioEfetivo !== 'aceito' && l.estagioEfetivo !== 'perdido')
   const aceitos = todos.filter((l) => l.estagioEfetivo === 'aceito')
 
-  const termo = (filtro.q ?? '').trim().toLowerCase()
+  // As abas filtram aqui; o TEXTO não. A busca virou instantânea e mora no
+  // cliente (ver `lista.tsx`), sobre esta mesma lista — filtrar por `q` de
+  // novo aqui só criaria o atraso que a mudança existe para tirar: apagar a
+  // busca esperaria uma volta ao servidor para as linhas reaparecerem.
   const leads = todos.filter((l) => {
     if (filtro.estagio && l.estagioEfetivo !== filtro.estagio) return false
     if (filtro.fonte && (l.fonte?.trim() || 'sem fonte') !== filtro.fonte) return false
     if (filtro.hoje === '1' && !vencido(l)) return false
-    if (!termo) return true
-    return [l.nome, l.instagram, l.fonte, l.slug, l.handle_pretendido, l.email]
-      .some((v) => v?.toLowerCase().includes(termo))
+    return true
   })
 
   // Os vencidos sobem. A ordem do banco é por criação, que é a certa para
   // "quem chegou por último"; a pergunta desta tela é outra.
   const ordenados = [...leads].sort((a, b) => Number(vencido(b)) - Number(vencido(a)))
-  const filtrando = Boolean(filtro.q || filtro.estagio || filtro.fonte || filtro.hoje)
 
   return (
     <>
@@ -247,93 +246,63 @@ export default async function CRM({ searchParams }: { searchParams: Promise<Filt
 
       <Card>
         {/* ------------------------------------------------------------------
-            O filtro é uma fileira de abas e uma busca — não um formulário com
-            três selects e um botão "filtrar". Cada aba já traz o número, então
-            a barra também RESPONDE ("tem sete parados em negociando") em vez
-            de só perguntar. O estado mora na URL: dá para mandar "olha os do
-            Link School parados" por link, e o botão voltar funciona.
+            As abas são renderizadas AQUI, no servidor, e descem como prop para
+            a lista: são `Link`s com contagem, não precisam de cliente nenhum.
+            O que virou cliente foi só a busca — porque digitar é interação, e
+            porque filtrar uma lista que já está na memória do navegador não
+            precisava de uma ida ao banco por tecla. Ver `lista.tsx`.
+
+            O estado continua na URL: dá para mandar "olha os do Link School
+            parados" por link, e o botão voltar funciona.
             ------------------------------------------------------------------ */}
-        <div className="mb-3 flex flex-wrap items-center gap-1.5">
-          <Aba
-            href={comFiltro({}, { q: filtro.q })}
-            ativa={!filtro.estagio && filtro.hoje !== '1' && !filtro.fonte}
-            quantos={todos.length}
-          >
-            Todos
-          </Aba>
-          <Aba
-            href={comFiltro(filtro, { hoje: '1', estagio: '' })}
-            ativa={filtro.hoje === '1'}
-            quantos={paraHoje.length}
-          >
-            Falar hoje
-          </Aba>
+        <ListaLeads
+          leads={ordenados}
+          totalGeral={todos.length}
+          qInicial={filtro.q ?? ''}
+          semLeadsNoBanco={todos.length === 0}
+          podeAgir={escritaLigada}
+          podeExcluir={podeExcluir}
+          abas={
+            <>
+              <Aba
+                href={comFiltro({}, { q: filtro.q })}
+                ativa={!filtro.estagio && filtro.hoje !== '1' && !filtro.fonte}
+                quantos={todos.length}
+              >
+                Todos
+              </Aba>
+              <Aba
+                href={comFiltro(filtro, { hoje: '1', estagio: '' })}
+                ativa={filtro.hoje === '1'}
+                quantos={paraHoje.length}
+              >
+                Falar hoje
+              </Aba>
 
-          <span aria-hidden className="mx-1 h-4 w-px bg-borda" />
+              <span aria-hidden className="mx-1 h-4 w-px bg-borda" />
 
-          {funil.etapas.map((e) => (
-            <Aba
-              key={e.estagio}
-              href={comFiltro(filtro, { estagio: e.estagio, hoje: '' })}
-              ativa={filtro.estagio === e.estagio}
-              quantos={e.parados}
-            >
-              {ROTULO[e.estagio]}
-            </Aba>
-          ))}
-          {funil.perdidos > 0 && (
-            <Aba
-              href={comFiltro(filtro, { estagio: 'perdido', hoje: '' })}
-              ativa={filtro.estagio === 'perdido'}
-              quantos={funil.perdidos}
-            >
-              {ROTULO.perdido}
-            </Aba>
-          )}
-
-          {/* A busca leva os outros filtros em campos escondidos: buscar
-              dentro de "Link School" não deve jogar você de volta para a
-              lista inteira. */}
-          <form method="get" className="ml-auto flex items-center gap-1.5">
-            {filtro.estagio && <input type="hidden" name="estagio" value={filtro.estagio} />}
-            {filtro.fonte && <input type="hidden" name="fonte" value={filtro.fonte} />}
-            {filtro.hoje && <input type="hidden" name="hoje" value={filtro.hoje} />}
-            <div className="flex h-8 items-center gap-1.5 rounded-full border border-borda bg-fundo px-3 focus-within:border-borda-forte">
-              <Search className="size-3.5 shrink-0 text-texto-fraco" strokeWidth={1.5} />
-              <input
-                name="q" defaultValue={filtro.q ?? ''} placeholder="nome, @, fonte"
-                className="w-40 bg-transparent text-xs outline-none placeholder:text-texto-fraco"
-              />
-            </div>
-          </form>
-        </div>
-
-        {filtrando && (
-          <p className="mb-3 text-xs text-texto-fraco">
-            {numero(ordenados.length)} de {numero(todos.length)}
-            {filtro.fonte && <> · fonte <span className="text-texto">{filtro.fonte}</span></>}
-            {filtro.q && <> · busca <span className="text-texto">{filtro.q}</span></>}
-            {' · '}
-            <Link href="/crm" className="text-acento hover:underline">limpar</Link>
-          </p>
-        )}
-
-        {/* A seleção em lote mora na tabela, que é Client Component por isso —
-            ver a nota em `tabela.tsx`. A barra de ações só aparece com algo
-            marcado, então a tela em repouso continua a mesma de antes. */}
-        {ordenados.length === 0 ? (
-          <Vazio>
-            {todos.length === 0
-              ? 'Nenhum lead ainda. Comece pelo botão "Novo lead".'
-              : 'Nenhum lead com esse filtro.'}
-          </Vazio>
-        ) : (
-          <TabelaLeads
-            leads={ordenados}
-            podeAgir={escritaLigada}
-            podeExcluir={podeExcluir}
-          />
-        )}
+              {funil.etapas.map((e) => (
+                <Aba
+                  key={e.estagio}
+                  href={comFiltro(filtro, { estagio: e.estagio, hoje: '' })}
+                  ativa={filtro.estagio === e.estagio}
+                  quantos={e.parados}
+                >
+                  {ROTULO[e.estagio]}
+                </Aba>
+              ))}
+              {funil.perdidos > 0 && (
+                <Aba
+                  href={comFiltro(filtro, { estagio: 'perdido', hoje: '' })}
+                  ativa={filtro.estagio === 'perdido'}
+                  quantos={funil.perdidos}
+                >
+                  {ROTULO.perdido}
+                </Aba>
+              )}
+            </>
+          }
+        />
       </Card>
     </>
   )

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  estagioDe, limparInstagram, montarFunil, type Lead, type LinhaLead,
+  casaBusca, estagioDe, limparInstagram, montarFunil, type Lead, type LinhaLead,
 } from '../crm-tipos'
 
 /**
@@ -81,5 +81,41 @@ describe('limparInstagram', () => {
     expect(limparInstagram('https://instagram.com/llucaspaiva__/')).toBe('llucaspaiva__')
     expect(limparInstagram('  RomeuZemaOficial ')).toBe('romeuzemaoficial')
     expect(limparInstagram('   ')).toBeNull()
+  })
+})
+
+describe('busca da lista', () => {
+  // A busca passou a filtrar a cada tecla, no cliente. O que ela olha é a
+  // regra que decide se a pessoa acha quem procura — e é a mesma para quem
+  // chega por link com `?q=`.
+  const l = lead({
+    nome: 'Manual do Mundo', instagram: 'manualdomundo', fonte: 'Link School',
+    slug: 'manualdomundo', email: 'contato@exemplo.com', handle_pretendido: 'mdm',
+  })
+
+  it('termo vazio não filtra nada', () => {
+    expect(casaBusca(l, '')).toBe(true)
+    expect(casaBusca(l, '   ')).toBe(true)
+  })
+
+  it('acha por pedaço do nome, sem depender de maiúscula', () => {
+    expect(casaBusca(l, 'manual')).toBe(true)
+    expect(casaBusca(l, 'MUNDO')).toBe(true)
+  })
+
+  it('acha pelos outros campos por onde se procura alguém', () => {
+    expect(casaBusca(l, 'link school')).toBe(true)
+    expect(casaBusca(l, 'mdm')).toBe(true)
+    expect(casaBusca(l, 'contato@')).toBe(true)
+  })
+
+  it('não casa o que não está lá', () => {
+    expect(casaBusca(l, 'nubank')).toBe(false)
+  })
+
+  it('lead com campos nulos não explode', () => {
+    const vazio = lead({ nome: 'Fulano', instagram: null, fonte: null, email: null, slug: null })
+    expect(casaBusca(vazio, 'fulano')).toBe(true)
+    expect(casaBusca(vazio, 'x')).toBe(false)
   })
 })
