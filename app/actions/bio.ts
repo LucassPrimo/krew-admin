@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath, updateTag } from 'next/cache'
 import { getCurrentOrgId } from '@/lib/org'
+import { embedDoSpotify } from '@/lib/bio/spotify'
 import { ehVideoCapa } from '@/lib/capa-link'
 import { buscarPreviaDoSite } from '@/lib/link-preview'
 import { BUCKET_CAPAS } from '@/lib/capa-link'
@@ -69,6 +70,10 @@ export interface ConfigBio {
   bio_esconder_marca: boolean
   /** Nome da marca sobre a logo, no carrossel de parcerias. */
   bio_marcas_nome: boolean
+  /** Link do Spotify exibido como player. Null = sem player. */
+  bio_spotify_url: string | null
+  /** Linha acima do player ("Escute agora"). Opcional. */
+  bio_spotify_titulo: string | null
   /** Selo concedido pela Krew. Só de leitura aqui — é o que libera a capa em
    *  vídeo, e ninguém o concede a si mesmo. */
   bio_verificado: boolean
@@ -84,7 +89,7 @@ export async function getConfigBio() {
   const { data } = await supabase
     .from('proposal_pages')
     .select(
-      'slug, bio_ativo, bio_bg_color, bio_capa_url, bio_headline, bio_texto, bio_mostrar_seguidores, bio_mostrar_propostas, bio_esconder_marca, bio_marcas_nome, bio_verificado'
+      'slug, bio_ativo, bio_bg_color, bio_capa_url, bio_headline, bio_texto, bio_mostrar_seguidores, bio_mostrar_propostas, bio_esconder_marca, bio_marcas_nome, bio_spotify_url, bio_spotify_titulo, bio_verificado'
     )
     .eq('user_id', user.id)
     .maybeSingle()
@@ -138,6 +143,8 @@ export async function atualizarConfigBio(campo: keyof ConfigBio, valor: boolean 
     'bio_esconder_marca',
     // Fora de `CAMPOS_PAGOS`: o carrossel de parcerias inteiro é gratuito.
     'bio_marcas_nome',
+    'bio_spotify_url',
+    'bio_spotify_titulo',
   ]
   if (!CAMPOS.includes(campo)) return { error: 'Campo inválido.' }
 
@@ -218,6 +225,13 @@ export async function atualizarConfigBio(campo: keyof ConfigBio, valor: boolean 
   // um formato, e um valor fora dele seria recusado pelo CHECK da coluna com
   // uma mensagem de Postgres na cara da pessoa. Hex inválido vira null — que
   // é "volta ao padrão", o mesmo efeito do botão de limpar.
+  // O link do Spotify é conferido ANTES de gravar: guardar um que não vira
+  // player publicaria um quadro cinza escrito "content not available" na
+  // página. Ver o comentário completo no arquivo do krew-app.
+  if (campo === 'bio_spotify_url' && typeof valor === 'string' && valor.trim()) {
+    if (!embedDoSpotify(valor)) return { error: 'spotify_invalido' as const }
+  }
+
   const limpo =
     campo === 'bio_bg_color'
       ? normalizarCorFundo(valor)

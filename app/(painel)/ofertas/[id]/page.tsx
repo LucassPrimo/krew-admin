@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 import {
-  AtSign, Handshake, Image as ImageIcon, Link2, Palette, Power, Send, Sparkles, Store, Users,
+  AtSign, Handshake, Image as ImageIcon, Link2, Music, Palette, Power, Send, Sparkles, Store, Users,
 } from 'lucide-react'
 
 import { getConfigBio, getLinksBio, getMarcasBio } from '@/app/actions/bio'
@@ -11,6 +11,7 @@ import { BioPerfilCard } from '@/components/bio/bio-perfil-card'
 import { BioRedesCard } from '@/components/bio/bio-redes-card'
 import { BioLinksCard } from '@/components/bio/bio-links-card'
 import { BioMarcasCard } from '@/components/bio/bio-marcas-card'
+import { BioSpotifyCard } from '@/components/bio/bio-spotify-card'
 import { BioCorFundo } from '@/components/bio/bio-cor-fundo'
 import { SecaoBio } from '@/components/bio/secao-bio'
 import { ToggleBio } from '@/components/bio/toggle-bio'
@@ -175,6 +176,19 @@ export default async function EditorDaOferta({ params }: { params: Promise<{ id:
 
           <SecaoBio
             indice={5}
+            icone={Music}
+            titulo={t('secaoSpotify')}
+            resumo={t('secaoSpotifyDesc')}
+            recolhivel
+          >
+            <BioSpotifyCard
+              urlInicial={config?.bio_spotify_url ?? null}
+              tituloInicial={config?.bio_spotify_titulo ?? null}
+            />
+          </SecaoBio>
+
+          <SecaoBio
+            indice={6}
             icone={Link2}
             titulo={t('secaoLinks')}
             resumo={
@@ -186,7 +200,7 @@ export default async function EditorDaOferta({ params }: { params: Promise<{ id:
           </SecaoBio>
 
           <SecaoBio
-            indice={6}
+            indice={7}
             icone={Send}
             titulo={t('secaoPropostas')}
             resumo={t('mostrarPropostasDesc')}
@@ -202,7 +216,7 @@ export default async function EditorDaOferta({ params }: { params: Promise<{ id:
           />
 
           <SecaoBio
-            indice={7}
+            indice={8}
             icone={Sparkles}
             titulo={t('secaoRodape')}
             resumo={t('esconderMarcaDesc')}
