@@ -393,14 +393,21 @@ export function BioLinksCard({
             />
           )}
           <div className="flex flex-1 flex-col gap-2">
-            <input
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
-              maxLength={80}
-              autoFocus
-              placeholder={t('tituloPlaceholder')}
-              className="h-9 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary"
-            />
+            {/* O player não tem título: o que ele mostra é o quadro do Spotify,
+                com a capa e o nome da playlist desenhados lá dentro. Um campo
+                de nome aqui pedia uma linha que só repetiria o que o próprio
+                player já diz — e, opcional, ainda deixava a pessoa decidindo
+                sobre algo que não muda nada. */}
+            {modal !== 'spotify' && (
+              <input
+                value={titulo}
+                onChange={(e) => setTitulo(e.target.value)}
+                maxLength={80}
+                autoFocus
+                placeholder={t('tituloPlaceholder')}
+                className="h-9 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary"
+              />
+            )}
             {/* O divisor ignora a URL: ele é só o título que separa blocos. */}
             {modal !== 'divisor' && (
               <input
