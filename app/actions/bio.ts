@@ -408,14 +408,20 @@ export async function criarLinkBio(
   if (!TIPOS_ITEM.includes(tipo)) return { error: 'tipo_invalido' as const }
   if (!ESTILOS_ITEM.includes(estilo)) return { error: 'estilo_invalido' as const }
 
-  const nome = titulo.trim().slice(0, 80)
-  if (!nome) return { error: 'titulo_vazio' as const }
-
   // Divisor não tem URL, e por isso também não tem capa nem busca de prévia:
   // ele é uma linha de texto entre dois blocos.
   const ehDivisor = tipo === 'divisor'
   const ehMarca = tipo === 'marca'
   const ehSpotify = tipo === 'spotify'
+
+  // O player é o único item que nasce SEM nome, e o formulário nem pergunta:
+  // quem se apresenta é o quadro do Spotify, com capa e nome da playlist
+  // desenhados por ele. A coluna é `not null`, então o vazio é string vazia —
+  // e é exatamente o que `SpotifyPlayer` lê para não desenhar linha nenhuma
+  // acima do quadro. Os outros tipos continuam exigindo título: um link ou um
+  // divisor sem texto seria uma linha em branco na página.
+  const nome = titulo.trim().slice(0, 80)
+  if (!nome && !ehSpotify) return { error: 'titulo_vazio' as const }
   const urlValida = ehDivisor ? null : validarUrl(url)
   if (!ehDivisor && !urlValida) return { error: 'url_invalida' as const }
 

@@ -596,16 +596,23 @@ function ItemArrastavel({
             Pior que a divergência: a caixa alta parecia uma REGRA, então
             ninguém tentava escolher. Agora o editor mostra o que vai publicar,
             e a escolha das maiúsculas é de quem escreve. */}
-          <input
-            value={item.titulo}
-            onChange={(e) => onRenomear(e.target.value)}
-            onBlur={(e) => onSalvarTitulo(e.target.value)}
-            maxLength={80}
-            title={t('editarCampoDica')}
-            className={`${ESTILO_CAMPO} text-sm ${
-              ehDivisor ? 'font-bold tracking-wide' : 'font-medium'
-            }`}
-          />
+          {/* O player não tem título — nem opcional. Quem se apresenta é o
+              quadro do Spotify, com capa e nome da playlist desenhados por ele;
+              uma linha acima repetindo isso seria só ruído, e um campo vazio na
+              lista seria uma escolha oferecida à toa. A linha do player é o
+              ícone, a URL e o que se faz com ela. */}
+          {!ehSpotify && (
+            <input
+              value={item.titulo}
+              onChange={(e) => onRenomear(e.target.value)}
+              onBlur={(e) => onSalvarTitulo(e.target.value)}
+              maxLength={80}
+              title={t('editarCampoDica')}
+              className={`${ESTILO_CAMPO} text-sm ${
+                ehDivisor ? 'font-bold tracking-wide' : 'font-medium'
+              }`}
+            />
+          )}
           {/* Era um `<span>` só de leitura: dava para trocar o título, a capa e o
             formato do card, mas não o destino — e link colado errado só tinha
             saída pelo apagar e recriar, que leva junto os cliques já medidos.
