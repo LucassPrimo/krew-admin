@@ -18,7 +18,7 @@
  * `LIBERADAS_SEM_ASSINATURA` em `proxy.ts`. O resto do app (propostas,
  * campanhas, financeiro, assistente...) exige assinatura paga de verdade.
  *
- * O teste grátis conta: `ESTADOS_COM_ACESSO` abaixo inclui `'trial'` — os 5
+ * O teste grátis conta: `ESTADOS_COM_ACESSO` abaixo inclui `'trial'` — os 15
  * dias sem cartão abrem o app inteiro, e no vencimento o paywall fecha
  * sozinho. Além dele, valem `status` `active`/`trialing` da Chargefy e uma
  * assinatura cancelada com período ainda em aberto.
@@ -49,7 +49,7 @@ export type EstadoAssinatura =
   /** Sem acesso. */
   | 'expirada'
 
-// 'trial' voltou: o teste grátis de 5 dias existe para ser usado, e um trial
+// 'trial' voltou: o teste grátis de 15 dias existe para ser usado, e um trial
 // que não abre o app é só uma contagem regressiva decorativa. Quando ele vence
 // o estado vira 'expirada' sozinho (ver `estadoAssinatura`) e o paywall fecha —
 // é o vencimento que cobra, não a ausência de cartão.

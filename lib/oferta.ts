@@ -146,7 +146,7 @@ export async function criarOferta(
         where id = ${userId}
       `
 
-      // O trigger dá 5 dias de teste a partir de AGORA. Numa oferta que pode
+      // O trigger dá 15 dias de teste a partir de AGORA. Numa oferta que pode
       // ficar semanas parada, esse prazo queimaria antes de a pessoa sequer
       // ver a página. Zeramos aqui; o relógio começa quando ela aceitar.
       await tx`
@@ -285,6 +285,12 @@ export async function enviarConvite(
  * exigiria um gancho no fluxo de auth do produto — outro repo, outra superfície
  * — para um evento que hoje acontece poucas vezes por semana e que você
  * acompanha de perto.
+ *
+ * O CUSTO desse "manual" tem nome, e ele já apareceu na base: enquanto a oferta
+ * não é marcada aqui, `trial_ends_at` segue nulo, e nulo é lido como 'expirada'
+ * por `estadoAssinatura` — a pessoa aceita, faz o onboarding e leva o paywall no
+ * primeiro clique, sem nunca ter tido teste. Marcar a oferta não é burocracia de
+ * registro: é o que liga o relógio que substitui a cobrança.
  */
 export async function marcarAceita(
   pageId: string,
@@ -300,7 +306,7 @@ export async function marcarAceita(
 
     await tx`
       update public.subscriptions
-      set trial_ends_at = now() + interval '5 days'
+      set trial_ends_at = now() + interval '15 days'
       where user_id = ${linha.user_id} and trial_ends_at is null
     `
 
@@ -308,8 +314,8 @@ export async function marcarAceita(
       atorId: contexto.atorId,
       tabela: 'bio_ofertas',
       registroId: pageId,
-      detalhe: { acao: 'oferta_aceita', trial_dias: 5 },
-      motivo: 'Oferta marcada como aceita pelo painel; trial de 5 dias concedido',
+      detalhe: { acao: 'oferta_aceita', trial_dias: 15 },
+      motivo: 'Oferta marcada como aceita pelo painel; trial de 15 dias concedido',
       ip: contexto.ip,
       userAgent: contexto.userAgent,
     })

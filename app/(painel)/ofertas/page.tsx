@@ -60,7 +60,7 @@ export default async function Ofertas() {
         <h2 className="mb-1 text-sm font-medium">Abertas ({abertas.length})</h2>
         <p className="mb-3 text-xs text-texto-fraco">
           A página já está no ar e é buscável como qualquer outra — o visitante
-          não vê nenhuma marca de que é uma oferta. O trial de 5 dias só começa
+          não vê nenhuma marca de que é uma oferta. O trial de 15 dias só começa
           a contar quando a pessoa aceita.
         </p>
 
