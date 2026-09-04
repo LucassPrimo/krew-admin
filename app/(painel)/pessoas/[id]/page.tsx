@@ -169,6 +169,12 @@ export default async function Pessoa({ params }: { params: Promise<{ id: string 
               <dd><Selo slug={bio.slug} verificado={bio.bio_verificado} /></dd>
               <dt className="text-texto-fraco">Cliques</dt>
               <dd className="tabular-nums">{numero(bio.cliques)}</dd>
+              <dt className="text-texto-fraco">Audiência</dt>
+              <dd>
+                <Link href={`/pessoas/${id}/analytics`} className="text-acento hover:underline">
+                  ver analytics da bio
+                </Link>
+              </dd>
             </dl>
           )}
         </Card>

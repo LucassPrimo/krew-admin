@@ -14,6 +14,7 @@ import { BioMarcasCard } from '@/components/bio/bio-marcas-card'
 import { BioCorFundo } from '@/components/bio/bio-cor-fundo'
 import { SecaoBio } from '@/components/bio/secao-bio'
 import { ToggleBio } from '@/components/bio/toggle-bio'
+import { BioPosicaoPropostas } from '@/components/bio/bio-posicao-propostas'
 import { BlocoOferta } from '@/components/oferta/bloco-oferta'
 import { PreviewPublica } from '@/components/preview/preview-publica'
 import { alvoDaOferta } from '@/lib/alvo'
@@ -199,7 +200,13 @@ export default async function EditorDaOferta({ params }: { params: Promise<{ id:
                 rotulo={t('mostrarPropostas')}
               />
             }
-          />
+          >
+            {/* O mesmo controle da tela `/profile` do app, e ele importa mais
+                aqui: a oferta é a bio que a Krew monta para PROSPECTAR, onde o
+                convite costuma valer mais que a lista. Ver
+                `BioPosicaoPropostas`. */}
+            <BioPosicaoPropostas inicial={config?.bio_propostas_posicao ?? null} />
+          </SecaoBio>
 
           <SecaoBio
             indice={7}

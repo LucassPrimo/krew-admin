@@ -135,6 +135,10 @@ export const REGISTRY: Record<string, TabelaAdmin> = {
       bio_capa_url: { tipo: 'text', editavel: true },
       bio_mostrar_seguidores: { tipo: 'booleano', editavel: true },
       bio_mostrar_propostas: { tipo: 'booleano', editavel: true },
+      bio_propostas_posicao: {
+        tipo: 'enum', editavel: true, opcoes: ['acima', 'abaixo'],
+        nota: 'Posição do botão de proposta na /@handle. Inerte com bio_mostrar_propostas desligado.',
+      },
       bio_esconder_marca: { tipo: 'booleano', editavel: true },
       availability_status: { tipo: 'enum', editavel: true, opcoes: ['open', 'limited', 'closed'] },
       availability_note: { tipo: 'text', editavel: true },

@@ -18,7 +18,7 @@ import { ehPro, LIMITE_LINKS_FREE, LIMITE_SECOES_FREE } from '@/lib/plano'
 // `'use server'` faz o Next tratar cada tipo como server action e o build cai
 // com "The export TipoItem was not found in module". Quem precisa dos tipos
 // importa direto de `lib/bio/tipos`.
-import type { TipoItem, EstiloItem } from '@/lib/bio/tipos'
+import type { TipoItem, EstiloItem, PosicaoPropostas } from '@/lib/bio/tipos'
 
 /**
  * NÃO exportados, e isso é uma regra do Next, não escolha de estilo: um arquivo
@@ -27,6 +27,7 @@ import type { TipoItem, EstiloItem } from '@/lib/bio/tipos'
  */
 const TIPOS_ITEM: TipoItem[] = ['link', 'divisor', 'marca', 'spotify']
 const ESTILOS_ITEM: EstiloItem[] = ['grande', 'metade', 'metade_alta', 'meio', 'botao']
+const POSICOES_PROPOSTAS: PosicaoPropostas[] = ['acima', 'abaixo']
 
 /**
  * Página de bio (`/@handle`) — o link que o criador cola na bio do Instagram.
@@ -67,6 +68,8 @@ export interface ConfigBio {
   bio_texto: string | null
   bio_mostrar_seguidores: boolean
   bio_mostrar_propostas: boolean
+  /** Acima ou abaixo da lista de links. Ver `PosicaoPropostas`. */
+  bio_propostas_posicao: PosicaoPropostas
   bio_esconder_marca: boolean
   /** Nome da marca sobre a logo, no carrossel de parcerias. */
   bio_marcas_nome: boolean
@@ -85,7 +88,7 @@ export async function getConfigBio() {
   const { data } = await supabase
     .from('proposal_pages')
     .select(
-      'slug, bio_ativo, bio_bg_color, bio_capa_url, bio_headline, bio_texto, bio_mostrar_seguidores, bio_mostrar_propostas, bio_esconder_marca, bio_marcas_nome, bio_verificado'
+      'slug, bio_ativo, bio_bg_color, bio_capa_url, bio_headline, bio_texto, bio_mostrar_seguidores, bio_mostrar_propostas, bio_propostas_posicao, bio_esconder_marca, bio_marcas_nome, bio_verificado'
     )
     .eq('user_id', user.id)
     .maybeSingle()
@@ -136,6 +139,10 @@ export async function atualizarConfigBio(campo: keyof ConfigBio, valor: boolean 
     'bio_texto',
     'bio_mostrar_seguidores',
     'bio_mostrar_propostas',
+    // Fora de `CAMPOS_PAGOS`: a POSIÇÃO não liga nada. Sem plano o botão nem é
+    // desenhado (`rebaixarBioParaFree`), então o campo fica inerte em vez de
+    // virar um segundo portão para a mesma porta.
+    'bio_propostas_posicao',
     'bio_esconder_marca',
     // Fora de `CAMPOS_PAGOS`: o carrossel de parcerias inteiro é gratuito.
     'bio_marcas_nome',
@@ -219,9 +226,15 @@ export async function atualizarConfigBio(campo: keyof ConfigBio, valor: boolean 
   // um formato, e um valor fora dele seria recusado pelo CHECK da coluna com
   // uma mensagem de Postgres na cara da pessoa. Hex inválido vira null — que
   // é "volta ao padrão", o mesmo efeito do botão de limpar.
+  //
+  // A posição do botão de proposta tem CHECK e é NOT NULL: valor fora da lista
+  // volta ao padrão (`abaixo`, o desenho de sempre) em vez de bater na
+  // constraint, pela mesma razão da cor.
   const limpo =
     campo === 'bio_bg_color'
       ? normalizarCorFundo(valor)
+      : campo === 'bio_propostas_posicao'
+        ? (POSICOES_PROPOSTAS.includes(valor as PosicaoPropostas) ? valor : 'abaixo')
       : typeof valor === 'string'
         ? valor.trim().slice(0, 500) || null
         : valor

@@ -55,6 +55,20 @@ export type TipoItem = 'link' | 'divisor' | 'marca' | 'spotify'
 export type EstiloItem = 'grande' | 'metade' | 'metade_alta' | 'meio' | 'botao'
 
 
+/**
+ * Onde o botão "enviar proposta" fica em relação à lista de links na
+ * `/@handle`.
+ *
+ *   acima   colado na bio, antes do carrossel de marcas parceiras
+ *   abaixo  fechando a página, depois da lista — o padrão
+ *
+ * Escolha do dono da página. Na oferta ela vale mais que no app: a bio que a
+ * Krew monta para prospectar existe para vender parceria, e é a única em que o
+ * convite costuma ganhar do link. Ver a migration `20260904120000` no repo do
+ * app.
+ */
+export type PosicaoPropostas = 'acima' | 'abaixo'
+
 export interface BioLink {
   id: string
   titulo: string
@@ -114,5 +128,7 @@ export interface BioData {
   links: BioLink[]
   seguidoresTotal: number | null
   mostrarPropostas: boolean
+  /** Ver `PosicaoPropostas`. Ausente = `abaixo`. */
+  propostasPosicao?: PosicaoPropostas
   esconderMarca: boolean
 }
