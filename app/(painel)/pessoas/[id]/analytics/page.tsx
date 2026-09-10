@@ -17,8 +17,8 @@ export default async function Analytics({ params, searchParams }: {
   const busca = await searchParams
   const periodo = busca.periodo === 'hoje' ? 'hoje'
     : busca.periodo === '7d' || (!busca.periodo && busca.dias === '7') ? '7d' : '30d'
-  const [pagina] = await dbRO<{ org_id: string; user_id: string; slug: string }[]>`
-    select pp.org_id, pp.user_id, pp.slug from public.proposal_pages pp join public.profiles p on p.id = pp.user_id where p.id = ${id}
+  const [pagina] = await dbRO<{ id: string; org_id: string; user_id: string; slug: string }[]>`
+    select pp.id, pp.org_id, pp.user_id, pp.slug from public.proposal_pages pp join public.profiles p on p.id = pp.user_id where p.id = ${id}
   `
   if (!pagina) notFound()
   return (

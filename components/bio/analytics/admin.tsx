@@ -1,10 +1,11 @@
 import { getLocale, getTranslations } from 'next-intl/server'
 import { intervaloDoPeriodo, type Periodo } from '@/lib/bio/periodo'
+import { ExportarPdf } from '@/components/bio/analytics/exportar-pdf'
 import { PainelAnalytics } from '@/components/bio/analytics/painel-analytics'
 
 /** Mesma apresentação do /analytics do krew-app, sem bloqueio por plano. */
 export async function AnalyticsAdmin({ creator, periodo }: {
-  creator: { org_id: string; user_id: string }
+  creator: { id: string; org_id: string; user_id: string }
   periodo: Periodo
 }) {
   const [t, locale] = await Promise.all([getTranslations('bioAnalytics'), getLocale()])
@@ -40,6 +41,7 @@ export async function AnalyticsAdmin({ creator, periodo }: {
   }
   return (
     <div className="analytics-krew py-5 md:py-8">
+      <div className="mb-4 flex justify-end"><ExportarPdf pageId={creator.id} /></div>
       <PainelAnalytics
         orgId={creator.org_id}
         userId={creator.user_id}
