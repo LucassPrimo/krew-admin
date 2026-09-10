@@ -68,7 +68,8 @@ const DEGRAUS = ['#E4F3EE', '#BEE4D9', '#88CFBD', '#46B49B', '#0A9A7D', '#046A56
  * é justamente a leitura interessante.
  */
 function degrau(eventos: number, maximo: number, mostrarTodasCidades?: boolean): number {
-  if (!mostrarTodasCidades && (eventos <= 0 || maximo <= 0)) return -1
+  // Hide locations with fewer than 3 distinct visitors unless the admin flag is set.
+  if (!mostrarTodasCidades && (eventos < 3 || maximo <= 0)) return -1
   const t = Math.log1p(eventos) / Math.log1p(maximo)
   return Math.min(DEGRAUS.length - 1, Math.floor(t * DEGRAUS.length))
 }
