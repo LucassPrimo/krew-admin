@@ -167,7 +167,7 @@ export function MapaAudiencia({
   const porCodigo = useMemo(() => {
     const m = new Map<string, Dado>()
     for (const p of paises) {
-      const d = degrau(p.eventos, maximo)
+      const d = degrau(p.eventos, maximo, mostrarTodasCidades)
       if (d < 0) continue
       m.set(p.country.toLowerCase(), {
         nome: nomeDoPais(p.country) || textos.paisDesconhecido,

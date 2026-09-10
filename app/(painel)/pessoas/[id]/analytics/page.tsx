@@ -27,7 +27,7 @@ export default async function Analytics({ params, searchParams }: {
         <h1 className="text-lg font-medium">Analytics · @{pagina.slug}</h1>
         <Link href={`/pessoas/${id}`} className="text-sm text-texto-fraco hover:text-texto">voltar</Link>
       </div>
-      <AnalyticsAdmin creator={pagina} periodo={periodo} />
+      <AnalyticsAdmin creator={pagina} periodo={periodo} mostrarTodasCidades={true} />
     </>
   )
 }

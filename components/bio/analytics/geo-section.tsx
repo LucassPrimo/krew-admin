@@ -72,6 +72,7 @@ export function GeoSection({
               paisDesconhecido: textos.paisDesconhecido,
               credito: textos.creditoMapa,
             }}
+            mostrarTodasCidades={mostrarTodasCidades}
           />
         ) : (
           <p className="py-8 text-center text-sm text-muted-foreground">{textos.mapaVazio}</p>
