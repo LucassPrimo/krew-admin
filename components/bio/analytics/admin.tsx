@@ -5,9 +5,6 @@ import { PainelAnalytics } from '@/components/bio/analytics/painel-analytics'
 
 /** Mesma apresentação do /analytics do krew-app, sem bloqueio por plano. */
 export async function AnalyticsAdmin({ creator, periodo, mostrarTodasCidades }: { creator: { id: string; org_id: string; user_id: string }, periodo: Periodo, mostrarTodasCidades?: boolean }) {
-  creator: { id: string; org_id: string; user_id: string }
-  periodo: Periodo
-}) {
   const [t, locale] = await Promise.all([getTranslations('bioAnalytics'), getLocale()])
   const geoLigado = true
   const { desde, ate } = intervaloDoPeriodo(periodo)
