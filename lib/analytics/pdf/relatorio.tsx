@@ -8,11 +8,12 @@ import {
   ROTULOS_PDF, FUSO, type RelatorioAnalytics,
 } from './dados'
 
-const C = { bg: '#0b100f', card: '#141e1b', line: '#2a3933', ink: '#f5faf7', muted: '#a3b8ad', mint: '#29c9a0', lime: '#eeff3d' }
+// Paleta acromática: todos os canais RGB são iguais, inclusive nos gráficos.
+const C = { bg: '#000000', card: '#141414', line: '#303030', ink: '#ffffff', muted: '#a8a8a8', accent: '#ffffff', secondary: '#808080' }
 const s = StyleSheet.create({
   page: { height: 841.89, backgroundColor: C.bg, color: C.ink, fontFamily: 'Helvetica', fontSize: 10, padding: 38, paddingBottom: 60 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 26 },
-  eyebrow: { color: C.mint, fontSize: 8, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 },
+  eyebrow: { color: C.accent, fontSize: 8, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 10 },
   title: { fontSize: 29, fontFamily: 'Helvetica-Bold', letterSpacing: -1, marginBottom: 10 },
   sub: { color: C.muted, fontSize: 10, lineHeight: 1.5, marginBottom: 22 },
   card: { backgroundColor: C.card, borderRadius: 15, padding: 17, marginBottom: 14, borderWidth: 0.6, borderColor: C.line },
@@ -22,7 +23,7 @@ const s = StyleSheet.create({
   metric: { flex: 1, backgroundColor: C.card, borderRadius: 13, padding: 16, borderWidth: 0.6, borderColor: C.line },
   label: { fontSize: 9, color: C.muted, marginBottom: 9 },
   value: { fontSize: 27, fontFamily: 'Helvetica-Bold', letterSpacing: -0.7, marginBottom: 8 },
-  delta: { color: C.mint, fontSize: 8 },
+  delta: { color: C.accent, fontSize: 8 },
   footer: { position: 'absolute', bottom: 26, left: 38, right: 38, paddingTop: 10, borderTopWidth: 0.6, borderTopColor: C.line, flexDirection: 'row', justifyContent: 'space-between', color: C.muted, fontSize: 7 },
 })
 
@@ -61,7 +62,7 @@ function Ranking({ linhas, limite = 8, unidade = 'visitas' }: { linhas: { nome: 
         <Text style={{ color: C.ink, fontSize: 9, flex: 1, maxLines: 1, textOverflow: 'ellipsis' }}>{l.nome}</Text>
         <Text style={{ color: C.muted, fontSize: 8 }}>{n(l.valor)} / {pct(l.valor, r.total)}</Text>
       </View>
-      <View style={{ height: 3, borderRadius: 2, backgroundColor: C.line }}><View style={{ height: 3, borderRadius: 2, width: `${r.total > 0 ? l.valor / r.total * 100 : 0}%`, backgroundColor: C.mint }} /></View>
+      <View style={{ height: 3, borderRadius: 2, backgroundColor: C.line }}><View style={{ height: 3, borderRadius: 2, width: `${r.total > 0 ? l.valor / r.total * 100 : 0}%`, backgroundColor: C.accent }} /></View>
     </View>)}
     <Text style={[s.note, { marginTop: 2 }]}>{n(r.total)} {unidade} no ranking.{r.restantes > 0 ? ` Exibindo os ${limite} primeiros; ${r.restantes} outros itens não exibidos.` : ''}</Text>
   </View>
@@ -80,15 +81,15 @@ function Grafico({ serie, altura = 148, anterior = false }: { serie: { a: number
         <Line x1={left} x2={width - right} y1={y(max * f)} y2={y(max * f)} stroke={C.line} strokeWidth={0.5} />
         <Text x={0} y={y(max * f) + 3} style={{ fill: C.muted, fontSize: 7 }}>{n(max * f)}</Text>
       </React.Fragment>)}
-      {serie.length > 1 && <Path d={`${pontos('a')} L${x(serie.length - 1)},${bottom} L${left},${bottom} Z`} fill={C.mint} fillOpacity={0.08} />}
-      {serie.length > 1 && <Path d={pontos('a')} fill="none" stroke={C.mint} strokeWidth={2} />}
-      {serie.length > 1 && <Path d={pontos('b')} fill="none" stroke={anterior ? '#a3b8ad' : C.lime} strokeWidth={1.8} />}
-      {serie.length === 1 && <><Circle cx={x(0)} cy={y(serie[0].a)} r={3} fill={C.mint} /><Circle cx={x(0)} cy={y(serie[0].b)} r={2} fill={C.lime} /></>}
+      {serie.length > 1 && <Path d={`${pontos('a')} L${x(serie.length - 1)},${bottom} L${left},${bottom} Z`} fill={C.accent} fillOpacity={0.08} />}
+      {serie.length > 1 && <Path d={pontos('a')} fill="none" stroke={C.accent} strokeWidth={2} />}
+      {serie.length > 1 && <Path d={pontos('b')} fill="none" stroke={anterior ? C.muted : C.secondary} strokeWidth={1.8} />}
+      {serie.length === 1 && <><Circle cx={x(0)} cy={y(serie[0].a)} r={3} fill={C.accent} /><Circle cx={x(0)} cy={y(serie[0].b)} r={2} fill={C.secondary} /></>}
       {indices.map((i) => <Text key={i} x={x(i)} y={altura - 5} textAnchor={i === 0 ? 'start' : i === serie.length - 1 ? 'end' : 'middle'} style={{ fill: C.muted, fontSize: 7 }}>{serie[i].rotulo}</Text>)}
     </Svg>
     <View style={{ flexDirection: 'row', gap: 20, marginTop: 8 }}>
-      <Text style={{ fontSize: 8, color: C.mint }}>{anterior ? 'Período atual' : 'Visitas'}</Text>
-      <Text style={{ fontSize: 8, color: anterior ? C.muted : C.lime }}>{anterior ? 'Período anterior' : 'Cliques'}</Text>
+      <Text style={{ fontSize: 8, color: C.accent }}>{anterior ? 'Período atual' : 'Visitas'}</Text>
+      <Text style={{ fontSize: 8, color: anterior ? C.muted : C.secondary }}>{anterior ? 'Período anterior' : 'Cliques'}</Text>
     </View>
   </View>
 }
@@ -99,7 +100,7 @@ function Mapa({ paises }: { paises: RelatorioAnalytics['painel']['geo']['porPais
   return <Svg viewBox={mapa.viewBox} width="100%" height={226}>
     {mapa.paths.map((p, i) => {
       const eventos = porPais.get(p.pais) ?? 0
-      return <Path key={i} d={p.d} fill={eventos ? '#29c9a0' : '#2a3933'} fillOpacity={eventos ? 0.3 + 0.7 * Math.sqrt(eventos / max) : 1} stroke={C.bg} strokeWidth={0.5} />
+      return <Path key={i} d={p.d} fill={eventos ? C.accent : C.line} fillOpacity={eventos ? 0.3 + 0.7 * Math.sqrt(eventos / max) : 1} stroke={C.bg} strokeWidth={0.5} />
     })}
   </Svg>
 }
@@ -131,9 +132,9 @@ export function RelatorioPdf({ dados }: { dados: RelatorioAnalytics }) {
       <View style={{ marginTop: 63 }}>
         <Text style={s.eyebrow}>SUA PRESENÇA. SEU IMPACTO.</Text>
         <Text style={{ fontSize: 62, fontFamily: 'Helvetica-Bold', letterSpacing: -2.8, lineHeight: 1.04 }}>Cada visita{ '\n' }conta uma{ '\n' }história.</Text>
-        <View style={{ width: 52, height: 5, backgroundColor: C.mint, marginTop: 25, marginBottom: 25, borderRadius: 3 }} />
+        <View style={{ width: 52, height: 5, backgroundColor: C.accent, marginTop: 25, marginBottom: 25, borderRadius: 3 }} />
         <Text style={{ fontSize: 21, fontFamily: 'Helvetica-Bold', maxLines: 2, textOverflow: 'ellipsis', marginBottom: 8 }}>{dados.nome}</Text>
-        <Link src={`https://bekrew.com/@${encodeURIComponent(dados.slug)}`} style={{ color: C.mint, textDecoration: 'none', fontSize: 12 }}>bekrew.com/@{dados.slug}</Link>
+        <Link src={`https://bekrew.com/@${encodeURIComponent(dados.slug)}`} style={{ color: C.accent, textDecoration: 'none', fontSize: 12 }}>bekrew.com/@{dados.slug}</Link>
       </View>
       <View style={{ marginTop: 44, padding: 24, backgroundColor: C.card, borderRadius: 18, borderWidth: 0.6, borderColor: C.line }}>
         <Text style={s.eyebrow}>ANALYTICS / {ROTULOS_PDF[dados.periodo]}</Text>
@@ -186,7 +187,7 @@ export function RelatorioPdf({ dados }: { dados: RelatorioAnalytics }) {
     </Folha>
 
     <Folha dados={dados} indice="04" titulo="Sua presença no mapa." subtitulo="A distribuição geográfica das visitas à sua página, por país e cidade.">
-      <Cartao titulo="Audiência pelo mundo" nota="Quanto mais intenso o verde, maior o volume de visitas no país.">
+      <Cartao titulo="Audiência pelo mundo" nota="Quanto mais claro o país, maior o volume de visitas identificado.">
         <Mapa paises={p.geo.porPais} />
         <Text style={[s.note, { fontSize: 6, marginTop: 5 }]}>Mapa: Al MacDonald / Fritz Lekschas, simple-world-map, CC BY-SA 3.0. Países sem visitas identificadas aparecem em cinza.</Text>
       </Cartao>
