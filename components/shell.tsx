@@ -42,7 +42,7 @@ function montarGrupos(c: Contadores): GrupoNav[] {
       itens: [
         { href: '/crm', titulo: 'CRM', icone: Contact, badge: c.crmParaHoje },
         { href: '/ofertas', titulo: 'Ofertas de bio', icone: Send, badge: c.ofertasAbertas },
-        { href: '/pessoas', titulo: 'Pessoas', icone: Users },
+        { href: '/usuarios', titulo: 'Usuários', icone: Users },
         { href: '/verificados', titulo: 'Verificados', icone: BadgeCheck },
         { href: '/emails', titulo: 'E-mails', icone: Mail, badge: c.emailsComFalha },
       ],

@@ -7,14 +7,14 @@ import { mascarar } from '@/lib/pii'
 
 export const dynamic = 'force-dynamic'
 
-type Pessoa = {
+type Usuario = {
   id: string; nome: string | null; email: string | null; whatsapp: string | null
   account_type: string; onboarding_step: number | null; criado_em: string
   slug: string | null; status_assinatura: string | null
 }
 
 /**
- * Busca global de pessoas.
+ * Busca global de usuários.
  *
  * A listagem nunca mostra documento — nem mascarado: CPF não é campo de
  * identificação numa lista, é dado sensível que só faz sentido na visão de uma
@@ -22,15 +22,16 @@ type Pessoa = {
  * aparecem mascarados porque são o que você usa para CONFERIR que achou a
  * pessoa certa.
  */
-export default async function Pessoas({
+export default async function Usuarios({
   searchParams,
-}: { searchParams: Promise<{ q?: string }> }) {
-  const { q } = await searchParams
+}: { searchParams: Promise<{ q?: string; tipo?: string }> }) {
+  const { q, tipo } = await searchParams
   const termo = (q ?? '').trim()
+  const filtroTipo = tipo ?? 'todos'
 
   // Sem termo, mostra as mais recentes em vez de nada: abrir a tela e ver a
   // base viva é mais útil do que um campo vazio pedindo que você adivinhe.
-  const pessoas = await dbRO<Pessoa[]>`
+  const usuarios = await dbRO<Usuario[]>`
     select p.id, p.full_name as nome, u.email, p.whatsapp, p.account_type,
            p.onboarding_step, p.created_at as criado_em,
            pp.slug, s.status as status_assinatura
@@ -44,6 +45,7 @@ export default async function Pessoas({
              or pp.slug ilike ${'%' + termo + '%'}
              or p.id::text = ${termo}`
       : dbRO``}
+    ${filtroTipo === 'com_conta' ? dbRO`where p.account_type = 'regular'` : filtroTipo === 'fax' ? dbRO`where p.account_type = 'fax'` : dbRO``}
     order by p.created_at desc
     limit 100
   `
@@ -54,13 +56,20 @@ export default async function Pessoas({
 
       <form className="mb-4">
         <input
-          name="q" defaultValue={termo} placeholder="nome, e-mail, handle ou id"
+          name="q"
+          defaultValue={termo}
+          placeholder="nome, e-mail, handle ou id"
           className="w-full max-w-md rounded-md border border-borda bg-painel px-3 py-2 text-sm outline-none focus:border-acento"
         />
+        <select name="tipo" defaultValue={filtroTipo} className="ml-2 p-1 border border-borda bg-painel">
+          <option value="todos">Todos</option>
+          <option value="com_conta">Com conta</option>
+          <option value="fax">Oferta (fax)</option>
+        </select>
       </form>
 
       <Card>
-        {pessoas.length === 0 ? (
+        {usuarios.length === 0 ? (
           <Vazio>Nada encontrado.</Vazio>
         ) : (
           <table className="densa">
@@ -71,7 +80,7 @@ export default async function Pessoas({
               </tr>
             </thead>
             <tbody>
-              {pessoas.map((p) => (
+              {usuarios.map((p) => (
                 <tr key={p.id}>
                   <td>
                     <Link href="/usuarios" className="text-sm text-texto-fraco hover:text-texto">
