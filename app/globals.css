@@ -239,3 +239,14 @@ a.text-acento {
 a.text-acento:hover {
   text-decoration-color: currentColor;
 }
+
+/* Cores do painel /analytics do produto, limitadas à sua área no Admin. */
+.analytics-krew {
+  --color-mint: #0a9a7d;
+  --color-mint-deep: #0a9a7d;
+  --color-chart-1: #0a9a7d;
+  --color-chart-2: #eeff3d;
+  --color-chart-3: #60a5fa;
+  --color-chart-4: #a78bfa;
+  --color-chart-5: #fb923c;
+}

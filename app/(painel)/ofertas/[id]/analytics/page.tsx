@@ -18,14 +18,14 @@ export default async function Analytics({ params, searchParams }: {
   const periodo = busca.periodo === 'hoje' ? 'hoje'
     : busca.periodo === '7d' || (!busca.periodo && busca.dias === '7') ? '7d' : '30d'
   const [pagina] = await dbRO<{ org_id: string; user_id: string; slug: string }[]>`
-    select pp.org_id, pp.user_id, pp.slug from public.proposal_pages pp join public.profiles p on p.id = pp.user_id where p.id = ${id}
+    select pp.org_id, pp.user_id, pp.slug from public.proposal_pages pp join public.bio_ofertas o on o.page_id = pp.id where pp.id = ${id}
   `
   if (!pagina) notFound()
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-medium">Analytics · @{pagina.slug}</h1>
-        <Link href={`/pessoas/${id}`} className="text-sm text-texto-fraco hover:text-texto">voltar</Link>
+        <Link href={`/ofertas/${id}`} className="text-sm text-texto-fraco hover:text-texto">voltar</Link>
       </div>
       <AnalyticsAdmin creator={pagina} periodo={periodo} />
     </>

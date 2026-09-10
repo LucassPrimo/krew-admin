@@ -1711,9 +1711,13 @@
     "porDispositivo": "Aparelho",
     "porOperadora": "Operadora",
     "mapa": "Onde está seu público",
-    "mapaVazio": "Ainda não há cidades com público suficiente para o mapa.",
-    "avisoGeo": "Localização aproximada por IP: representa a cidade ou região do visitante, nunca o endereço exato.",
-    "suprimidos": "{n} acessos fora do mapa por serem poucos visitantes na cidade.",
+    "mapaVazio": "Ainda não há acessos com localização para o mapa.",
+    "mapaMenos": "Menos",
+    "mapaMais": "Mais",
+    "paisDesconhecido": "País desconhecido",
+    "creditoMapa": "Mapa: simple-world-map · CC BY-SA 3.0",
+    "avisoGeo": "Localização aproximada por IP. O mapa conta por país; a lista de cidades tem o detalhe, e nunca o endereço exato.",
+    "suprimidos": "{n} acessos fora da lista por serem poucos visitantes na cidade.",
     "semGeo": "{n} acessos sem localização.",
     "notaOperadora": "Ajuda a explicar pontos empilhados: em rede móvel, muita gente sai pelo mesmo IP.",
     "origemDireta": "Direto",
@@ -1769,7 +1773,8 @@
     "outrosLinksDesc": "Redes sociais, botão de propostas e rodapé",
     "outrosLinksVazioTitulo": "Nenhum clique fora da lista",
     "outrosLinksVazioDesc": "Cliques nas suas redes, no botão de propostas e no rodapé aparecem aqui.",
-    "ctr": "Cliques por acesso"
+    "ctr": "Cliques por acesso",
+    "alvoMarca": "Marcas parceiras"
   },
   "busca": {
     "title": "Buscar",

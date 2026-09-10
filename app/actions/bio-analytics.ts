@@ -1,5 +1,9 @@
 'use server'
 
+import { z } from 'zod'
+import { exigirAtor } from '@/lib/auth'
+import { dbRO } from '@/lib/db'
+
 import { createClient } from '@/lib/supabase/server'
 import { getAssinatura } from '@/lib/assinatura-server'
 import { ehPro } from '@/lib/plano'
@@ -44,6 +48,7 @@ export interface LeveBio {
 }
 
 export interface GeoBio {
+  porPais: { country: string; eventos: number; visitantes: number }[]
   /** Ranking de cidades, com o mesmo piso de k-anonimato do mapa. */
   porCidade: { city: string; region: string | null; country: string | null; eventos: number }[]
   porIsp: { isp: string; eventos: number }[]
@@ -121,7 +126,7 @@ const RESUMO_ZERO: ResumoBio = { pageViews: 0, cliques: 0, visitantes: 0 }
 
 const LEVE_ZERO: LeveBio = { porDia: [], porBotao: [], porDispositivo: {}, porReferrer: [] }
 
-const GEO_ZERO: GeoBio = { porCidade: [], porIsp: [], mapa: [], mapaSuprimido: 0, semGeo: 0 }
+const GEO_ZERO: GeoBio = { porPais: [], porCidade: [], porIsp: [], mapa: [], mapaSuprimido: 0, semGeo: 0 }
 
 const TOTAIS_ZERO: TotaisBio = { views: 0, cliques: 0, total: 0, visitantes: 0 }
 
@@ -274,4 +279,37 @@ export async function getTempoRealBio(
 
   if (error || !data) return null
   return data as TempoRealBio
+}
+
+export interface PainelBio {
+  leve: LeveBio
+  geo: GeoBio
+  comparacao: ComparacaoBio
+  tempoReal: TempoRealBio
+  titulos: Record<string, string>
+}
+
+/** Leitura administrativa: não depende da assinatura nem do cookie de edição. */
+export async function getPainelBio(
+  orgId: string, userId: string, periodo: Periodo, geoLigado: boolean,
+): Promise<PainelBio | null> {
+  await exigirAtor()
+  if (!z.uuid().safeParse(orgId).success || !z.uuid().safeParse(userId).success) return null
+  if (!['hoje', '7d', '30d'].includes(periodo)) return null
+  const { desde, ate } = janela(periodo)
+  try {
+    const [pagina] = await dbRO<{ id: string }[]>`
+      select id from public.proposal_pages where org_id = ${orgId} and user_id = ${userId}
+    `
+    if (!pagina) return null
+    const [resultado] = await dbRO<{ painel: PainelBio }[]>`
+      select public.get_bio_painel(
+        ${orgId}::uuid, ${userId}::uuid, ${desde}::timestamptz,
+        ${ate}::timestamptz, 30, ${Boolean(geoLigado)}, 'America/Sao_Paulo'
+      ) as painel
+    `
+    return resultado?.painel ?? null
+  } catch {
+    return null
+  }
 }
