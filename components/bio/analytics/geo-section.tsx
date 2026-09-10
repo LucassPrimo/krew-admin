@@ -42,10 +42,12 @@ export function GeoSection({
   dados: geo,
   locale,
   textos,
+  mostrarTodasCidades,
 }: {
   dados: GeoBio
   locale: string
   textos: GeoTextos
+  mostrarTodasCidades?: boolean
 }) {
   const vazio = textos.semDados
 

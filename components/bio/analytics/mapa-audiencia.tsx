@@ -67,8 +67,8 @@ const DEGRAUS = ['#E4F3EE', '#BEE4D9', '#88CFBD', '#46B49B', '#0A9A7D', '#046A56
  * log, a cauda (os 8 acessos de Portugal, os 3 do Japão) se separa do zero, que
  * é justamente a leitura interessante.
  */
-function degrau(eventos: number, maximo: number): number {
-  if (eventos <= 0 || maximo <= 0) return -1
+function degrau(eventos: number, maximo: number, mostrarTodasCidades?: boolean): number {
+  if (!mostrarTodasCidades && (eventos <= 0 || maximo <= 0)) return -1
   const t = Math.log1p(eventos) / Math.log1p(maximo)
   return Math.min(DEGRAUS.length - 1, Math.floor(t * DEGRAUS.length))
 }
@@ -125,10 +125,12 @@ export function MapaAudiencia({
   paises,
   locale,
   textos,
+  mostrarTodasCidades,
 }: {
   paises: GeoBio['porPais']
   locale: string
   textos: MapaTextos
+  mostrarTodasCidades?: boolean
 }) {
   const [markup, setMarkup] = useState<string | null>(null)
   const [erro, setErro] = useState(false)

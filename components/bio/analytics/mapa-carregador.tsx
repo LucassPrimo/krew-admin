@@ -30,10 +30,12 @@ export function MapaCarregador({
   paises,
   locale,
   textos,
+  mostrarTodasCidades,
 }: {
   paises: GeoBio['porPais']
   locale: string
   textos: MapaTextos
+  mostrarTodasCidades?: boolean
 }) {
-  return <Mapa paises={paises} locale={locale} textos={textos} />
+  return <Mapa paises={paises} locale={locale} textos={textos} mostrarTodasCidades={mostrarTodasCidades} />
 }

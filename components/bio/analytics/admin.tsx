@@ -4,7 +4,7 @@ import { ExportarPdf } from '@/components/bio/analytics/exportar-pdf'
 import { PainelAnalytics } from '@/components/bio/analytics/painel-analytics'
 
 /** Mesma apresentação do /analytics do krew-app, sem bloqueio por plano. */
-export async function AnalyticsAdmin({ creator, periodo }: {
+export async function AnalyticsAdmin({ creator, periodo, mostrarTodasCidades }: { creator: { id: string; org_id: string; user_id: string }, periodo: Periodo, mostrarTodasCidades?: boolean }) {
   creator: { id: string; org_id: string; user_id: string }
   periodo: Periodo
 }) {
@@ -49,6 +49,7 @@ export async function AnalyticsAdmin({ creator, periodo }: {
         intervalo={intervalo}
         geoLigado={geoLigado}
         locale={locale}
+        mostrarTodasCidades={mostrarTodasCidades}
         textos={{
           rodapeNota: t('notaPrimeiraParte'),
 
@@ -141,7 +142,6 @@ export async function AnalyticsAdmin({ creator, periodo }: {
 
           geo: geo,
         }}
-      />
-    </div>
+      />    </div>
   )
 }

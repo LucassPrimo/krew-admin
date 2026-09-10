@@ -42,6 +42,7 @@ export function PainelAnalytics({
   locale,
   textos,
   blurNumeros = false,
+  mostrarTodasCidades,
 }: {
   orgId: string
   userId: string
@@ -59,6 +60,7 @@ export function PainelAnalytics({
     rodapeNota: string
   }
   blurNumeros?: boolean
+  mostrarTodasCidades?: boolean
 }) {
   const [estado, tentarDeNovo] = useRetryFetch(
     () => getPainelBio(orgId, userId, periodo, geoLigado),
@@ -130,7 +132,7 @@ export function PainelAnalytics({
 
         <LeveSection dados={leve} titulos={titulos} textos={textos.leve} />
 
-        {geoLigado && <GeoSection dados={geo} locale={locale} textos={textos.geo} />}
+        {geoLigado && <GeoSection dados={geo} locale={locale} textos={textos.geo} mostrarTodasCidades={mostrarTodasCidades} />}
       </div>
     </ProvedorBorrado>
   )
