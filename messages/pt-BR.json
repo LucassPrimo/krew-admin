@@ -1774,7 +1774,12 @@
     "outrosLinksVazioTitulo": "Nenhum clique fora da lista",
     "outrosLinksVazioDesc": "Cliques nas suas redes, no botão de propostas e no rodapé aparecem aqui.",
     "ctr": "Cliques por acesso",
-    "alvoMarca": "Marcas parceiras"
+    "alvoMarca": "Marcas parceiras",
+    "cidadePais": "País",
+    "cidadeRegiao": "Estado / região",
+    "cidadeTodosPaises": "Todos os países",
+    "cidadeTodasRegioes": "Todos os estados / regiões",
+    "cidadePrivacidade": "As cidades de qualquer país aparecem quando a localização está disponível e há pelo menos 3 visitantes distintos no período. Os percentuais consideram as cidades exibidas; os totais por país também incluem visitas sem cidade detalhada."
   },
   "busca": {
     "title": "Buscar",

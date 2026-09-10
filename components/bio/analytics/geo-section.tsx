@@ -1,5 +1,6 @@
 'use client'
 
+import { CidadesAnalytics } from '@/components/bio/analytics/cidades'
 import { Globe, Info } from 'lucide-react'
 
 import type { GeoBio } from '@/app/actions/bio-analytics'
@@ -50,20 +51,7 @@ export function GeoSection({
 
   return (
     <>
-      {geo.porCidade.length > 0 && (
-        <Distribuicao
-          titulo={textos.porCidade}
-          // A ressalva do piso de k-anonimato desceu do mapa para cá junto com
-          // o que ela descreve: o corte de 3 visitantes é do recorte por
-          // CIDADE, e o mapa passou a contar por país, onde não há piso.
-          nota={geo.mapaSuprimido > 0 ? preencher(textos.suprimidos, geo.mapaSuprimido) : undefined}
-          vazio={vazio}
-          itens={geo.porCidade.map((c) => ({
-            rotulo: c.region ? `${c.city} · ${c.region}` : c.city,
-            valor: c.eventos,
-          }))}
-        />
-      )}
+      <CidadesAnalytics dados={geo} locale={locale} titulo={textos.porCidade} acessos={textos.acessos} vazio={vazio} />
 
       <CartaoPainel icone={Globe} titulo={textos.mapa}>
         <p className="-mt-2 mb-3 flex items-start gap-1.5 text-xs text-muted-foreground">
