@@ -40,12 +40,11 @@ export default async function Usuarios({
     left join public.proposal_pages pp on pp.user_id = p.id
     left join public.subscriptions s on s.user_id = p.id
     ${termo
-      ? dbRO`where p.full_name ilike ${'%' + termo + '%'}
-             or u.email ilike ${'%' + termo + '%'}
-             or pp.slug ilike ${'%' + termo + '%'}
-             or p.id::text = ${termo}`
+      ? dbRO`where (p.full_name ilike ${'%' + termo + '%'} or u.email ilike ${'%' + termo + '%'} or pp.slug ilike ${'%' + termo + '%'} or p.id::text = ${termo})`
       : dbRO``}
-    ${filtroTipo === 'com_conta' ? dbRO`where p.account_type = 'regular'` : filtroTipo === 'fax' ? dbRO`where p.account_type = 'fax'` : dbRO``}
+    ${filtroTipo !== 'todos'
+      ? dbRO`${termo ? 'and' : 'where'} p.account_type = ${filtroTipo === 'com_conta' ? 'regular' : 'fax'}`
+      : dbRO``}
     order by p.created_at desc
     limit 100
   `
@@ -83,10 +82,7 @@ export default async function Usuarios({
               {usuarios.map((p) => (
                 <tr key={p.id}>
                   <td>
-                    <Link href="/usuarios" className="text-sm text-texto-fraco hover:text-texto">
-                      voltar
-                    </Link>
-                    {p.nome ?? '(sem nome)'}
+                    <Link href={`/usuarios/${p.id}`} className="text-acento hover:underline">{p.nome ?? '(sem nome)'}</Link>
                   </td>
                   <td className="text-texto-fraco">{mascarar('email', p.email)}</td>
                   <td className="font-mono text-xs">{p.slug ? `@${p.slug}` : '—'}</td>
