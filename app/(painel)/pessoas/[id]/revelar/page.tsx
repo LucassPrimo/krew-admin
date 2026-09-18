@@ -33,7 +33,7 @@ export default function Revelar({
     <div className="max-w-md">
       <div className="mb-4 flex items-baseline justify-between">
         <h1 className="text-lg font-medium">Revelar <code className="font-mono">{alvo}</code></h1>
-        <Link href={`/pessoas/${id}`} className="text-sm text-texto-fraco hover:text-texto">voltar</Link>
+        <Link href={`/users/${id}`} className="text-sm text-texto-fraco hover:text-texto">voltar</Link>
       </div>
 
       <div className="rounded-lg border border-borda bg-painel p-4">

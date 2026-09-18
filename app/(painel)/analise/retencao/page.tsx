@@ -72,7 +72,7 @@ export default async function Retencao() {
               {parados.map((c) => (
                 <tr key={c.id}>
                   <td>
-                    <Link href={`/pessoas/${c.id}`} className="text-acento hover:underline">
+                    <Link href={`/users/${c.id}`} className="text-acento hover:underline">
                       {c.nome ?? '(sem nome)'}
                     </Link>
                   </td>

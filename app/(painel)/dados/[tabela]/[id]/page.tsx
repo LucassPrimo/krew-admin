@@ -53,7 +53,7 @@ export default async function Registro({
       const alvo = l.alvo.replace(/^public\./, '')
       const ehGente = l.alvo === 'auth.users' || alvo === 'profiles'
 
-      // Pessoa vai para a visão 360, não para a grade: a ficha de /pessoas
+      // Pessoa vai para a visão 360, não para a grade: a ficha de /users
       // responde muito mais do que a linha da tabela.
       if (ehGente) {
         const pessoa = (await pessoasPorId([valor])).get(valor)
@@ -62,7 +62,7 @@ export default async function Registro({
         if (pessoa) {
           rotulos[l.coluna] = {
             texto: nomeDe(pessoa),
-            href: pessoa.temPerfil ? `/pessoas/${valor}` : `/dados/profiles/${valor}`,
+            href: pessoa.temPerfil ? `/users/${valor}` : `/dados/profiles/${valor}`,
           }
         }
         return
@@ -105,7 +105,7 @@ export default async function Registro({
             {dono.pessoa && (
               <span>
                 {dono.pessoa.temPerfil ? (
-                  <Link href={`/pessoas/${dono.pessoa.id}`} className="text-acento hover:underline">
+                  <Link href={`/users/${dono.pessoa.id}`} className="text-acento hover:underline">
                     {nomeDe(dono.pessoa)}
                   </Link>
                 ) : (

@@ -216,7 +216,7 @@ export default async function Tabela({
                             <span className="text-texto-fraco">—</span>
                           ) : dono.pessoa.temPerfil ? (
                             <Link
-                              href={`/pessoas/${dono.pessoa.id}`}
+                              href={`/users/${dono.pessoa.id}`}
                               className="block truncate hover:underline"
                               title={dono.pessoa.email ?? dono.pessoa.id}
                             >

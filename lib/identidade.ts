@@ -48,7 +48,7 @@ export type Pessoa = {
   /**
    * Se existe linha em `profiles`.
    *
-   * A visão 360 (`/pessoas/[id]`) parte de `profiles` e devolve 404 sem ela —
+   * A visão 360 (`/users/[id]`) parte de `profiles` e devolve 404 sem ela —
    * então uma conta sem perfil precisa aparecer SEM link, e não com um link
    * que quebra. Conta sem perfil é estado real (cadastro que parou no meio,
    * conta de oferta recém-criada), e a tela dizer isso é melhor do que a

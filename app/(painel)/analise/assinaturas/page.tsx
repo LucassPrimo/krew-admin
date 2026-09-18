@@ -63,7 +63,7 @@ export default async function Assinaturas() {
                 return (
                   <tr key={l.user_id}>
                     <td>
-                      <Link href={`/pessoas/${l.user_id}`} className="text-acento hover:underline">
+                      <Link href={`/users/${l.user_id}`} className="text-acento hover:underline">
                         {l.nome ?? '(sem nome)'}
                       </Link>
                     </td>

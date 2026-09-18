@@ -42,7 +42,7 @@ function montarGrupos(c: Contadores): GrupoNav[] {
       itens: [
         { href: '/crm', titulo: 'CRM', icone: Contact, badge: c.crmParaHoje },
         { href: '/ofertas', titulo: 'Ofertas de bio', icone: Send, badge: c.ofertasAbertas },
-        { href: '/usuarios', titulo: 'Usuários', icone: Users },
+        { href: '/users', titulo: 'Users', icone: Users },
         { href: '/verificados', titulo: 'Verificados', icone: BadgeCheck },
         { href: '/emails', titulo: 'E-mails', icone: Mail, badge: c.emailsComFalha },
       ],
@@ -92,7 +92,7 @@ const DESTINOS: { href: string; titulo: string; icone: typeof Search; contexto: 
   { href: '/crm/importar', titulo: 'Importar planilha de leads', icone: Contact, contexto: 'Operação' },
   { href: '/ofertas', titulo: 'Ofertas de bio', icone: Send, contexto: 'Operação' },
   { href: '/ofertas/nova', titulo: 'Nova oferta de bio', icone: Send, contexto: 'Operação' },
-  { href: '/pessoas', titulo: 'Pessoas', icone: Users, contexto: 'Operação' },
+  { href: '/users', titulo: 'Users', icone: Users, contexto: 'Clientes' },
   { href: '/verificados', titulo: 'Verificados', icone: BadgeCheck, contexto: 'Operação' },
   { href: '/emails', titulo: 'E-mails', icone: Mail, contexto: 'Operação' },
   { href: '/analise/assinaturas', titulo: 'Assinaturas', icone: CreditCard, contexto: 'Análise' },

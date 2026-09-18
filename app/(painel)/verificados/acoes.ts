@@ -53,7 +53,7 @@ export async function acaoDefinirVerificado(entrada: string, ligar: boolean) {
     // a tag, o selo só apareceria no minuto seguinte do `revalidate`.
     updateTag(tagBio(r.pagina.slug))
     revalidatePath('/verificados')
-    revalidatePath(`/pessoas/${r.pagina.user_id}`)
+    revalidatePath(`/users/${r.pagina.user_id}`)
   }
   return r
 }

@@ -28,18 +28,29 @@ export type Topo = {
 
 export async function topo(): Promise<Topo> {
   const [linha] = await dbRO<Topo[]>`
+    with users_reais as (
+      select p.id, p.created_at, p.onboarding_step
+      from public.profiles p
+      join public.admin_auth_users u on u.id = p.id
+      where lower(coalesce(u.email, '')) not like 'oferta+%@bekrew.com'
+        and not exists (
+          select 1 from public.bio_ofertas o
+          join public.proposal_pages op on op.id = o.page_id
+          where op.user_id = p.id and o.aceita_em is null
+        )
+    )
     select
-      (select count(*) from public.profiles where created_at > now() - interval '7 days')::int  as cadastros_7d,
-      (select count(*) from public.profiles where created_at > now() - interval '30 days')::int as cadastros_30d,
-      (select count(*) from public.profiles where onboarding_step >= 3)::int as onboarding_completo,
-      (select count(*) from public.profiles)::int as contas_total,
-      (select count(*) from public.proposal_pages where bio_ativo)::int as bios_ativas,
+      (select count(*) from users_reais where created_at > now() - interval '7 days')::int  as cadastros_7d,
+      (select count(*) from users_reais where created_at > now() - interval '30 days')::int as cadastros_30d,
+      (select count(*) from users_reais where onboarding_step >= 3)::int as onboarding_completo,
+      (select count(*) from users_reais)::int as contas_total,
+      (select count(*) from public.proposal_pages pp join users_reais ur on ur.id = pp.user_id where pp.bio_ativo)::int as bios_ativas,
 
       -- Trial ativo e pagante são coisas diferentes e viram decisões
       -- diferentes: um é funil, o outro é receita.
-      (select count(*) from public.subscriptions
-        where trial_ends_at > now() and status is distinct from 'active')::int as trials_ativos,
-      (select count(*) from public.subscriptions where status = 'active')::int as assinantes_pagos,
+      (select count(*) from public.subscriptions s join users_reais ur on ur.id = s.user_id
+        where s.trial_ends_at > now() and s.status is distinct from 'active')::int as trials_ativos,
+      (select count(*) from public.subscriptions s join users_reais ur on ur.id = s.user_id where s.status = 'active')::int as assinantes_pagos,
 
       (select count(*) from public.partnership_proposals
         where created_at > now() - interval '7 days')::int as propostas_7d,
@@ -60,6 +71,36 @@ export async function topo(): Promise<Topo> {
 }
 
 export type PontoDia = { dia: string; total: number }
+
+export type PendenciasOperacionais = {
+  ofertas_sem_convite: number
+  convites_sem_resposta: number
+  trials_terminando: number
+  pagamentos_atrasados: number
+  emails_com_falha: number
+}
+
+/** Contadores da caixa de entrada: cada um possui uma lista de destino. */
+export async function pendenciasOperacionais(): Promise<PendenciasOperacionais> {
+  const [linha] = await dbRO<PendenciasOperacionais[]>`
+    select
+      (select count(*) from public.bio_ofertas
+       where aceita_em is null and convite_enviado_em is null)::int as ofertas_sem_convite,
+      (select count(*) from public.bio_ofertas
+       where aceita_em is null and convite_enviado_em < now() - interval '5 days')::int as convites_sem_resposta,
+      (select count(*) from public.subscriptions s
+       join public.admin_auth_users u on u.id = s.user_id
+       where s.trial_ends_at between now() and now() + interval '3 days'
+         and s.status is distinct from 'active'
+         and lower(coalesce(u.email, '')) not like 'oferta+%@bekrew.com')::int as trials_terminando,
+      (select count(*) from public.subscriptions s
+       join public.admin_auth_users u on u.id = s.user_id
+       where s.status = 'past_due'
+         and lower(coalesce(u.email, '')) not like 'oferta+%@bekrew.com')::int as pagamentos_atrasados,
+      (select count(*) from public.email_logs where status = 'failed')::int as emails_com_falha
+  `
+  return linha
+}
 
 export async function cadastrosPorDia(dias = 30): Promise<PontoDia[]> {
   // `generate_series` para não faltar dia no gráfico: sem isso, um dia sem
@@ -160,6 +201,13 @@ export async function contasEmRisco(): Promise<ContaEmRisco[]> {
                coalesce((select max(created_at) from public.partnership_proposals where creator_id = p.id), 'epoch')
              ) as ultima
       from public.profiles p
+      join public.admin_auth_users u on u.id = p.id
+      where lower(coalesce(u.email, '')) not like 'oferta+%@bekrew.com'
+        and not exists (
+          select 1 from public.bio_ofertas o
+          join public.proposal_pages op on op.id = o.page_id
+          where op.user_id = p.id and o.aceita_em is null
+        )
     )
     select id, full_name as nome, created_at as criado_em,
            nullif(ultima, 'epoch') as ultima_atividade,

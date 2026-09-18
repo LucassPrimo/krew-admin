@@ -16,10 +16,14 @@ export const dynamic = 'force-dynamic'
  * cadastro: ela responde "ele abriu o link que eu mandei?" — que é a pergunta
  * que decide se você faz o follow-up hoje ou espera.
  */
-export default async function Ofertas() {
+export default async function Ofertas({ searchParams }: { searchParams: Promise<{ fila?: string }> }) {
+  const { fila = 'abertas' } = await searchParams
   const ofertas = await listarOfertas()
   const abertas = ofertas.filter((o) => !o.aceita_em)
   const aceitas = ofertas.filter((o) => o.aceita_em)
+  const semConvite = abertas.filter((o) => !o.convite_enviado_em)
+  const semResposta = abertas.filter((o) => o.convite_enviado_em && Date.now() - new Date(o.convite_enviado_em).getTime() > 5 * 86400000)
+  const exibidas = fila === 'sem_convite' ? semConvite : fila === 'sem_resposta' ? semResposta : abertas
 
   return (
     <>
@@ -56,16 +60,34 @@ export default async function Ofertas() {
         </div>
       )}
 
-      <Card className="mb-4">
-        <h2 className="mb-1 text-sm font-medium">Abertas ({abertas.length})</h2>
+      <nav className="mb-4 flex flex-wrap gap-2" aria-label="Filas de ofertas">
+        {[
+          ['abertas', 'Abertas', abertas.length],
+          ['sem_convite', 'Sem convite', semConvite.length],
+          ['sem_resposta', 'Sem resposta', semResposta.length],
+          ['aceitas', 'Aceitas', aceitas.length],
+        ].map(([valor, rotulo, total]) => (
+          <Link
+            key={String(valor)} href={`/ofertas?fila=${valor}`}
+            className={`rounded-full border px-3 py-1.5 text-xs ${fila === valor ? 'border-borda-forte bg-painel-2 text-texto' : 'border-borda text-texto-fraco hover:border-borda-forte'}`}
+          >
+            {rotulo} <span className="ml-1 tabular-nums opacity-60">{total}</span>
+          </Link>
+        ))}
+      </nav>
+
+      {fila !== 'aceitas' && <Card className="mb-4">
+        <h2 className="mb-1 text-sm font-medium">
+          {fila === 'sem_convite' ? 'Prontas para enviar' : fila === 'sem_resposta' ? 'Aguardando follow-up' : 'Abertas'} ({exibidas.length})
+        </h2>
         <p className="mb-3 text-xs text-texto-fraco">
           A página já está no ar e é buscável como qualquer outra — o visitante
           não vê nenhuma marca de que é uma oferta. O trial de 15 dias só começa
           a contar quando a pessoa aceita.
         </p>
 
-        {abertas.length === 0 ? (
-          <Vazio>Nenhuma oferta aberta.</Vazio>
+        {exibidas.length === 0 ? (
+          <Vazio>Nenhuma oferta nesta fila.</Vazio>
         ) : (
           <table className="densa">
             <thead>
@@ -75,7 +97,7 @@ export default async function Ofertas() {
               </tr>
             </thead>
             <tbody>
-              {abertas.map((o) => (
+              {exibidas.map((o) => (
                 <tr key={o.page_id}>
                   <td className="font-mono text-xs">
                     <a
@@ -109,9 +131,9 @@ export default async function Ofertas() {
             </tbody>
           </table>
         )}
-      </Card>
+      </Card>}
 
-      <Card>
+      {fila === 'aceitas' && <Card>
         <h2 className="mb-3 text-sm font-medium">Aceitas ({aceitas.length})</h2>
         {aceitas.length === 0 ? (
           <Vazio>Nenhuma ainda.</Vazio>
@@ -139,7 +161,7 @@ export default async function Ofertas() {
             </tbody>
           </table>
         )}
-      </Card>
+      </Card>}
     </>
   )
 }

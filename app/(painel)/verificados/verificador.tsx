@@ -119,7 +119,7 @@ export function Verificador({ lista }: { lista: BioParaSelo[] }) {
           )}
           {!conferindo && achado && (
             <span className="text-texto-fraco">
-              <Link href={`/pessoas/${achado.user_id}`} className="text-acento hover:underline">
+              <Link href={`/users/${achado.user_id}`} className="text-acento hover:underline">
                 {achado.nome ?? '(sem nome)'}
               </Link>
               {achado.email ? ` · ${achado.email}` : ''}
@@ -152,7 +152,7 @@ export function Verificador({ lista }: { lista: BioParaSelo[] }) {
                 <tr key={b.id}>
                   <td className="font-mono text-xs">@{b.slug}</td>
                   <td>
-                    <Link href={`/pessoas/${b.user_id}`} className="hover:underline">
+                    <Link href={`/users/${b.user_id}`} className="hover:underline">
                       {b.nome ?? '(sem nome)'}
                     </Link>
                   </td>
