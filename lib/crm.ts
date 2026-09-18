@@ -65,6 +65,7 @@ const SELECT_LEADS = `
   select l.*,
          p.slug,
          p.user_id,
+         u.email as user_email,
          o.criada_em as oferta_criada_em,
          o.convite_enviado_em,
          o.aceita_em,
@@ -74,6 +75,7 @@ const SELECT_LEADS = `
   from admin_crm.leads l
   left join public.bio_ofertas o on o.page_id = l.page_id
   left join public.proposal_pages p on p.id = l.page_id
+  left join public.admin_auth_users u on u.id = p.user_id
 `
 
 /**

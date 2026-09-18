@@ -34,7 +34,7 @@ Primeira entrega implementada:
 - analytics ligado à ficha do User;
 - página inicial com fila operacional acionável;
 - CRM considera leads sem próxima ação na fila Hoje e possui lista + pipeline;
-- Ofertas possui filas abertas, sem convite, sem resposta e aceitas;
+- Ofertas possui filas abertas, sem convite e sem resposta; contas assumidas saem da área;
 - aceite liga CRM e Oferta ao User;
 - assinaturas e e-mails possuem filtros operacionais;
 - busca global encontra users, leads e ofertas;
@@ -176,11 +176,9 @@ Uma pessoa que pode ser tratada como cliente/usuário do produto. Para esta refa
 
 Essa definição usa o prefixo técnico criado especificamente para as contas de oferta. Não recomendo usar `account_type` para separar oferta de user: tipo de conta descreve capacidades/persona e pode mudar.
 
-### Ajuste necessário no fluxo de convite
+### Regra operacional aplicada
 
-Hoje `enviarConvite` substitui o endereço `oferta+handle@bekrew.com` pelo e-mail real **antes** de a oferta ser aceita. Portanto, usar apenas o prefixo na consulta faria uma oferta convidada, porém ainda não aceita, aparecer em Users.
-
-Para o filtro por e-mail ser confiável, o fluxo deve preservar o e-mail interno enquanto a oferta estiver aberta. O e-mail real do convite já pode continuar em `bio_ofertas.email_convite`; a troca do e-mail da conta deve acontecer somente quando o aceite for confirmado. Se a Admin API exigir a troca antes do envio, a listagem deve usar temporariamente uma proteção complementar por `bio_ofertas.aceita_em is null`.
+O e-mail atual da conta é a fonte de verdade desta separação. `oferta+handle@bekrew.com` significa oferta; qualquer e-mail real significa User. `bio_ofertas.aceita_em` continua como histórico, mas não impede uma pessoa que já está usando a própria conta de aparecer em Users.
 
 ### Oferta de bio
 
@@ -463,19 +461,7 @@ Assim:
 - user comum aparece em `/users`;
 - a origem por oferta continua disponível por meio da linha de `bio_ofertas`.
 
-Enquanto o fluxo atual trocar o e-mail no envio do convite, usar também esta proteção:
-
-```sql
-and not exists (
-  select 1
-  from public.bio_ofertas o
-  join public.proposal_pages op on op.id = o.page_id
-  where op.user_id = p.id
-    and o.aceita_em is null
-)
-```
-
-O objetivo é que o prefixo seja a regra principal, sem aceitar falsos positivos durante a transição do fluxo.
+O vínculo em `bio_ofertas` continua disponível para identificar a origem e reconstruir a jornada, mas não decide em qual lista a conta aparece.
 
 Antes de implementar, precisamos validar se um user pode ter mais de uma `proposal_page` ou mais de uma oferta. As consultas atuais usam joins sem garantir uma única linha e podem duplicar users na listagem.
 
@@ -524,7 +510,7 @@ Eu faria ambos: backfill conservador para histórico e eventos explícitos daqui
 
 - criar `/users`;
 - excluir e-mails `oferta+…@bekrew.com` da consulta;
-- impedir que o envio do convite remova prematuramente o marcador de oferta;
+- usar o e-mail atual como marcador operacional de oferta ou User;
 - manter ofertas aceitas, identificando sua origem;
 - corrigir navegação e todos os links internos de `/pessoas` e `/usuarios`;
 - manter redirects legados;
@@ -567,7 +553,7 @@ Eu faria ambos: backfill conservador para histórico e eventos explícitos daqui
 ## 10. Critérios de aceite
 
 - Nenhuma conta com e-mail `oferta+…@bekrew.com` aparece em `/users`.
-- Uma oferta apenas convidada, mas ainda não aceita, também não aparece em `/users`.
+- Uma conta que já usa e-mail real aparece em `/users` mesmo se `aceita_em` estiver atrasado.
 - Toda oferta aberta continua acessível em `/ofertas`.
 - Uma oferta aceita passa a aparecer em `/users` sem perder o histórico de origem.
 - Links antigos de `/pessoas/*` e `/usuarios/*` continuam funcionando por redirect.
@@ -587,7 +573,7 @@ Antes de implementar, proponho aprovar estas decisões:
 
 1. **Nome e rota:** usar `Users` e `/users`, mantendo redirects de `/usuarios` e `/pessoas`.
 2. **Separação:** e-mail iniciado por `oferta+` identifica uma conta de oferta; e-mail real identifica um user.
-3. **Fonte da separação:** usar o prefixo do e-mail, não `account_type`, com proteção temporária pelo aceite enquanto o fluxo de convite ainda substitui o e-mail antecipadamente.
+3. **Fonte da separação:** usar exclusivamente o prefixo do e-mail, não `account_type` nem o preenchimento manual de `aceita_em`.
 4. **Escopo inicial:** executar primeiro as fases 1 e 2; inteligência e nova instrumentação entram depois.
 5. **Impersonação:** ficar fora deste projeto inicial.
 6. **Ações de edição:** decidir se a primeira versão será somente leitura + atalhos, ou se também permitirá editar dados de users reais.

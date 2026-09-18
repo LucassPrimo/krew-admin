@@ -73,6 +73,7 @@ export type LinhaLead = {
   handle_pretendido: string | null
   page_id: string | null
   user_id?: string | null
+  user_email?: string | null
   estagio: EstagioManual
   perdido_em: string | null
   motivo_perda: string | null
@@ -118,6 +119,9 @@ export function vencido(l: Lead): boolean {
 export function estagioDe(l: LinhaLead): Estagio {
   if (l.perdido_em) return 'perdido'
   if (l.aceita_em) return 'aceito'
+  // A conta deixou de ser oferta quando trocou o endereço interno pelo e-mail
+  // real. `aceita_em` pode ficar atrasado mesmo com a pessoa já usando.
+  if (l.oferta_criada_em && l.user_email && !l.user_email.toLowerCase().startsWith('oferta+')) return 'aceito'
   if (l.convite_enviado_em) return 'convite_enviado'
   // `oferta_criada_em` e não `page_id`: a oferta pode ter sido apagada e o
   // ponteiro ficado para trás — sem FK, é o join que responde se ela existe.
