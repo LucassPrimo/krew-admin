@@ -175,7 +175,7 @@ export function Shell({
 
   // Trilha do topo: o segmento mais específico que a navegação conhece.
   const titulo =
-    TITULOS[pathname] ??
+    (pathname === '/buscar' ? 'Busca global' : TITULOS[pathname]) ??
     DESTINOS.filter((d) => d.href !== '/' && pathname.startsWith(d.href))
       .sort((a, b) => b.href.length - a.href.length)[0]?.titulo ??
     'Painel'
@@ -248,10 +248,13 @@ export function Shell({
                 onKeyDown={(e) => {
                   // Enter vai no primeiro resultado: quem digitou "audit" e
                   // apertou Enter quis abrir a auditoria, não escolher de novo.
-                  if (e.key === 'Enter' && achados[0]) router.push(achados[0].href)
+                  if (e.key === 'Enter') {
+                    if (achados[0]) router.push(achados[0].href)
+                    else if (busca.trim()) router.push(`/buscar?q=${encodeURIComponent(busca.trim())}`)
+                  }
                 }}
                 className="flex-1 bg-transparent py-4 outline-none text-[14px] text-foreground placeholder:text-muted-foreground/50"
-                placeholder="Ir para uma tela…"
+                placeholder="Tela, user, lead, @ ou ID…"
               />
               <button
                 onClick={() => setPaleta(false)}
@@ -264,10 +267,14 @@ export function Shell({
 
             <div className="max-h-80 overflow-y-auto p-1.5">
               {achados.length === 0 ? (
-                <div className="p-8 flex flex-col items-center justify-center">
+                <button
+                  type="button"
+                  onClick={() => router.push(`/buscar?q=${encodeURIComponent(busca.trim())}`)}
+                  className="w-full p-8 flex flex-col items-center justify-center hover:bg-black/5 dark:hover:bg-white/5"
+                >
                   <FileWarning className="w-6 h-6 text-muted-foreground/30 mb-2" strokeWidth={1.5} />
-                  <p className="text-[13px] text-muted-foreground">Nenhuma tela com esse nome.</p>
-                </div>
+                  <p className="text-[13px] text-muted-foreground">Buscar “{busca}” nos registros</p>
+                </button>
               ) : (
                 achados.map((d) => (
                   <button
@@ -282,6 +289,15 @@ export function Shell({
                     )}
                   </button>
                 ))
+              )}
+              {busca.trim() && achados.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => router.push(`/buscar?q=${encodeURIComponent(busca.trim())}`)}
+                  className="mt-1 w-full rounded-md border-t border-border/50 px-2.5 py-2 text-left text-[13px] text-primary hover:bg-black/5 dark:hover:bg-white/5"
+                >
+                  Buscar “{busca.trim()}” em users, leads e ofertas
+                </button>
               )}
             </div>
           </div>

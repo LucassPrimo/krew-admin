@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { Aviso, Badge, Card, Titulo, Vazio } from '@/components/ui'
 import { escritaLigada } from '@/lib/env'
 import { ofertasDisponiveis } from '@/lib/env'
-import { data, numero, relativo } from '@/lib/format'
+import { numero, relativo } from '@/lib/format'
 import { listarOfertas } from '@/lib/oferta'
 
 export const dynamic = 'force-dynamic'
@@ -20,7 +20,6 @@ export default async function Ofertas({ searchParams }: { searchParams: Promise<
   const { fila = 'abertas' } = await searchParams
   const ofertas = await listarOfertas()
   const abertas = ofertas.filter((o) => !o.aceita_em)
-  const aceitas = ofertas.filter((o) => o.aceita_em)
   const semConvite = abertas.filter((o) => !o.convite_enviado_em)
   const semResposta = abertas.filter((o) => o.convite_enviado_em && Date.now() - new Date(o.convite_enviado_em).getTime() > 5 * 86400000)
   const exibidas = fila === 'sem_convite' ? semConvite : fila === 'sem_resposta' ? semResposta : abertas
@@ -65,7 +64,6 @@ export default async function Ofertas({ searchParams }: { searchParams: Promise<
           ['abertas', 'Abertas', abertas.length],
           ['sem_convite', 'Sem convite', semConvite.length],
           ['sem_resposta', 'Sem resposta', semResposta.length],
-          ['aceitas', 'Aceitas', aceitas.length],
         ].map(([valor, rotulo, total]) => (
           <Link
             key={String(valor)} href={`/ofertas?fila=${valor}`}
@@ -76,7 +74,7 @@ export default async function Ofertas({ searchParams }: { searchParams: Promise<
         ))}
       </nav>
 
-      {fila !== 'aceitas' && <Card className="mb-4">
+      <Card className="mb-4">
         <h2 className="mb-1 text-sm font-medium">
           {fila === 'sem_convite' ? 'Prontas para enviar' : fila === 'sem_resposta' ? 'Aguardando follow-up' : 'Abertas'} ({exibidas.length})
         </h2>
@@ -121,37 +119,7 @@ export default async function Ofertas({ searchParams }: { searchParams: Promise<
                   </td>
                   <td className="tabular-nums">{numero(o.cliques)}</td>
                   <td>
-                    <Link href={`/users/${o.user_id}`} className="text-acento hover:underline">abrir user</Link>
-                    <Link href={`/ofertas/${o.page_id}`} className="ml-3 text-acento hover:underline">ver oferta</Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Card>}
-
-      {fila === 'aceitas' && <Card>
-        <h2 className="mb-3 text-sm font-medium">Aceitas ({aceitas.length})</h2>
-        {aceitas.length === 0 ? (
-          <Vazio>Nenhuma ainda.</Vazio>
-        ) : (
-          <table className="densa">
-            <thead>
-              <tr><th>Handle</th><th>Nome</th><th>Aceita em</th><th></th></tr>
-            </thead>
-            <tbody>
-              {aceitas.map((o) => (
-                <tr key={o.page_id}>
-                  <td className="font-mono text-xs">@{o.slug}</td>
-                  <td>{o.nome ?? '—'}</td>
-                  <td className="text-texto-fraco">{data(o.aceita_em)}</td>
-                  {/* Aceita continua abrindo: a página existe e às vezes você
-                      precisa mexer nela junto com o criador, no telefone. */}
-                  <td>
-                    <Link href={`/ofertas/${o.page_id}`} className="text-acento hover:underline">
-                      abrir
-                    </Link>
+                    <Link href={`/ofertas/${o.page_id}`} className="text-acento hover:underline">abrir</Link>
                     <Link href={`/ofertas/${o.page_id}/analytics`} className="ml-3 text-acento hover:underline">Analytics</Link>
                   </td>
                 </tr>
@@ -159,7 +127,8 @@ export default async function Ofertas({ searchParams }: { searchParams: Promise<
             </tbody>
           </table>
         )}
-      </Card>}
+      </Card>
+
     </>
   )
 }

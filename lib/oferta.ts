@@ -448,7 +448,9 @@ export async function listarOfertas(): Promise<OfertaListada[]> {
                      where l.user_id = p.user_id), 0)::int as cliques
     from public.bio_ofertas o
     join public.proposal_pages p on p.id = o.page_id
+    join public.admin_auth_users u on u.id = p.user_id
     left join public.profiles pr on pr.id = p.user_id
+    where lower(coalesce(u.email, '')) like 'oferta+%@bekrew.com'
     order by o.aceita_em nulls first, o.criada_em desc
   `
 }

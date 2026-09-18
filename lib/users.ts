@@ -38,9 +38,10 @@ export type FiltrosUsers = {
 /**
  * Users reais do produto.
  *
- * O prefixo de e-mail é a fronteira principal. O NOT EXISTS complementar é
- * necessário enquanto `enviarConvite` troca o e-mail interno antes do aceite:
- * sem ele, uma oferta apenas convidada apareceria como cliente real.
+ * O prefixo de e-mail é a fronteira operacional: enquanto a conta usa o
+ * endereço interno ela é oferta; depois que assume um e-mail real ela é User.
+ * `aceita_em` fica como histórico, não como trava — há contas em uso cujo
+ * aceite administrativo ainda não foi marcado.
  */
 export async function listarUsers(filtros: FiltrosUsers): Promise<UserListado[]> {
   const q = filtros.q?.trim() ?? ''
@@ -111,12 +112,6 @@ export async function listarUsers(filtros: FiltrosUsers): Promise<UserListado[]>
           (select max(created_at) from public.campaigns x where x.user_id = p.id) as ultima_campanha
       ) uso on true
       where lower(coalesce(u.email, '')) not like 'oferta+%@bekrew.com'
-        and not exists (
-          select 1
-          from public.bio_ofertas aberta
-          join public.proposal_pages ap on ap.id = aberta.page_id
-          where ap.user_id = p.id and aberta.aceita_em is null
-        )
     ), classificados as (
       select base.*,
         case

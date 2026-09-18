@@ -8,6 +8,7 @@ import {
 } from '@/lib/crm'
 import { Cabecalho } from './cabecalho'
 import { ListaLeads } from './lista'
+import { Pipeline } from './pipeline'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,7 +24,7 @@ export const dynamic = 'force-dynamic'
  * estágio, lido de `bio_ofertas` a cada consulta. Ver `lib/crm.ts`.
  */
 
-type Filtro = { q?: string; estagio?: string; fonte?: string; hoje?: string }
+type Filtro = { q?: string; estagio?: string; fonte?: string; hoje?: string; visao?: string }
 
 /** Troca um parâmetro preservando os outros — os filtros se somam. */
 function comFiltro(atual: Filtro, mudanca: Filtro): string {
@@ -249,6 +250,11 @@ export default async function CRM({ searchParams }: { searchParams: Promise<Filt
         </>
       )}
 
+      <div className="mb-2 flex justify-end gap-1">
+        <Link href={comFiltro(filtro, { visao: '' })} className={`rounded-md border px-2.5 py-1 text-xs ${filtro.visao !== 'pipeline' ? 'border-borda-forte bg-painel-2' : 'border-borda text-texto-fraco'}`}>Lista</Link>
+        <Link href={comFiltro(filtro, { visao: 'pipeline' })} className={`rounded-md border px-2.5 py-1 text-xs ${filtro.visao === 'pipeline' ? 'border-borda-forte bg-painel-2' : 'border-borda text-texto-fraco'}`}>Pipeline</Link>
+      </div>
+
       <Card>
         {/* ------------------------------------------------------------------
             As abas são renderizadas AQUI, no servidor, e descem como prop para
@@ -260,7 +266,7 @@ export default async function CRM({ searchParams }: { searchParams: Promise<Filt
             O estado continua na URL: dá para mandar "olha os do Link School
             parados" por link, e o botão voltar funciona.
             ------------------------------------------------------------------ */}
-        <ListaLeads
+        {filtro.visao === 'pipeline' ? <Pipeline leads={ordenados} /> : <ListaLeads
           leads={ordenados}
           totalGeral={todos.length}
           qInicial={filtro.q ?? ''}
@@ -307,7 +313,7 @@ export default async function CRM({ searchParams }: { searchParams: Promise<Filt
               )}
             </>
           }
-        />
+        />}
       </Card>
     </>
   )

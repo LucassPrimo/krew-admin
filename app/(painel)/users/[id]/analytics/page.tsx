@@ -20,7 +20,6 @@ export default async function Analytics({ params, searchParams }: { params: Prom
     join public.admin_auth_users u on u.id = pp.user_id
     where pp.user_id = ${id}
       and lower(coalesce(u.email, '')) not like 'oferta+%@bekrew.com'
-      and not exists (select 1 from public.bio_ofertas o where o.page_id = pp.id and o.aceita_em is null)
     order by pp.created_at desc limit 1`
   if (!pagina) notFound()
   return <><div className="flex flex-wrap items-center justify-between gap-3"><h1 className="text-lg font-medium">Analytics · @{pagina.slug}</h1><Link href={`/users/${id}`} className="text-sm text-texto-fraco hover:text-texto">voltar ao user</Link></div><AnalyticsAdmin creator={pagina} periodo={periodo} mostrarTodasCidades /></>

@@ -23,6 +23,26 @@ Minha recomendação principal é não tentar resolver isso com mais campos na f
 
 Este documento é a especificação de produto e implementação para aprovação. A reconstrução deve reaproveitar as regras de negócio, proteções, auditoria e componentes que já funcionam; “recriar” não significa descartar comportamento confiável.
 
+### Estado da implementação
+
+Primeira entrega implementada:
+
+- `/users` é a rota oficial, com redirects de `/usuarios` e `/pessoas`;
+- ofertas `oferta+…` e ofertas abertas com e-mail já substituído ficam fora de Users;
+- listagem de Users com etapa, produto, plano, origem, atividade e próxima ação;
+- ficha 360 inicial com alertas, jornada, produto e timeline comprovável;
+- analytics ligado à ficha do User;
+- página inicial com fila operacional acionável;
+- CRM considera leads sem próxima ação na fila Hoje e possui lista + pipeline;
+- Ofertas possui filas abertas, sem convite, sem resposta e aceitas;
+- aceite liga CRM e Oferta ao User;
+- assinaturas e e-mails possuem filtros operacionais;
+- busca global encontra users, leads e ofertas;
+- navegação reorganizada em Aquisição, Clientes, Operação, Insights e Plataforma;
+- métricas centrais, risco e assinaturas excluem contas de oferta.
+
+Próximas entregas previstas neste documento: responsável do lead, atividades tipadas, mesclagem de duplicados, eventos explícitos de jornada e permissões administrativas por papel. Essas partes exigem evolução do schema `admin_crm` e devem entrar com migration própria, sem alterar silenciosamente um banco já instalado.
+
 ---
 
 ## Arquitetura proposta para todo o admin

@@ -15,16 +15,24 @@ export const dynamic = 'force-dynamic'
  * painel que consultasse o Chargefy ao vivo mostraria a verdade da cobrança e
  * esconderia o bug do webhook — que é justamente o que você precisa achar.
  */
-export default async function Assinaturas() {
-  const linhas = await assinaturas()
+export default async function Assinaturas({ searchParams }: { searchParams: Promise<{ filtro?: string }> }) {
+  const { filtro = 'todos' } = await searchParams
+  const todas = await assinaturas()
 
   const agora = Date.now()
-  const pagos = linhas.filter((l) => l.status === 'active').length
-  const emTeste = linhas.filter(
+  const pagos = todas.filter((l) => l.status === 'active').length
+  const emTeste = todas.filter(
     (l) => l.trial_ends_at && new Date(l.trial_ends_at).getTime() > agora && l.status !== 'active',
   ).length
-  const atrasados = linhas.filter((l) => l.status === 'past_due').length
-  const cancelando = linhas.filter((l) => l.cancel_at_period_end).length
+  const atrasados = todas.filter((l) => l.status === 'past_due').length
+  const cancelando = todas.filter((l) => l.cancel_at_period_end).length
+  const linhas = todas.filter((l) =>
+    filtro === 'trial' ? Boolean(l.trial_ends_at && new Date(l.trial_ends_at).getTime() > agora && l.status !== 'active')
+      : filtro === 'atrasado' ? l.status === 'past_due'
+        : filtro === 'pagantes' ? l.status === 'active'
+          : filtro === 'cancelando' ? l.cancel_at_period_end
+            : true,
+  )
 
   return (
     <>
@@ -36,6 +44,17 @@ export default async function Assinaturas() {
         <Metrica rotulo="Pagamento atrasado" valor={numero(atrasados)} alerta={atrasados > 0} />
         <Metrica rotulo="Cancelam no fim do período" valor={numero(cancelando)} alerta={cancelando > 0} />
       </section>
+
+      <nav className="mb-4 flex flex-wrap gap-2">
+        {[
+          ['todos', 'Todas', todas.length], ['atrasado', 'Atrasadas', atrasados],
+          ['trial', 'Trials', emTeste], ['cancelando', 'Cancelando', cancelando], ['pagantes', 'Pagantes', pagos],
+        ].map(([valor, rotulo, total]) => (
+          <Link key={String(valor)} href={`/analise/assinaturas?filtro=${valor}`} className={`rounded-full border px-3 py-1.5 text-xs ${filtro === valor ? 'border-borda-forte bg-painel-2' : 'border-borda text-texto-fraco hover:border-borda-forte'}`}>
+            {rotulo} <span className="ml-1 opacity-60">{total}</span>
+          </Link>
+        ))}
+      </nav>
 
       <Card>
         <p className="mb-3 text-xs text-texto-fraco">

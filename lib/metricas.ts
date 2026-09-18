@@ -33,11 +33,6 @@ export async function topo(): Promise<Topo> {
       from public.profiles p
       join public.admin_auth_users u on u.id = p.id
       where lower(coalesce(u.email, '')) not like 'oferta+%@bekrew.com'
-        and not exists (
-          select 1 from public.bio_ofertas o
-          join public.proposal_pages op on op.id = o.page_id
-          where op.user_id = p.id and o.aceita_em is null
-        )
     )
     select
       (select count(*) from users_reais where created_at > now() - interval '7 days')::int  as cadastros_7d,
@@ -65,7 +60,10 @@ export async function topo(): Promise<Topo> {
       (select sum(valor) from public.receivables
         where status <> 'pago' and data_prevista < current_date) as a_receber_vencido,
 
-      (select count(*) from public.bio_ofertas where aceita_em is null)::int as ofertas_abertas
+      (select count(*) from public.bio_ofertas o
+        join public.proposal_pages pp on pp.id = o.page_id
+        join public.admin_auth_users u on u.id = pp.user_id
+        where lower(coalesce(u.email, '')) like 'oferta+%@bekrew.com')::int as ofertas_abertas
   `
   return linha
 }
@@ -84,10 +82,16 @@ export type PendenciasOperacionais = {
 export async function pendenciasOperacionais(): Promise<PendenciasOperacionais> {
   const [linha] = await dbRO<PendenciasOperacionais[]>`
     select
-      (select count(*) from public.bio_ofertas
-       where aceita_em is null and convite_enviado_em is null)::int as ofertas_sem_convite,
-      (select count(*) from public.bio_ofertas
-       where aceita_em is null and convite_enviado_em < now() - interval '5 days')::int as convites_sem_resposta,
+      (select count(*) from public.bio_ofertas o
+       join public.proposal_pages pp on pp.id = o.page_id
+       join public.admin_auth_users u on u.id = pp.user_id
+       where lower(coalesce(u.email, '')) like 'oferta+%@bekrew.com'
+         and o.convite_enviado_em is null)::int as ofertas_sem_convite,
+      (select count(*) from public.bio_ofertas o
+       join public.proposal_pages pp on pp.id = o.page_id
+       join public.admin_auth_users u on u.id = pp.user_id
+       where lower(coalesce(u.email, '')) like 'oferta+%@bekrew.com'
+         and o.convite_enviado_em < now() - interval '5 days')::int as convites_sem_resposta,
       (select count(*) from public.subscriptions s
        join public.admin_auth_users u on u.id = s.user_id
        where s.trial_ends_at between now() and now() + interval '3 days'
@@ -109,7 +113,11 @@ export async function cadastrosPorDia(dias = 30): Promise<PontoDia[]> {
     select to_char(d.dia, 'DD/MM') as dia,
            coalesce(count(p.id), 0)::int as total
     from generate_series(current_date - ${dias}::int, current_date, '1 day') d(dia)
-    left join public.profiles p on date(p.created_at) = d.dia
+    left join (
+      select p.* from public.profiles p
+      join public.admin_auth_users u on u.id = p.id
+      where lower(coalesce(u.email, '')) not like 'oferta+%@bekrew.com'
+    ) p on date(p.created_at) = d.dia
     group by d.dia order by d.dia
   `
 }
@@ -118,10 +126,11 @@ export type PassoFunil = { passo: number; contas: number }
 
 export async function funilOnboarding(): Promise<PassoFunil[]> {
   return dbRO<PassoFunil[]>`
-    select onboarding_step as passo, count(*)::int as contas
-    from public.profiles
-    where onboarding_step is not null
-    group by onboarding_step order by onboarding_step
+    select p.onboarding_step as passo, count(*)::int as contas
+    from public.profiles p join public.admin_auth_users u on u.id = p.id
+    where p.onboarding_step is not null
+      and lower(coalesce(u.email, '')) not like 'oferta+%@bekrew.com'
+    group by p.onboarding_step order by p.onboarding_step
   `
 }
 
@@ -131,7 +140,8 @@ export async function comoConheceu(): Promise<ComoConheceu[]> {
   return dbRO<ComoConheceu[]>`
     select coalesce(nullif(onboarding_data->>'como_conheceu',''), 'não informou') as origem,
            count(*)::int as total
-    from public.profiles
+    from public.profiles p join public.admin_auth_users u on u.id = p.id
+    where lower(coalesce(u.email, '')) not like 'oferta+%@bekrew.com'
     group by 1 order by 2 desc
   `
 }
@@ -152,6 +162,8 @@ export async function assinaturas(): Promise<LinhaAssinatura[]> {
            s.current_period_end, s.cancel_at_period_end, s.updated_at
     from public.subscriptions s
     left join public.profiles p on p.id = s.user_id
+    join public.admin_auth_users u on u.id = s.user_id
+    where lower(coalesce(u.email, '')) not like 'oferta+%@bekrew.com'
     order by
       -- Quem precisa de atenção primeiro: pagamento em atraso, depois trial
       -- vencendo, depois o resto.
@@ -166,16 +178,25 @@ export type Ativacao = { marco: string; contas: number }
 
 export async function ativacao(): Promise<Ativacao[]> {
   return dbRO<Ativacao[]>`
-    select 'criou 1ª marca' as marco, count(distinct user_id)::int as contas from public.brands
+    with users_reais as (
+      select p.id from public.profiles p join public.admin_auth_users u on u.id = p.id
+      where lower(coalesce(u.email, '')) not like 'oferta+%@bekrew.com'
+    )
+    select 'criou 1ª marca' as marco, count(distinct b.user_id)::int as contas
+      from public.brands b join users_reais u on u.id = b.user_id
     union all
-    select 'publicou a bio', count(distinct user_id)::int from public.proposal_pages where bio_ativo
+    select 'publicou a bio', count(distinct p.user_id)::int
+      from public.proposal_pages p join users_reais u on u.id = p.user_id where p.bio_ativo
     union all
-    select 'recebeu 1ª proposta', count(distinct creator_id)::int from public.partnership_proposals
+    select 'recebeu 1ª proposta', count(distinct x.creator_id)::int
+      from public.partnership_proposals x join users_reais u on u.id = x.creator_id
     union all
-    select 'abriu 1ª campanha', count(distinct user_id)::int from public.campaigns
+    select 'abriu 1ª campanha', count(distinct c.user_id)::int
+      from public.campaigns c join users_reais u on u.id = c.user_id
     union all
     select 'registrou 1º recebível', count(distinct c.user_id)::int
       from public.receivables r join public.campaigns c on c.id = r.campaign_id
+      join users_reais u on u.id = c.user_id
   `
 }
 
@@ -203,11 +224,6 @@ export async function contasEmRisco(): Promise<ContaEmRisco[]> {
       from public.profiles p
       join public.admin_auth_users u on u.id = p.id
       where lower(coalesce(u.email, '')) not like 'oferta+%@bekrew.com'
-        and not exists (
-          select 1 from public.bio_ofertas o
-          join public.proposal_pages op on op.id = o.page_id
-          where op.user_id = p.id and o.aceita_em is null
-        )
     )
     select id, full_name as nome, created_at as criado_em,
            nullif(ultima, 'epoch') as ultima_atividade,

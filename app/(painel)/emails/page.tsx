@@ -10,7 +10,8 @@ export const dynamic = 'force-dynamic'
  * Uma falha aqui é silenciosa para você e barulhenta para o cliente: a marca
  * mandou proposta e não recebeu confirmação, e quem descobre é ele.
  */
-export default async function Emails() {
+export default async function Emails({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
+  const { status = 'todos' } = await searchParams
   const [resumo, falhas, recentes] = await Promise.all([
     dbRO<{ status: string; total: number }[]>`
       select status, count(*)::int as total from public.email_logs
@@ -20,7 +21,8 @@ export default async function Emails() {
       where status = 'failed' order by created_at desc limit 30`,
     dbRO<{ id: string; type: string; status: string; created_at: string }[]>`
       select id, type, status, created_at from public.email_logs
-      order by created_at desc limit 40`,
+      where (${status} = 'todos' or status = ${status})
+      order by created_at desc limit 100`,
   ])
 
   const total = resumo.reduce((s, r) => s + r.total, 0)
@@ -40,7 +42,12 @@ export default async function Emails() {
         />
       </section>
 
-      {falhas.length > 0 && (
+      <nav className="mb-4 flex flex-wrap gap-2">
+        <a href="/emails" className={`rounded-full border px-3 py-1.5 text-xs ${status === 'todos' ? 'border-borda-forte bg-painel-2' : 'border-borda text-texto-fraco'}`}>Todos {total}</a>
+        {resumo.map((r) => <a key={r.status} href={`/emails?status=${encodeURIComponent(r.status)}`} className={`rounded-full border px-3 py-1.5 text-xs ${status === r.status ? 'border-borda-forte bg-painel-2' : 'border-borda text-texto-fraco'}`}>{r.status} {r.total}</a>)}
+      </nav>
+
+      {falhas.length > 0 && (status === 'todos' || status === 'failed') && (
         <Card className="mb-4">
           <h2 className="mb-3 text-sm font-medium">Falhas — com a resposta do provedor</h2>
           <table className="densa">
