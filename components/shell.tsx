@@ -38,13 +38,26 @@ function montarGrupos(c: Contadores): GrupoNav[] {
       ],
     },
     {
-      titulo: 'Operação',
+      titulo: 'Aquisição',
       itens: [
         { href: '/crm', titulo: 'CRM', icone: Contact, badge: c.crmParaHoje },
         { href: '/ofertas', titulo: 'Ofertas de bio', icone: Send, badge: c.ofertasAbertas },
+      ],
+    },
+    {
+      titulo: 'Clientes',
+      itens: [
         { href: '/users', titulo: 'Users', icone: Users },
+        { href: '/analise/assinaturas', titulo: 'Assinaturas', icone: CreditCard },
         { href: '/verificados', titulo: 'Verificados', icone: BadgeCheck },
+      ],
+    },
+    {
+      titulo: 'Operação',
+      itens: [
         { href: '/emails', titulo: 'E-mails', icone: Mail, badge: c.emailsComFalha },
+        { href: '/integridade', titulo: 'Integridade', icone: ShieldCheck },
+        { href: '/auditoria', titulo: 'Auditoria', icone: ScrollText },
       ],
     },
     {
@@ -54,7 +67,6 @@ function montarGrupos(c: Contadores): GrupoNav[] {
           titulo: 'Relatórios',
           icone: TrendingUp,
           filhos: [
-            { href: '/analise/assinaturas', titulo: 'Assinaturas', icone: CreditCard },
             { href: '/analise/aquisicao', titulo: 'Aquisição', icone: Activity },
             { href: '/analise/uso', titulo: 'Uso do produto', icone: Gauge },
             { href: '/analise/retencao', titulo: 'Retenção', icone: UserRound },
@@ -75,9 +87,7 @@ function montarGrupos(c: Contadores): GrupoNav[] {
             { href: '/dados/proposal_pages', titulo: 'Páginas / bio', icone: BadgeCheck },
           ],
         },
-        { href: '/integridade', titulo: 'Integridade', icone: ShieldCheck },
         { href: '/sql', titulo: 'Console SQL', icone: Terminal },
-        { href: '/auditoria', titulo: 'Auditoria', icone: ScrollText },
       ],
     },
   ]
@@ -88,14 +98,14 @@ const RODAPE: ItemNav[] = [{ titulo: 'Sair', icone: LogOut, acao: 'sair' }]
 /** Tudo que a paleta de comandos alcança, achatado. */
 const DESTINOS: { href: string; titulo: string; icone: typeof Search; contexto: string }[] = [
   { href: '/', titulo: 'Visão geral', icone: LayoutDashboard, contexto: '' },
-  { href: '/crm', titulo: 'CRM de prospecção', icone: Contact, contexto: 'Operação' },
-  { href: '/crm/importar', titulo: 'Importar planilha de leads', icone: Contact, contexto: 'Operação' },
-  { href: '/ofertas', titulo: 'Ofertas de bio', icone: Send, contexto: 'Operação' },
-  { href: '/ofertas/nova', titulo: 'Nova oferta de bio', icone: Send, contexto: 'Operação' },
+  { href: '/crm', titulo: 'CRM de prospecção', icone: Contact, contexto: 'Aquisição' },
+  { href: '/crm/importar', titulo: 'Importar planilha de leads', icone: Contact, contexto: 'Aquisição' },
+  { href: '/ofertas', titulo: 'Ofertas de bio', icone: Send, contexto: 'Aquisição' },
+  { href: '/ofertas/nova', titulo: 'Nova oferta de bio', icone: Send, contexto: 'Aquisição' },
   { href: '/users', titulo: 'Users', icone: Users, contexto: 'Clientes' },
-  { href: '/verificados', titulo: 'Verificados', icone: BadgeCheck, contexto: 'Operação' },
+  { href: '/verificados', titulo: 'Verificados', icone: BadgeCheck, contexto: 'Clientes' },
   { href: '/emails', titulo: 'E-mails', icone: Mail, contexto: 'Operação' },
-  { href: '/analise/assinaturas', titulo: 'Assinaturas', icone: CreditCard, contexto: 'Análise' },
+  { href: '/analise/assinaturas', titulo: 'Assinaturas', icone: CreditCard, contexto: 'Clientes' },
   { href: '/analise/aquisicao', titulo: 'Aquisição', icone: Activity, contexto: 'Análise' },
   { href: '/analise/uso', titulo: 'Uso do produto', icone: Gauge, contexto: 'Análise' },
   { href: '/analise/retencao', titulo: 'Retenção', icone: UserRound, contexto: 'Análise' },

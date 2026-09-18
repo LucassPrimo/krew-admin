@@ -72,6 +72,7 @@ export type LinhaLead = {
   whatsapp: string | null
   handle_pretendido: string | null
   page_id: string | null
+  user_id: string | null
   estagio: EstagioManual
   perdido_em: string | null
   motivo_perda: string | null

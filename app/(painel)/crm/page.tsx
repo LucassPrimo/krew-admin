@@ -66,8 +66,10 @@ export default async function CRM({ searchParams }: { searchParams: Promise<Filt
   ])
   const funil = montarFunil(todos)
 
-  const paraHoje = todos.filter(vencido)
   const abertos = todos.filter((l) => l.estagioEfetivo !== 'aceito' && l.estagioEfetivo !== 'perdido')
+  // Sem próxima ação também é trabalho pendente. Antes esses leads nunca
+  // venciam e por isso podiam desaparecer da rotina para sempre.
+  const paraHoje = abertos.filter((l) => vencido(l) || !l.proximo_contato)
   const aceitos = todos.filter((l) => l.estagioEfetivo === 'aceito')
 
   // As abas filtram aqui; o TEXTO não. A busca virou instantânea e mora no
@@ -77,13 +79,16 @@ export default async function CRM({ searchParams }: { searchParams: Promise<Filt
   const leads = todos.filter((l) => {
     if (filtro.estagio && l.estagioEfetivo !== filtro.estagio) return false
     if (filtro.fonte && (l.fonte?.trim() || 'sem fonte') !== filtro.fonte) return false
-    if (filtro.hoje === '1' && !vencido(l)) return false
+    if (filtro.hoje === '1' && !(vencido(l) || (!l.proximo_contato && l.estagioEfetivo !== 'aceito' && l.estagioEfetivo !== 'perdido'))) return false
     return true
   })
 
   // Os vencidos sobem. A ordem do banco é por criação, que é a certa para
   // "quem chegou por último"; a pergunta desta tela é outra.
-  const ordenados = [...leads].sort((a, b) => Number(vencido(b)) - Number(vencido(a)))
+  const ordenados = [...leads].sort((a, b) => {
+    const prioridade = (l: typeof a) => vencido(l) ? 0 : !l.proximo_contato ? 1 : 2
+    return prioridade(a) - prioridade(b)
+  })
 
   return (
     <>
@@ -120,7 +125,7 @@ export default async function CRM({ searchParams }: { searchParams: Promise<Filt
             <Metrica rotulo="Na fila" valor={numero(abertos.length)} nota="nem aceitos nem perdidos" />
             <Metrica
               rotulo="Follow-up vencido" valor={numero(paraHoje.length)}
-              nota="falar hoje" alerta={paraHoje.length > 0}
+              nota="vencidos ou sem próxima ação" alerta={paraHoje.length > 0}
             />
             <Metrica rotulo="Aceitos" valor={numero(aceitos.length)} nota="viraram conta" />
             <Metrica
@@ -276,7 +281,7 @@ export default async function CRM({ searchParams }: { searchParams: Promise<Filt
                 ativa={filtro.hoje === '1'}
                 quantos={paraHoje.length}
               >
-                Falar hoje
+                Hoje
               </Aba>
 
               <span aria-hidden className="mx-1 h-4 w-px bg-borda" />

@@ -121,10 +121,8 @@ export default async function Ofertas({ searchParams }: { searchParams: Promise<
                   </td>
                   <td className="tabular-nums">{numero(o.cliques)}</td>
                   <td>
-                    <Link href={`/ofertas/${o.page_id}`} className="text-acento hover:underline">
-                      abrir
-                    </Link>
-                    <Link href={`/ofertas/${o.page_id}/analytics`} className="ml-3 text-acento hover:underline">Analytics</Link>
+                    <Link href={`/users/${o.user_id}`} className="text-acento hover:underline">abrir user</Link>
+                    <Link href={`/ofertas/${o.page_id}`} className="ml-3 text-acento hover:underline">ver oferta</Link>
                   </td>
                 </tr>
               ))}

@@ -19,9 +19,11 @@ export default async function VisaoGeral() {
   const [t, marcos, risco, pendencias, leads] = await Promise.all([
     topo(), ativacao(), contasEmRisco(), pendenciasOperacionais(), listarLeads(),
   ])
-  const hoje = leads.filter(vencido)
+  const hoje = leads.filter((l) =>
+    l.estagioEfetivo !== 'aceito' && l.estagioEfetivo !== 'perdido' && (vencido(l) || !l.proximo_contato),
+  )
   const fila = [
-    { titulo: 'Follow-ups vencidos', n: hoje.length, href: '/crm?hoje=1', tom: 'perigo' as const, acao: 'Falar hoje' },
+    { titulo: 'CRM para hoje', n: hoje.length, href: '/crm?hoje=1', tom: 'perigo' as const, acao: 'Vencidos ou sem próxima ação' },
     { titulo: 'Ofertas sem convite', n: pendencias.ofertas_sem_convite, href: '/ofertas?fila=sem_convite', tom: 'aviso' as const, acao: 'Revisar e enviar' },
     { titulo: 'Convites sem resposta', n: pendencias.convites_sem_resposta, href: '/ofertas?fila=sem_resposta', tom: 'aviso' as const, acao: 'Fazer follow-up' },
     { titulo: 'Trials terminando', n: pendencias.trials_terminando, href: '/analise/assinaturas?filtro=trial', tom: 'aviso' as const, acao: 'Ver users' },

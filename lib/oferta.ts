@@ -430,6 +430,7 @@ export async function excluirOferta(
 
 export type OfertaListada = {
   page_id: string
+  user_id: string
   slug: string
   nome: string | null
   criada_em: string
@@ -441,7 +442,7 @@ export type OfertaListada = {
 
 export async function listarOfertas(): Promise<OfertaListada[]> {
   return dbRO<OfertaListada[]>`
-    select o.page_id, p.slug, pr.full_name as nome, o.criada_em,
+    select o.page_id, p.user_id, p.slug, pr.full_name as nome, o.criada_em,
            o.email_convite, o.convite_enviado_em, o.aceita_em,
            coalesce((select sum(l.cliques) from public.creator_links l
                      where l.user_id = p.user_id), 0)::int as cliques

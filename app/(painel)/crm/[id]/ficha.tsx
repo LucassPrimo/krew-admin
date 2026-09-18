@@ -162,6 +162,14 @@ export function Ficha({
                   >
                     editar a oferta
                   </Link>
+                  {lead.aceita_em && lead.user_id && (
+                    <Link
+                      href={`/users/${lead.user_id}`}
+                      className="rounded-full bg-acento px-3 py-1.5 text-xs font-medium text-fundo"
+                    >
+                      abrir user
+                    </Link>
+                  )}
                   {podeEscrever && (
                     <button
                       type="button" disabled={pendente}

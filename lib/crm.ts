@@ -64,6 +64,7 @@ export async function crmInstalado(): Promise<boolean> {
 const SELECT_LEADS = `
   select l.*,
          p.slug,
+         p.user_id,
          o.criada_em as oferta_criada_em,
          o.convite_enviado_em,
          o.aceita_em,
@@ -141,8 +142,7 @@ export async function leadsParaHoje(): Promise<number> {
     left join public.bio_ofertas o on o.page_id = l.page_id
     where l.perdido_em is null
       and o.aceita_em is null
-      and l.proximo_contato is not null
-      and l.proximo_contato <= current_date
+      and (l.proximo_contato is null or l.proximo_contato <= current_date)
   `
   return linha?.n ?? 0
 }
