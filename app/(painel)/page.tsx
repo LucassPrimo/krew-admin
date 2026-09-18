@@ -24,8 +24,8 @@ export default async function VisaoGeral() {
   )
   const fila = [
     { titulo: 'CRM para hoje', n: hoje.length, href: '/crm?hoje=1', tom: 'perigo' as const, acao: 'Vencidos ou sem próxima ação' },
-    { titulo: 'Ofertas sem convite', n: pendencias.ofertas_sem_convite, href: '/ofertas?fila=sem_convite', tom: 'aviso' as const, acao: 'Revisar e enviar' },
-    { titulo: 'Convites sem resposta', n: pendencias.convites_sem_resposta, href: '/ofertas?fila=sem_resposta', tom: 'aviso' as const, acao: 'Fazer follow-up' },
+    { titulo: 'Ofertas sem convite', n: pendencias.ofertas_sem_convite, href: '/crm/ofertas?fila=sem_convite', tom: 'aviso' as const, acao: 'Revisar e enviar' },
+    { titulo: 'Convites sem resposta', n: pendencias.convites_sem_resposta, href: '/crm/ofertas?fila=sem_resposta', tom: 'aviso' as const, acao: 'Fazer follow-up' },
     { titulo: 'Trials terminando', n: pendencias.trials_terminando, href: '/analise/assinaturas?filtro=trial', tom: 'aviso' as const, acao: 'Ver users' },
     { titulo: 'Pagamentos atrasados', n: pendencias.pagamentos_atrasados, href: '/analise/assinaturas?filtro=atrasado', tom: 'perigo' as const, acao: 'Resolver' },
     { titulo: 'Falhas de e-mail', n: pendencias.emails_com_falha, href: '/emails?status=failed', tom: 'perigo' as const, acao: 'Investigar' },

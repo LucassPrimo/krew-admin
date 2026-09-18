@@ -121,7 +121,7 @@ export function FormularioNovaOferta({
             a prévia real ao lado.
           </p>
         </div>
-        <Link href="/ofertas" className="text-sm text-muted-foreground hover:text-foreground">
+        <Link href="/crm/ofertas" className="text-sm text-muted-foreground hover:text-foreground">
           voltar
         </Link>
       </div>

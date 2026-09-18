@@ -170,7 +170,7 @@ export function BlocoOferta({
                       const r = await acaoExcluirOferta(pageId, confirmacao)
                       // Sem mensagem de sucesso: a tela que a mostraria acabou
                       // de deixar de existir. A lista é o recibo.
-                      if (r.ok) router.replace('/ofertas')
+                      if (r.ok) router.replace('/crm/ofertas')
                       else setMsg({ tom: 'erro', texto: r.erro ?? 'Falhou.' })
                     })
                   }}

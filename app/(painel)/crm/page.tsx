@@ -138,7 +138,7 @@ export default async function CRM({ searchParams }: { searchParams: Promise<Filt
             />
           </section>
 
-          <div className="mb-4 grid gap-4 lg:grid-cols-2">
+          {filtro.visao === 'lista' && <div className="mb-4 grid gap-4 lg:grid-cols-2">
             {/* ----------------------------------------------------------
                 O funil como BARRAS, e não como seis caixas de número: o
                 que a tela precisa mostrar é a queda entre dois degraus, e
@@ -248,13 +248,13 @@ export default async function CRM({ searchParams }: { searchParams: Promise<Filt
                 </table>
               )}
             </Card>
-          </div>
+          </div>}
         </>
       )}
 
       <div className="mb-2 flex justify-end gap-1">
-        <Link href={comFiltro(filtro, { visao: '' })} className={`rounded-md border px-2.5 py-1 text-xs ${filtro.visao !== 'pipeline' ? 'border-borda-forte bg-painel-2' : 'border-borda text-texto-fraco'}`}>Lista</Link>
-        <Link href={comFiltro(filtro, { visao: 'pipeline' })} className={`rounded-md border px-2.5 py-1 text-xs ${filtro.visao === 'pipeline' ? 'border-borda-forte bg-painel-2' : 'border-borda text-texto-fraco'}`}>Pipeline</Link>
+        <Link href={comFiltro(filtro, { visao: '' })} className={`rounded-md border px-2.5 py-1 text-xs ${filtro.visao !== 'lista' ? 'border-borda-forte bg-painel-2' : 'border-borda text-texto-fraco'}`}>Kanban</Link>
+        <Link href={comFiltro(filtro, { visao: 'lista' })} className={`rounded-md border px-2.5 py-1 text-xs ${filtro.visao === 'lista' ? 'border-borda-forte bg-painel-2' : 'border-borda text-texto-fraco'}`}>Lista e relatórios</Link>
       </div>
 
       <Card>
@@ -268,7 +268,7 @@ export default async function CRM({ searchParams }: { searchParams: Promise<Filt
             O estado continua na URL: dá para mandar "olha os do Link School
             parados" por link, e o botão voltar funciona.
             ------------------------------------------------------------------ */}
-        {filtro.visao === 'pipeline' ? <Pipeline leads={ordenados} /> : <ListaLeads
+        {filtro.visao !== 'lista' ? <Pipeline leads={ordenados} /> : <ListaLeads
           leads={ordenados}
           totalGeral={todos.length}
           qInicial={filtro.q ?? ''}

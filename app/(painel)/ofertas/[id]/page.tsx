@@ -95,7 +95,7 @@ export default async function EditorDaOferta({ params }: { params: Promise<{ id:
           )}
         </div>
         <Link href={`/ofertas/${id}/analytics`} className="text-sm text-acento hover:underline">Ver Analytics</Link>
-        <Link href="/ofertas" className="text-sm text-muted-foreground hover:text-foreground">
+        <Link href="/crm/ofertas" className="text-sm text-muted-foreground hover:text-foreground">
           voltar
         </Link>
       </div>

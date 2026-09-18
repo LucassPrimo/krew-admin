@@ -197,7 +197,7 @@ export function Ficha({
                 <div className="flex flex-wrap items-center gap-2">
                   {podeEscrever && (
                     <Link
-                      href={`/ofertas/nova?lead=${lead.id}&nome=${encodeURIComponent(lead.nome)}${
+                      href={`/crm/ofertas/nova?lead=${lead.id}&nome=${encodeURIComponent(lead.nome)}${
                         handle ? `&slug=${encodeURIComponent(handle)}` : ''
                       }`}
                       className="rounded-md bg-acento px-3 py-1.5 text-sm font-medium text-fundo"

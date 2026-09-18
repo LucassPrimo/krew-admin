@@ -41,7 +41,6 @@ function montarGrupos(c: Contadores): GrupoNav[] {
       titulo: 'Aquisição',
       itens: [
         { href: '/crm', titulo: 'CRM', icone: Contact, badge: c.crmParaHoje },
-        { href: '/ofertas', titulo: 'Ofertas de bio', icone: Send, badge: c.ofertasAbertas },
       ],
     },
     {
@@ -100,8 +99,8 @@ const DESTINOS: { href: string; titulo: string; icone: typeof Search; contexto: 
   { href: '/', titulo: 'Visão geral', icone: LayoutDashboard, contexto: '' },
   { href: '/crm', titulo: 'CRM de prospecção', icone: Contact, contexto: 'Aquisição' },
   { href: '/crm/importar', titulo: 'Importar planilha de leads', icone: Contact, contexto: 'Aquisição' },
-  { href: '/ofertas', titulo: 'Ofertas de bio', icone: Send, contexto: 'Aquisição' },
-  { href: '/ofertas/nova', titulo: 'Nova oferta de bio', icone: Send, contexto: 'Aquisição' },
+  { href: '/crm/ofertas', titulo: 'Ofertas de bio', icone: Send, contexto: 'CRM' },
+  { href: '/crm/ofertas/nova', titulo: 'Nova oferta de bio', icone: Send, contexto: 'CRM' },
   { href: '/users', titulo: 'Users', icone: Users, contexto: 'Clientes' },
   { href: '/verificados', titulo: 'Verificados', icone: BadgeCheck, contexto: 'Clientes' },
   { href: '/emails', titulo: 'E-mails', icone: Mail, contexto: 'Operação' },
