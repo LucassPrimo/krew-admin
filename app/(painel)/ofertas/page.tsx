@@ -5,6 +5,7 @@ import { escritaLigada } from '@/lib/env'
 import { ofertasDisponiveis } from '@/lib/env'
 import { numero, relativo } from '@/lib/format'
 import { listarOfertas } from '@/lib/oferta'
+import { CrmNav } from '@/components/crm/nav'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,10 +27,11 @@ export default async function Ofertas({ searchParams }: { searchParams: Promise<
 
   return (
     <>
+      <CrmNav ofertasAbertas={abertas.length} />
       <Titulo
         acao={
           <Link
-            href="/ofertas/nova"
+            href="/crm/ofertas/nova"
             className="rounded-md bg-acento px-3 py-1.5 text-sm font-medium text-fundo"
           >
             Nova oferta
@@ -66,7 +68,7 @@ export default async function Ofertas({ searchParams }: { searchParams: Promise<
           ['sem_resposta', 'Sem resposta', semResposta.length],
         ].map(([valor, rotulo, total]) => (
           <Link
-            key={String(valor)} href={`/ofertas?fila=${valor}`}
+            key={String(valor)} href={`/crm/ofertas?fila=${valor}`}
             className={`rounded-full border px-3 py-1.5 text-xs ${fila === valor ? 'border-borda-forte bg-painel-2 text-texto' : 'border-borda text-texto-fraco hover:border-borda-forte'}`}
           >
             {rotulo} <span className="ml-1 tabular-nums opacity-60">{total}</span>

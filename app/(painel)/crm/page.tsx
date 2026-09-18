@@ -9,6 +9,7 @@ import {
 import { Cabecalho } from './cabecalho'
 import { ListaLeads } from './lista'
 import { Pipeline } from './pipeline'
+import { CrmNav } from '@/components/crm/nav'
 
 export const dynamic = 'force-dynamic'
 
@@ -93,6 +94,7 @@ export default async function CRM({ searchParams }: { searchParams: Promise<Filt
 
   return (
     <>
+      <CrmNav ofertasAbertas={todos.filter((l) => l.oferta_criada_em && l.estagioEfetivo !== 'aceito' && l.estagioEfetivo !== 'perdido').length} />
       <Cabecalho
         podeCriar={instalado && escritaLigada}
         fontes={funil.fontes.map((f) => f.fonte).filter((f) => f !== 'sem fonte')}
