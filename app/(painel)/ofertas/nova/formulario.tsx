@@ -103,7 +103,7 @@ export function FormularioNovaOferta({
 
       // Direto para o editor, e não para a lista: a página acabou de nascer e
       // o que você quer agora é ver como ela ficou.
-      router.push(`/ofertas/${r.pageId}`)
+      router.push(`/crm/ofertas/${r.pageId}`)
       router.refresh()
     })
   }

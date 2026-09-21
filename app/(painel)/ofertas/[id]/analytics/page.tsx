@@ -25,7 +25,7 @@ export default async function Analytics({ params, searchParams }: {
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-medium">Analytics · @{pagina.slug}</h1>
-        <Link href={`/ofertas/${id}`} className="text-sm text-texto-fraco hover:text-texto">voltar</Link>
+        <Link href={`/crm/ofertas/${id}`} className="text-sm text-texto-fraco hover:text-texto">voltar</Link>
       </div>
       <AnalyticsAdmin creator={pagina} periodo={periodo} mostrarTodasCidades={true} />
     </>

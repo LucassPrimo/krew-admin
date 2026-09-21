@@ -146,7 +146,7 @@ export async function acaoCriarOferta(form: FormData) {
     { atorId: permissao.ator.id, ...ctx },
   )
 
-  if (resultado.ok) revalidatePath('/ofertas')
+  if (resultado.ok) revalidatePath('/crm/ofertas')
   return resultado
 }
 
@@ -156,7 +156,7 @@ export async function acaoEnviarConvite(pageId: string, email: string) {
 
   const ctx = await contexto()
   const r = await enviarConvite(pageId, email, { atorId: permissao.ator.id, ...ctx })
-  if (r.ok) revalidatePath('/ofertas')
+  if (r.ok) revalidatePath('/crm/ofertas')
   return r
 }
 
@@ -167,7 +167,7 @@ export async function acaoMarcarAceita(pageId: string) {
   const ctx = await contexto()
   try {
     await marcarAceita(pageId, { atorId: permissao.ator.id, ...ctx })
-    revalidatePath('/ofertas')
+    revalidatePath('/crm/ofertas')
     return { ok: true as const }
   } catch (e) {
     return { ok: false as const, erro: (e as Error).message }
@@ -207,7 +207,7 @@ export async function acaoExcluirOferta(pageId: string, slugConfirmado: string) 
   // A tela da oferta deixou de existir; quem volta para ela cai num 404. Só a
   // lista é revalidada — o redirecionamento é do cliente, que sabe se ainda
   // está nela.
-  revalidatePath('/ofertas')
+  revalidatePath('/crm/ofertas')
   return { ok: true as const, slug: r.slug }
 }
 
@@ -246,6 +246,6 @@ export async function acaoSalvarNotas(pageId: string, notas: string) {
     return { ok: false as const, erro: (e as Error).message }
   }
 
-  revalidatePath(`/ofertas/${pageId}`)
+  revalidatePath(`/crm/ofertas/${pageId}`)
   return { ok: true as const }
 }

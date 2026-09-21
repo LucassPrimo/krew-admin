@@ -33,8 +33,8 @@ Primeira entrega implementada:
 - ficha 360 inicial com alertas, jornada, produto e timeline comprovável;
 - analytics ligado à ficha do User;
 - página inicial com fila operacional acionável;
-- CRM considera leads sem próxima ação na fila Hoje e possui lista + pipeline;
-- Ofertas possui filas abertas, sem convite e sem resposta; contas assumidas saem da área;
+- CRM considera leads sem próxima ação na fila Hoje e abre por padrão como Kanban arrastável;
+- Ofertas fica dentro do CRM, com filas abertas, sem convite e sem resposta; contas assumidas saem da área;
 - aceite liga CRM e Oferta ao User;
 - assinaturas e e-mails possuem filtros operacionais;
 - busca global encontra users, leads e ofertas;

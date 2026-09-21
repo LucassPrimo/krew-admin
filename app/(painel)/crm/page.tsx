@@ -268,7 +268,7 @@ export default async function CRM({ searchParams }: { searchParams: Promise<Filt
             O estado continua na URL: dá para mandar "olha os do Link School
             parados" por link, e o botão voltar funciona.
             ------------------------------------------------------------------ */}
-        {filtro.visao !== 'lista' ? <Pipeline leads={ordenados} /> : <ListaLeads
+        {filtro.visao !== 'lista' ? <Pipeline leads={ordenados} podeAgir={escritaLigada} /> : <ListaLeads
           leads={ordenados}
           totalGeral={todos.length}
           qInicial={filtro.q ?? ''}

@@ -157,7 +157,7 @@ export function Ficha({
                     <ExternalLink className="size-3" strokeWidth={1.5} />
                   </a>
                   <Link
-                    href={`/ofertas/${lead.page_id}`}
+                    href={`/crm/ofertas/${lead.page_id}`}
                     className="rounded-full border border-borda px-3 py-1.5 text-xs font-medium transition-colors hover:border-borda-forte"
                   >
                     editar a oferta
