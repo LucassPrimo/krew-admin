@@ -12,14 +12,14 @@ import type { ReactNode } from 'react'
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`rounded-lg border border-borda bg-painel p-4 ${className}`}>{children}</div>
+    <div className={`admin-surface rounded-lg border border-borda bg-painel p-5 ${className}`}>{children}</div>
   )
 }
 
 export function Titulo({ children, acao }: { children: ReactNode; acao?: ReactNode }) {
   return (
-    <div className="mb-4 flex items-baseline justify-between gap-4">
-      <h1 className="text-lg font-medium">{children}</h1>
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+      <h1 className="text-3xl font-semibold tracking-tight">{children}</h1>
       {acao}
     </div>
   )
@@ -30,9 +30,9 @@ export function Metrica({
   rotulo, valor, nota, alerta = false,
 }: { rotulo: string; valor: string; nota?: string; alerta?: boolean }) {
   return (
-    <div className="rounded-lg border border-borda bg-painel p-4">
+    <div className="admin-surface rounded-lg border border-borda bg-painel p-5">
       <div className="text-xs text-texto-fraco">{rotulo}</div>
-      <div className={`mt-1 text-2xl font-medium tabular-nums ${alerta ? 'text-perigo' : ''}`}>
+      <div className={`mt-2 text-3xl font-semibold tracking-tight tabular-nums ${alerta ? 'text-perigo' : ''}`}>
         {valor}
       </div>
       {nota && <div className="mt-1 text-xs text-texto-fraco">{nota}</div>}
@@ -50,7 +50,7 @@ export function Badge({
     perigo: 'border-perigo/40 text-perigo',
   }
   return (
-    <span className={`inline-block rounded-md border px-1.5 py-0.5 text-[11px] ${cores[tom]}`}>
+    <span className={`inline-block rounded-full border px-2 py-0.5 text-[11px] font-medium ${cores[tom]}`}>
       {children}
     </span>
   )

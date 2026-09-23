@@ -180,7 +180,7 @@ export function Shell({
     'Painel'
 
   return (
-    <div className="flex h-screen w-full bg-background overflow-hidden">
+    <div className="admin-shell flex h-dvh w-full bg-background overflow-hidden">
       <div
         className={`h-full transition-all duration-300 ease-in-out shrink-0 overflow-hidden ${
           aberta ? 'w-[260px] opacity-100' : 'w-0 opacity-0'
@@ -196,7 +196,7 @@ export function Shell({
       </div>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 border-b border-border/50 flex items-center px-4 justify-between bg-card shrink-0">
+        <header className="admin-glass z-10 h-16 border-b border-border/50 flex items-center px-4 md:px-6 justify-between shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => setAberta(!aberta)}
@@ -233,7 +233,7 @@ export function Shell({
 
         <AvisoStepUp expiraEm={stepUpExpiraEm} />
 
-        <main className="flex-1 overflow-y-auto p-6 md:p-8">{children}</main>
+        <main className="admin-content flex-1 min-h-0 overflow-y-auto p-4 md:p-8 lg:p-10">{children}</main>
       </div>
 
       {paleta && (

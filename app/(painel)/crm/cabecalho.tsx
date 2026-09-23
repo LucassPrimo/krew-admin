@@ -76,7 +76,7 @@ export function Cabecalho({
   return (
     <>
       <div className="mb-4 flex items-baseline justify-between gap-4">
-        <h1 className="text-lg font-medium">CRM de prospecção</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">CRM</h1>
         {!aberto && (
           <div className="flex items-center gap-2">
             {/* Importar vem ANTES na leitura e depois na ordem visual: é o que
