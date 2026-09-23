@@ -2,7 +2,7 @@
 
 import { useRouter, usePathname } from 'next/navigation'
 import {
-  Activity, BadgeCheck, Blocks, Contact, CreditCard, Database, FileWarning, Gauge,
+  Activity, BadgeCheck, Blocks, Building2, Contact, CreditCard, Database, FileWarning, Gauge,
   LayoutDashboard, LogOut, Mail, PanelLeftClose, PanelLeftOpen, ScrollText,
   Search, Send, ShieldCheck, Terminal, TrendingUp, UserRound, Users, X,
 } from 'lucide-react'
@@ -49,6 +49,7 @@ function montarGrupos(c: Contadores): GrupoNav[] {
         { href: '/users', titulo: 'Users', icone: Users },
         { href: '/analise/assinaturas', titulo: 'Assinaturas', icone: CreditCard },
         { href: '/verificados', titulo: 'Verificados', icone: BadgeCheck },
+        { href: '/marcas', titulo: 'Marcas e assessorias', icone: Building2 },
       ],
     },
     {
@@ -103,6 +104,7 @@ const DESTINOS: { href: string; titulo: string; icone: typeof Search; contexto: 
   { href: '/crm/ofertas/nova', titulo: 'Nova oferta de bio', icone: Send, contexto: 'CRM' },
   { href: '/users', titulo: 'Users', icone: Users, contexto: 'Clientes' },
   { href: '/verificados', titulo: 'Verificados', icone: BadgeCheck, contexto: 'Clientes' },
+  { href: '/marcas', titulo: 'Marcas e assessorias', icone: Building2, contexto: 'Clientes' },
   { href: '/emails', titulo: 'E-mails', icone: Mail, contexto: 'Operação' },
   { href: '/analise/assinaturas', titulo: 'Assinaturas', icone: CreditCard, contexto: 'Clientes' },
   { href: '/analise/aquisicao', titulo: 'Aquisição', icone: Activity, contexto: 'Análise' },
