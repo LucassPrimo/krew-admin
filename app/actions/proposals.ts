@@ -263,23 +263,6 @@ export async function acceptProposal(proposalId: string) {
     .single()
   if (campaignError) return { error: campaignError.message }
 
-  // Contrato em RASCUNHO com o que a marca já declarou no formulário público
-  // (Bloco 7.4). Nasce rascunho de propósito: o criador revisa e só então
-  // manda assinar. Falha aqui não desfaz a campanha — o contrato pode ser
-  // criado à mão depois, e perder a campanha por causa dele seria pior.
-  if (campanhaCriada?.id) {
-    const { error: contratoError } = await supabase.from('contracts').insert({
-      org_id: orgId,
-      campaign_id: campanhaCriada.id,
-      brand_id: brand.id,
-      titulo: proposal.brand_name || proposal.brand_instagram_handle || null,
-      usage_rights: proposal.usage_rights ?? [],
-      usage_period_months: proposal.usage_period_months ?? null,
-      status: 'rascunho',
-    })
-    if (contratoError) console.error('acceptProposal: contrato não criado:', contratoError)
-  }
-
   const { error: updateError } = await supabase
     .from('partnership_proposals')
     .update({ status: 'closed', response_sent_at: new Date().toISOString() })

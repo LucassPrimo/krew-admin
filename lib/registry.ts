@@ -315,26 +315,6 @@ export const REGISTRY: Record<string, TabelaAdmin> = {
     },
   },
 
-  contracts: {
-    tabela: 'contracts',
-    rotulo: 'Contratos',
-    chave: 'id',
-    busca: ['titulo', 'signer_name', 'signer_email'],
-    ordem: 'created_at desc',
-    colunas: {
-      id: uuidRO,
-      titulo: { tipo: 'text', editavel: true },
-      status: { tipo: 'enum', editavel: true, perigoso: true, opcoes: ['rascunho', 'enviado', 'assinado', 'cancelado'] },
-      org_id: { tipo: 'uuid', editavel: false },
-      campaign_id: { tipo: 'uuid', editavel: true, perigoso: true },
-      signer_name: { tipo: 'text', editavel: false },
-      signer_email: { tipo: 'text', editavel: false },
-      signed_at: { tipo: 'ts', editavel: false, nota: 'Assinatura é fato jurídico. Não se edita daqui.' },
-      signed_terms_hash: { tipo: 'text', editavel: false },
-      created_at: ts,
-    },
-  },
-
   reserved_slugs: {
     tabela: 'reserved_slugs',
     rotulo: 'Slugs reservados',
